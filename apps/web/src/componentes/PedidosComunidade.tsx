@@ -45,10 +45,9 @@ export function CartaoPedido({ p, destaque, aoOferecer, compacto }: { p: PedidoC
           )}
         </dl>
       )}
+      {!compacto && (!p.necessidades || p.necessidades.length === 0) && <p className="mt-2 text-[13px] text-tinta-suave">Necessidades não informadas ou não compartilhadas. Você ainda pode oferecer apoio, sujeito à avaliação da equipe.</p>}
       {p.ofertasEmAndamento > 0 && <p className="mt-2 text-[13.5px] text-tinta-suave">{p.ofertasEmAndamento} oferta(s) de ajuda em avaliação ou andamento.</p>}
-      {aoOferecer && (p.podeOferecerAjuda
-        ? <Botao className="mt-3 w-full" variante="secundario" onClick={() => aoOferecer(p)}><IcAjudar tamanho={18} /> Oferecer ajuda</Botao>
-        : <p className="mt-2 text-[13px] text-tinta-suave">O solicitante não compartilhou necessidades; ofertas não estão abertas para este pedido.</p>)}
+      {aoOferecer && <Botao className="mt-3 w-full" variante="secundario" onClick={() => aoOferecer(p)}><IcAjudar tamanho={18} /> Oferecer ajuda</Botao>}
     </article>
   )
 }
@@ -71,7 +70,7 @@ export function ResumoRegiao({ r }: { r: RespostaComunidade }) {
 
 /** Oferta de ajuda a um pedido: só depois de ler e aceitar as orientações de segurança. */
 export function FormOferta({ p, aoFechar, aoEnviar }: { p: PedidoComunitario; aoFechar: () => void; aoEnviar: (msg: string) => void }) {
-  const [tipo, setTipo] = useState(SUGESTAO[p.necessidades?.[0]?.codigo ?? ''] ?? 'DoacaoAgua')
+  const [tipo, setTipo] = useState(SUGESTAO[p.necessidades?.[0]?.codigo ?? ''] ?? 'ApoioLogisticoSeguro')
   const [descricao, setDescricao] = useState('')
   const [disponibilidade, setDisponibilidade] = useState('')
   const [contato, setContato] = useState('')
