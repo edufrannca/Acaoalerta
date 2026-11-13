@@ -28,7 +28,10 @@ cd testes-e2e && npm ci && npx playwright install chromium && npx playwright tes
 Ou `./scripts/testar-tudo.sh`. A CI (`.github/workflows/ci.yml`) roda backend e frontend com um serviço PostGIS.
 
 ## Situação do CI (GitHub Actions)
-As execuções de 13/11/2026 **não iniciaram**: os jobs são recusados com *"The job was not started because your account is locked due to a billing issue"* (antes disso, aparecia `startup_failure`). É um bloqueio de cobrança da conta no GitHub, não um erro do workflow ou dos testes. **Não há execução verde no CI**; os números desta página são das execuções locais. Para reativar: resolver a cobrança em *Settings → Billing* da conta dona do repositório e rodar o workflow de novo (*Actions → CI → Re-run*).
+Até 13/11/2026, 14h37, os jobs não iniciavam (*"account is locked due to a billing issue"*) porque o orçamento de Actions da conta estava em US$ 0 com bloqueio de uso. Ajustado o orçamento:
+- 1ª execução: frontend aprovado; backend com **1 falha real**. O teste de voz esperava 400 para texto grande, mas sem `espeak-ng` no CI a API respondia 503 antes de validar. Corrigido: a entrada é validada primeiro.
+- **[Execução 43475377379](https://github.com/edufrannca/Acaoalerta/actions/runs/43475377379): verde.** Backend (209 testes), frontend (tsc, Vitest, build) e `ia-groq` aprovados.
+- `ia-groq` com o modelo real (`openai/gpt-oss-20b`): 10 casos fictícios, todos com esquema válido; 8 itens sem evidência descartados pelo validador; uma chamada com HTTP 429 repetida após 4 s. O relatório fica no artefato `relatorio-ia-groq`.
 
 ## Acessibilidade e desempenho
 - **axe-core (WCAG 2.x A/AA)** nos testes ponta a ponta: sem violações nas telas cobertas.

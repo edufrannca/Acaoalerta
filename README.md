@@ -90,7 +90,9 @@ Limites detalhados em [docs/LIMITACOES.md](docs/LIMITACOES.md).
 
 **6. Revisão humana.** O texto e a acessibilidade foram ajustados a partir de pedidos e revisões da equipe (linguagem simples, menos texto, contraste para daltonismo). *Validação com usuários e com o(a) jovem validador(a): a preencher pela equipe.*
 
-**7. Limitações.** O resumo da IA pode errar números. A bateria de 10 casos com o modelo real no CI não rodou (ver Testes). A IA não foi avaliada com pedidos reais.
+**7. Avaliação com o modelo real no CI.** Em 13/11/2026 o job `ia-groq` rodou 10 casos fictícios com `openai/gpt-oss-20b`: todas as saídas tinham esquema válido e o validador **descartou 8 itens sem evidência** no texto (5 no caso "criança e pessoa idosa", 2 em "idade sozinha não é ameaça", 1 em "localização desconhecida"). Uma chamada recebeu limite de requisições (HTTP 429) e foi repetida. Respostas entre 0,5 e 2,5 s.
+
+**8. Limitações.** O resumo da IA pode errar números. A IA não foi avaliada com pedidos reais.
 
 ## Acessibilidade e internet fraca
 
@@ -120,9 +122,9 @@ Execução local em 13/11/2026:
 | Front-end: componentes | Vitest + Testing Library | 26 | aprovados |
 | Ponta a ponta + acessibilidade (axe) | Playwright + axe-core | 25 | aprovados |
 
-\* Inclui 1 teste com o modelo real, que é **ignorado** sem a chave da API.
+\* Localmente, o teste com o modelo real é ignorado sem a chave da API. **No CI ele rodou de verdade** (ver abaixo).
 
-**CI (GitHub Actions):** o workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda back-end (com PostGIS), front-end e a avaliação da IA. **As execuções recentes não rodaram:** o GitHub recusa iniciar os jobs com a mensagem *"account is locked due to a billing issue"*, um bloqueio de cobrança da conta e não um erro do código ou do workflow. **Não há execução verde no CI para apresentar**; os números acima são das execuções locais. Detalhes em [docs/TESTES.md](docs/TESTES.md).
+**CI (GitHub Actions):** o workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda back-end (com PostGIS), front-end e a avaliação com o modelo real. **Execução verde em 13/11/2026:** [run 43475377379](https://github.com/edufrannca/Acaoalerta/actions/runs/43475377379), com back-end, front-end e IA aprovados. As execuções anteriores não rodaram porque o orçamento de Actions da conta estava em US$ 0 com bloqueio; corrigido o orçamento, apareceu 1 falha real (o teste de voz dependia do sintetizador `espeak-ng`, que não existe no CI), também corrigida. Detalhes em [docs/TESTES.md](docs/TESTES.md).
 
 ## Como executar localmente
 
