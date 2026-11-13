@@ -3,10 +3,12 @@ import { Link, useNavigate } from 'react-router'
 import { Botao, Cartao, Fonte, Selo, classeEntrada } from '../componentes/Base'
 import { LeitorVoz } from '../componentes/LeitorVoz'
 import { ContatosEmergencia } from '../componentes/Contatos'
+import { CartaoPedido, FormOferta } from '../componentes/PedidosComunidade'
 import { Mapa } from '../componentes/Mapa'
 import { IcAbrigo, IcAjudar, IcAlerta, IcChuva, IcLocal, IcSeguro, IcSeta, IcTelefone } from '../componentes/Icones'
 import { api, formatarHora, formatarRelativo } from '../lib/api'
-import { useDados } from '../lib/hooks'
+import { useDados, type Posicao } from '../lib/hooks'
+import { usePedidosComunitarios } from '../lib/comunidade'
 import { MUNICIPIOS, nomeMunicipio } from '../lib/municipios'
 import { abrigosProximos, descreverEstacao, formatarKm, rotuloLocal, useRegiao, type Contexto, type RespostaAbrigos } from '../lib/regiao'
 import { useSessao } from '../lib/sessao'
@@ -107,6 +109,7 @@ export function Inicio() {
         </section>
 
         <ClimaRisco ctx={ctx.dados} doCache={ctx.doCache} temPosicao={!!posicao} />
+        <PedidosProximosInicio posicao={posicao} municipio={municipio} />
         <div className="hidden lg:block">
           <Mapa camadas={['limites', 'avisos', 'chuva', 'areasRisco', 'abrigos']} municipio={municipio} posicao={posicao} altura="h-[340px]" mostrarLegenda={false} />
           <Link to="/mapa" className="mt-2 inline-flex min-h-11 items-center gap-1 text-[15px] font-semibold text-oceano">Abrir o mapa completo <IcSeta tamanho={18} /></Link>
@@ -126,6 +129,36 @@ export function Inicio() {
         </Cartao>
       </div>
     </div>
+  )
+}
+
+/** Cada pedido compartilhado pode receber ofertas, inclusive quando é o único da região. */
+function PedidosProximosInicio({ posicao, municipio }: { posicao: Posicao | null; municipio: string | null }) {
+  const { dados } = usePedidosComunitarios(posicao, 5, posicao ? null : municipio)
+  const [ofertando, setOfertando] = useState<string | null>(null)
+  const [mensagem, setMensagem] = useState<string | null>(null)
+  const pedidos = dados?.pedidos ?? []
+  if ((!posicao && !municipio) || pedidos.length === 0) return null
+
+  return (
+    <section aria-labelledby="titulo-ajuda-proxima" className="grid gap-3 rounded-cartao bg-branco p-4 ring-1 ring-linha">
+      <div>
+        <h2 id="titulo-ajuda-proxima" className="text-[19px] font-bold text-petroleo">
+          {pedidos.length === 1 ? '1 pedido de ajuda compartilhado na região' : `${pedidos.length} pedidos de ajuda compartilhados na região`}
+        </h2>
+        <p className="mt-1 text-[13px] text-tinta-suave">
+          Apenas resumos autorizados pelas famílias, com localização aproximada. Ofertas são avaliadas pela equipe responsável.
+        </p>
+      </div>
+      {pedidos.slice(0, 3).map((p) => (
+        <div key={p.id} className="grid gap-2">
+          <CartaoPedido p={p} aoOferecer={() => { setOfertando(p.id); setMensagem(null) }} />
+          {ofertando === p.id && <FormOferta p={p} aoFechar={() => setOfertando(null)} aoEnviar={(texto) => { setMensagem(texto); setOfertando(null) }} />}
+        </div>
+      ))}
+      {mensagem && <p role="status" className="rounded-controle bg-seguro-claro p-3 text-[14px] text-seguro">{mensagem}</p>}
+      {pedidos.length > 3 && <Link to="/ajudar" className="min-h-11 rounded-controle bg-oceano-suave p-3 text-center font-semibold text-oceano">Ver todos os pedidos próximos</Link>}
+    </section>
   )
 }
 
