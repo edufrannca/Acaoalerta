@@ -43,7 +43,11 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
   const valor: Sessao = {
     usuario, carregando, recarregar,
     entrar: async (email, senha) => aplicar(await api('/api/auth/entrar', { method: 'POST', json: { email, senha } })),
-    entrarDemo: async (perfil) => aplicar(await api('/api/auth/demo', { method: 'POST', json: { perfil } })),
+    entrarDemo: async (perfil) => {
+      let codigo = ''
+      try { codigo = sessionStorage.getItem('alerta.codigoDemo') ?? '' } catch { /* modo privado */ }
+      await aplicar(await api('/api/auth/demo', { method: 'POST', json: { perfil }, headers: { 'X-Demo-Codigo': codigo } }))
+    },
     registrar: async (d) => aplicar(await api('/api/auth/registrar', { method: 'POST', json: d })),
     sair: () => { definirToken(null); setUsuario(null) },
   }

@@ -50,13 +50,14 @@ public static class InjecaoDependencias
             s.AddHttpClient<TInterface, TImpl>(c => { c.Timeout = timeout; c.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent); });
 
         // Fontes públicas reais
+        s.AddHttpClient("nominatim", c => { c.Timeout = TimeSpan.FromSeconds(8); c.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent); });
         s.AddHttpClient(nameof(FonteChuvaApac), c => { c.Timeout = TimeSpan.FromSeconds(15); c.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent); });
         s.AddSingleton<IFonteChuva>(sp => sp.GetRequiredService<FonteChuvaApacSingleton>().Instancia);
         s.AddSingleton<FonteChuvaApacSingleton>();
         Http<IFonteLimitesMunicipais, FonteLimitesApac>(TimeSpan.FromSeconds(25));
         Http<IFonteAvisosOficiais, FonteAvisosInmet>(TimeSpan.FromSeconds(25));
         Http<IFonteAreasRisco, FonteAreasRiscoRecife>(TimeSpan.FromSeconds(30));
-        Http<IFonteAbrigos, FonteAbrigosCopRecife>(TimeSpan.FromSeconds(25));
+        Http<IFonteAbrigos, FonteAbrigosCopRecife>(TimeSpan.FromSeconds(50));
 
         // Integrações
         Http<IClienteCentral, ClienteCentralHttp>(TimeSpan.FromSeconds(40));

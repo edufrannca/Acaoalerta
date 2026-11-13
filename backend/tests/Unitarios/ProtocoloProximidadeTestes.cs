@@ -72,3 +72,4 @@ public class ProtocoloProximidadeTestes
         Assert.Equal(5, ProtocoloProximidade.Estados.Nivel(ProtocoloProximidade.Estados.RecebidoPelaCentralSimulada));
     }
 }
+

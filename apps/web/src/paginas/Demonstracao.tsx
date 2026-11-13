@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { AvisoSimulado, Botao, Campo, Cartao, Selo, classeEntrada } from '../componentes/Base'
 import { api, formatarHora } from '../lib/api'
 import { useDados } from '../lib/hooks'
@@ -33,6 +33,19 @@ const ROTEIRO = [
   'Abrigos: no mapa, diferencie abrigos da fonte pública e fictícios, todos com disponibilidade não verificada.',
 ]
 
+const PERFIS_DEMO: { perfil: string; rotulo: string; descricao: string }[] = [
+  { perfil: 'cidadao', rotulo: 'Ana, cidadã (Recife)', descricao: 'Família cadastrada e 2 locais monitorados' },
+  { perfil: 'cidadao-olinda', rotulo: 'João, cidadão (Olinda)', descricao: 'Local monitorado em Olinda' },
+  { perfil: 'voluntario', rotulo: 'Bia, voluntária', descricao: 'Ofertas de apoio' },
+  { perfil: 'defesa-civil-recife', rotulo: 'Defesa Civil Recife (simulada)', descricao: 'Painel e central receptora' },
+  { perfil: 'defesa-civil-olinda', rotulo: 'Defesa Civil Olinda (simulada)', descricao: 'Painel e central receptora' },
+  { perfil: 'defesa-civil-ipojuca', rotulo: 'Defesa Civil Ipojuca (simulada)', descricao: 'Painel e central receptora' },
+  { perfil: 'bombeiros', rotulo: 'Bombeiros (receptor simulado)', descricao: 'Ocorrências hidrológicas, geológicas e feridos' },
+  { perfil: 'samu', rotulo: 'SAMU (receptor simulado)', descricao: 'Feridos e necessidades médicas' },
+  { perfil: 'organizacao', rotulo: 'Organização de apoio (fictícia)', descricao: 'Recebe ofertas de ajuda' },
+  { perfil: 'admin', rotulo: 'Administrador da demonstração', descricao: 'Cenários, avisos e falhas de centrais' },
+]
+
 export function Demonstracao() {
   const { usuario } = useSessao()
   const admin = usuario?.papel === 'Administrador'
@@ -44,7 +57,7 @@ export function Demonstracao() {
   const [duracao, setDuracao] = useState(60)
   const [msg, setMsg] = useState<string | null>(null)
 
-  if (!admin) return <Cartao titulo="Controle da demonstração"><p>Entre como <Link to="/perfil" className="text-oceano underline">Administrador da demonstração</Link>.</p></Cartao>
+  if (!admin) return <AcessoDemonstracao />
 
   const publicar = async () => {
     try {
@@ -152,5 +165,41 @@ function ChaveGateway() {
         </div>
       )}
     </Cartao>
+  )
+}
+
+/** Porta de entrada da área demonstrativa: código da equipe + usuários e centrais SIMULADOS (fora da experiência pública). */
+function AcessoDemonstracao() {
+  const { usuario, entrarDemo } = useSessao()
+  const navegar = useNavigate()
+  const [codigo, setCodigo] = useState(() => { try { return sessionStorage.getItem('alerta.codigoDemo') ?? '' } catch { return '' } })
+  const [erro, setErro] = useState<string | null>(null)
+  const entrar = async (perfil: string) => {
+    setErro(null)
+    try { sessionStorage.setItem('alerta.codigoDemo', codigo.trim()) } catch { /* privado */ }
+    try { await entrarDemo(perfil); navegar(perfil === 'admin' ? '/demo' : perfil.startsWith('defesa') || ['bombeiros', 'samu', 'organizacao'].includes(perfil) ? '/painel' : '/') }
+    catch (e) { setErro(e instanceof Error ? e.message : 'Falha') }
+  }
+  return (
+    <div className="mx-auto grid max-w-3xl gap-4">
+      <AvisoSimulado texto="ÁREA DE DEMONSTRAÇÃO — usuários fictícios e centrais SIMULADAS. Nenhum órgão real é acionado." />
+      <Cartao titulo="Acesso da equipe">
+        <p className="text-[14.5px] text-tinta-suave">Use o código de acesso da demonstração. {usuario ? `Você está conectado como ${usuario.nome}.` : ''}</p>
+        <Campo rotulo="Código de acesso"><input className={classeEntrada} value={codigo} onChange={(e) => setCodigo(e.target.value)} autoComplete="off" autoCapitalize="characters" /></Campo>
+        {erro && <p role="alert" className="mt-2 text-[14px] text-emergencia-escura">{erro}</p>}
+      </Cartao>
+      <Cartao titulo="Entrar como (contas fictícias)">
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {PERFIS_DEMO.map((p) => (
+            <li key={p.perfil}>
+              <button onClick={() => entrar(p.perfil)} className="w-full rounded-controle bg-fundo px-3 py-2.5 text-left ring-1 ring-transparent hover:ring-oceano" data-perfil={p.perfil}>
+                <span className="block text-[15px] font-semibold text-petroleo">{p.rotulo}</span>
+                <span className="block text-[13px] text-tinta-suave">{p.descricao}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </Cartao>
+    </div>
   )
 }

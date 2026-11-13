@@ -43,7 +43,7 @@ public sealed class Abrigo
 
     /// <summary>Texto honesto sobre disponibilidade. Constar em base histórica não significa ter vagas.</summary>
     public string DescricaoDisponibilidade =>
-        DisponibilidadeVerificada ? "Disponibilidade confirmada pela fonte" : "Disponibilidade não verificada";
+        DisponibilidadeVerificada ? "Disponibilidade confirmada pela fonte" : "Disponibilidade não confirmada";
 }
 
 public interface IFonteAbrigos

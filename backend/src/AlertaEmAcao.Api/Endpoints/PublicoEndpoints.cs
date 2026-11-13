@@ -25,9 +25,14 @@ public static class Endpoints
         app.MapPainel();
         app.MapApoio();
         app.MapIntegracoes();
+        app.MapVozLocalidade();
     }
 
     public static object Fonte(ReferenciaFonte f) => new { f.Nome, f.Url, f.AtualizadoEm, f.Oficial, f.Demonstrativa };
+
+    /// <summary>Rede da estação a partir do nome técnico da APAC ("[APAC] Janga 2" → "APAC"). O nome técnico nunca é usado como bairro.</summary>
+    public static string? RedeEstacao(string nome) => nome.StartsWith('[') && nome.IndexOf(']') is > 1 and var f ? nome[1..f] : null;
+    public static string NomeEstacao(string nome) => nome.StartsWith('[') && nome.IndexOf(']') is > 0 and var f ? nome[(f + 1)..].Trim() : nome;
 }
 
 public static class PublicoEndpoints
@@ -108,7 +113,7 @@ public static class PublicoEndpoints
                 observacao = "Acumulados em mm por estação. Leituras com mais de 2 h são marcadas como desatualizadas.",
                 estacoes = r.Leituras.Where(l => municipio is null || l.CodigoMunicipio == municipio).Select(l => new
                 {
-                    l.EstacaoId, l.Nome, l.Latitude, l.Longitude, l.Municipio, l.CodigoMunicipio, l.UltimaLeituraEm,
+                    l.EstacaoId, l.Nome, rede = Endpoints.RedeEstacao(l.Nome), nomeEstacao = Endpoints.NomeEstacao(l.Nome), l.Latitude, l.Longitude, l.Municipio, l.CodigoMunicipio, l.UltimaLeituraEm,
                     estado = l.Estado(agora).ToString(), l.Mm1h, l.Mm3h, l.Mm6h, l.Mm12h, l.Mm24h, l.Mm48h, l.Mm72h,
                 }),
             });
@@ -140,7 +145,8 @@ public static class PublicoEndpoints
                 limitacoes = c.LimitacoesConhecidas,
                 estacaoMaisProxima = c.EstacaoMaisProxima is { } l ? new
                 {
-                    l.Nome, l.Municipio, l.UltimaLeituraEm, l.Mm1h, l.Mm24h, l.Mm72h, distanciaKm = c.DistanciaEstacaoKm, estado = l.Estado(c.AvaliadoEm).ToString(), l.Fonte,
+                    l.Nome, nomeOficial = l.Nome, rede = Endpoints.RedeEstacao(l.Nome), nomeEstacao = Endpoints.NomeEstacao(l.Nome),
+                    l.Municipio, l.UltimaLeituraEm, l.Mm1h, l.Mm24h, l.Mm72h, distanciaKm = c.DistanciaEstacaoKm, estado = l.Estado(c.AvaliadoEm).ToString(), l.Fonte,
                 } : null,
                 avaliadoEm = c.AvaliadoEm,
                 aviso = "A ausência de registros não comprova ausência de perigo. Siga as orientações da Defesa Civil.",
@@ -160,15 +166,19 @@ public static class PublicoEndpoints
             });
         });
 
-        api.MapGet("/abrigos", async (IUnidadeTrabalho uow, IRegistroFontes fontes, string? municipio, CancellationToken ct) =>
+        // Experiência pública: somente registros reais publicados pela fonte oficial. Os fictícios só aparecem
+        // na área de demonstração (incluirDemonstrativos=true).
+        api.MapGet("/abrigos", async (IUnidadeTrabalho uow, IRegistroFontes fontes, string? municipio, bool? incluirDemonstrativos, CancellationToken ct) =>
         {
             var q = uow.Consulta<Abrigo>();
+            if (incluirDemonstrativos != true) q = q.Where(a => !a.Ficticio);
             if (municipio is not null) q = q.Where(a => a.MunicipioCodigo == municipio);
             var lista = await uow.ListarAsync(q.OrderBy(a => a.Ficticio).ThenBy(a => a.Nome), ct);
             return Results.Ok(new
             {
                 fonte = fontes.Obter(NomesFontes.CopRecifeAbrigos),
                 observacao = "Constar na base não significa ter vagas. Confirme com a Defesa Civil (199) antes de se deslocar.",
+                cobertura = "COP Recife publica somente os abrigos ATIVOS no momento (abertos durante emergências). Demais municípios: sem base aberta identificada.",
                 abrigos = lista.Select(a => new
                 {
                     a.Id, a.Nome, a.Tipo, a.Endereco, a.MunicipioCodigo, a.Latitude, a.Longitude, acessibilidade = a.Acessibilidade.ToString(),

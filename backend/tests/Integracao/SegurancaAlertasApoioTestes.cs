@@ -214,13 +214,30 @@ public class SegurancaAlertasApoioTestes(FabricaApi f)
     }
 
     [Fact]
-    public async Task Abrigos_ficticios_identificados_e_disponibilidade_nao_verificada()
+    public async Task Abrigos_publicos_so_reais_ficticios_apenas_na_demonstracao_e_disponibilidade_nao_confirmada()
     {
-        var j = await f.CreateClient().GetFromJsonAsync<JsonElement>("/api/abrigos");
-        var abrigos = j.GetProperty("abrigos").EnumerateArray().ToList();
-        Assert.NotEmpty(abrigos);
-        Assert.All(abrigos.Where(a => a.GetProperty("ficticio").GetBoolean()), a => Assert.StartsWith("[FICTÍCIO]", a.GetProperty("nome").GetString()));
-        Assert.All(abrigos, a => Assert.Equal("Disponibilidade não verificada", a.GetProperty("disponibilidade").GetString()));
+        var c = f.CreateClient();
+        var publico = (await c.GetFromJsonAsync<JsonElement>("/api/abrigos")).GetProperty("abrigos").EnumerateArray().ToList();
+        Assert.DoesNotContain(publico, a => a.GetProperty("ficticio").GetBoolean());
+        var demo = (await c.GetFromJsonAsync<JsonElement>("/api/abrigos?incluirDemonstrativos=true")).GetProperty("abrigos").EnumerateArray().ToList();
+        Assert.NotEmpty(demo);
+        Assert.All(demo.Where(a => a.GetProperty("ficticio").GetBoolean()), a => Assert.StartsWith("[FICTÍCIO]", a.GetProperty("nome").GetString()));
+        Assert.All(demo, a => Assert.Equal("Disponibilidade não confirmada", a.GetProperty("disponibilidade").GetString()));
+    }
+
+    [Fact]
+    public async Task Voz_do_servidor_sintetiza_texto_publico_e_valida_tamanho()
+    {
+        var c = f.CreateClient();
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, (await c.PostAsJsonAsync("/api/voz", new { texto = new string('a', 1600) })).StatusCode);
+        var estado = await c.GetFromJsonAsync<JsonElement>("/api/voz/estado");
+        if (!estado.GetProperty("disponivel").GetBoolean()) return; // espeak-ng ausente neste ambiente
+        var r = await c.PostAsJsonAsync("/api/voz", new { texto = "Há um aviso para sua região. Você e sua família estão bem?", velocidade = 0.9 });
+        r.EnsureSuccessStatusCode();
+        Assert.Equal("audio/wav", r.Content.Headers.ContentType!.MediaType);
+        var bytes = await r.Content.ReadAsByteArrayAsync();
+        Assert.True(bytes.Length > 10_000);
+        Assert.Equal("RIFF", System.Text.Encoding.ASCII.GetString(bytes, 0, 4));
     }
 
     [Fact]

@@ -28,7 +28,7 @@ def chamar(metodo, caminho, corpo=None, cab=None):
 def agora(): return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 t0 = time.time()
-_, tok = chamar("POST", "/api/auth/demo", {"perfil": "admin"})
+_, tok = chamar("POST", "/api/auth/demo", {"perfil": "admin"}, {"X-Demo-Codigo": os.environ.get("ALERTA_CODIGO_DEMO", "")})
 _, ch = chamar("GET", f"/api/demo/gateway-chave?receptor={RECEPTOR}", cab={"Authorization": "Bearer " + tok["accessToken"]})
 cab = {"X-Gateway-Receptor": RECEPTOR, "X-Gateway-Chave": ch["chave"]}
 

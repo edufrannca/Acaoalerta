@@ -8,8 +8,8 @@
   --color-petroleo-900: #0F262C;
   --color-oceano: #0F686D;
   --color-oceano-claro: #5FB3B0;
-  --color-areia: #F8F5EF;
-  --color-areia-escura: #ECE6DA;
+  --color-areia: #F6F8F7;
+  --color-areia-escura: #E7ECEA;
   --color-branco: #FFFFFF;
   --color-seguro: #2E7257;
   --color-seguro-claro: #E3F0E9;
@@ -20,7 +20,10 @@
   --color-atencao-claro: #F7ECD8;
   --color-tinta: #1D2A2E;
   --color-tinta-suave: #4B5C61;
-  --color-linha: #D9D2C3;
+  --color-linha: #D8DEDC;
+  --color-fundo: #F2F5F4;
+  --color-oceano-suave: #E2F0EE;
+  --color-seguro-vivo: #2F8A4E;
 
   --font-sans: "DM Sans Variable", "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 
@@ -32,7 +35,7 @@
   color-scheme: light;
   font-family: var(--font-sans);
   color: var(--color-tinta);
-  background: var(--color-areia);
+  background: var(--color-fundo);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }

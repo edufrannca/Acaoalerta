@@ -213,7 +213,7 @@ public sealed class FonteAbrigosCopRecife(HttpClient http, IRegistroFontes regis
 {
     public async Task<(List<Abrigo> Abrigos, bool Disponivel, string? Erro)> ObterAsync(CancellationToken ct)
     {
-        var (doc, erro) = await ObterJsonAsync(NomesFontes.CopRecifeAbrigos, UrlsFontes.CopAbrigos, ct, TimeSpan.FromSeconds(20));
+        var (doc, erro) = await ObterJsonAsync(NomesFontes.CopRecifeAbrigos, UrlsFontes.CopAbrigos, ct, TimeSpan.FromSeconds(45));
         if (doc is null) return ([], false, erro);
         using (doc)
         {

@@ -16,6 +16,8 @@ import { Painel } from './paginas/Painel'
 import { CentralSimulada } from './paginas/CentralSimulada'
 import { Demonstracao } from './paginas/Demonstracao'
 import { Instalar } from './paginas/Instalar'
+import { Alertas } from './paginas/Alertas'
+import { Abrigos } from './paginas/Abrigos'
 import { ProvedorAcessibilidade } from './lib/acessibilidade'
 
 iniciarSincronizacaoAutomatica()
@@ -38,6 +40,8 @@ createRoot(document.getElementById('raiz')!).render(
             <Route path="/central/:codigo" element={<CentralSimulada />} />
             <Route path="/demo" element={<Demonstracao />} />
             <Route path="/instalar" element={<Instalar />} />
+            <Route path="/alertas" element={<Alertas />} />
+            <Route path="/abrigos" element={<Abrigos />} />
             <Route path="*" element={<p className="py-10 text-center">Página não encontrada.</p>} />
           </Routes>
         </Estrutura>

@@ -34,14 +34,19 @@ interface Props {
   aoSelecionarPonto?: (id: string) => void
   altura?: string
   mostrarLegenda?: boolean
+  /** false: sem os botões nativos de zoom (a tela fornece os próprios controles). */
+  controlesNativos?: boolean
+  aoPronto?: (m: MapaML) => void
+  classeContorno?: string
+  classeExterna?: string
 }
 
 type FC = GeoJSON.FeatureCollection
 const vazio: FC = { type: 'FeatureCollection', features: [] }
 const pt = (lon: number, lat: number, props: Record<string, unknown>): GeoJSON.Feature => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: props })
 
-interface Chuva { disponivel: boolean; consultadoEm: string; fonte: string; estacoes: { nome: string; latitude: number; longitude: number; mm24h: number | null; ultimaLeituraEm: string | null; estado: string; municipio: string }[] }
-interface Abrigos { abrigos: { id: string; nome: string; latitude: number; longitude: number; ficticio: boolean; disponibilidade: string; fonte: string; municipioCodigo: string; acessibilidade: string; obtidoEm: string }[] }
+interface Chuva { disponivel: boolean; consultadoEm: string; fonte: string; estacoes: { nome: string; nomeEstacao?: string; rede?: string | null; latitude: number; longitude: number; mm1h: number | null; mm24h: number | null; ultimaLeituraEm: string | null; estado: string; municipio: string }[] }
+interface Abrigos { abrigos: { id: string; nome: string; endereco: string | null; latitude: number; longitude: number; ficticio: boolean; disponibilidade: string; fonte: string; municipioCodigo: string; acessibilidade: string; obtidoEm: string; statusFonte: string | null; atualizadoNaFonteEm: string | null }[] }
 interface Areas { areas: { latitude: number; longitude: number; descricao: string; bairro: string | null; localidade: string | null; fonte: string }[]; fonte?: { ultimoSucessoEm?: string } | null }
 interface Relatos { celulas: { latitude: number; longitude: number; relatos: number; verificadas: number; municipio: string }[]; atualizadoEm: string }
 interface Aviso { id: string; titulo: string; oficial: boolean; severidade: string; fimEm: string; municipios: string[]; poligono: GeoJSON.Geometry | null; fonteNome: string }
@@ -57,7 +62,7 @@ const estilo: maplibregl.StyleSpecification = {
   ],
 }
 
-export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionarPonto, altura = 'h-[360px]', mostrarLegenda = true }: Props) {
+export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionarPonto, altura = 'h-[360px]', mostrarLegenda = true, controlesNativos = true, aoPronto, classeContorno = 'rounded-cartao ring-1 ring-linha', classeExterna = '' }: Props) {
   const div = useRef<HTMLDivElement>(null)
   const mapa = useRef<MapaML | null>(null)
   const [pronto, setPronto] = useState(false)
@@ -74,7 +79,8 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
   useEffect(() => {
     if (!div.current) return
     const m = new maplibregl.Map({ container: div.current, style: estilo, center: [-34.95, -8.05], zoom: 9.2, attributionControl: { compact: true }, cooperativeGestures: false })
-    m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
+    if (controlesNativos) m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
+    m.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left')
     m.on('load', () => {
       const fontes = ['limites', 'avisos', 'areasRisco', 'chuva', 'abrigos', 'relatos', 'posicao', 'operador'] as const
       fontes.forEach((f) => m.addSource(f, { type: 'geojson', data: vazio }))
@@ -103,13 +109,14 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
         m.on('mouseleave', camada, () => { m.getCanvas().style.cursor = '' })
       }
       const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
-      popup('chuva', (p) => `<strong>${esc(p.nome)}</strong><br>${p.mm == null ? 'Sem leitura' : `${esc(p.mm)} mm em 24 h`}<br><small>${p.estado === 'Atual' ? 'Leitura' : 'Leitura antiga'}: ${esc(p.em)} — APAC/SIRH</small>`)
-      popup('abrigos', (p) => `<strong>${esc(p.nome)}</strong><br>${esc(p.disponibilidade)}<br><small>Acessibilidade: ${esc(p.acessibilidade)}<br>Fonte: ${esc(p.fonte)}</small>`)
+      popup('chuva', (p) => `<strong>Estação ${esc(p.rede ?? '')} «${esc(p.nomeEstacao)}»</strong><br>${esc(p.municipio)}<br>${p.mm1h == null ? 'Sem leitura na última hora' : `${esc(p.mm1h)} mm na última hora`} · ${p.mm == null ? 'sem leitura em 24 h' : `${esc(p.mm)} mm em 24 h`}<br><small>${p.estado === 'Atual' ? 'Leitura' : 'Leitura antiga'}: ${esc(p.em)} — APAC/SIRH. Nome técnico da estação; não indica bairro.</small>`)
+      popup('abrigos', (p) => `<strong>${esc(p.nome)}</strong><br>${esc(p.endereco ?? '')}<br>${esc(p.disponibilidade)}<br><small>Status publicado: ${esc(p.status ?? 'não informado')} · Acessibilidade: ${esc(p.acessibilidade)}<br>Fonte: ${esc(p.fonte)}${p.atualizado ? `, atualizado ${esc(p.atualizado)}` : ''}</small>`)
       popup('areasRisco', (p) => `<strong>${esc(p.descricao)}</strong><br>${esc(p.local)}<br><small>Fonte: ${esc(p.fonte)}</small>`)
       popup('relatos', (p) => `<strong>${esc(p.relatos)} relato(s) na área</strong><br>${esc(p.verificadas)} verificado(s)<br><small>Localização aproximada (~1 km). Relatos não verificados podem conter erros.</small>`)
       popup('avisos-preenchimento', (p) => `<strong>${esc(p.titulo)}</strong><br>${esc(p.severidade)} — até ${esc(p.fim)}<br><small>${p.oficial ? 'Aviso oficial' : 'AVISO DEMONSTRATIVO (não oficial)'} · ${esc(p.fonte)}</small>`)
       popup('operador', () => '')
       setPronto(true)
+      aoPronto?.(m)
     })
     mapa.current = m
     return () => { m.remove(); mapa.current = null }
@@ -141,8 +148,8 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
   const filtrar = <T extends { municipioCodigo?: string; municipio?: string }>(l: T[]) => (municipio ? l.filter((x) => (x.municipioCodigo ?? x.municipio) === municipio || x.municipio === MUNICIPIOS[municipio]) : l)
 
   useEffect(() => { if (pronto) set('areasRisco', { type: 'FeatureCollection', features: (areas.dados?.areas ?? []).map((a) => pt(a.longitude, a.latitude, { descricao: a.descricao, local: [a.localidade, a.bairro].filter(Boolean).join(', '), fonte: a.fonte })) }) }, [pronto, areas.dados])
-  useEffect(() => { if (pronto) set('chuva', { type: 'FeatureCollection', features: filtrar(chuva.dados?.estacoes ?? []).map((e) => pt(e.longitude, e.latitude, { nome: e.nome, mm: e.mm24h, estado: e.estado, em: formatarHora(e.ultimaLeituraEm) })) }) }, [pronto, chuva.dados, municipio]) // eslint-disable-line
-  useEffect(() => { if (pronto) set('abrigos', { type: 'FeatureCollection', features: filtrar(abrigos.dados?.abrigos ?? []).map((a) => pt(a.longitude, a.latitude, { nome: a.nome, ficticio: a.ficticio, disponibilidade: a.disponibilidade, fonte: a.fonte, acessibilidade: a.acessibilidade })) }) }, [pronto, abrigos.dados, municipio]) // eslint-disable-line
+  useEffect(() => { if (pronto) set('chuva', { type: 'FeatureCollection', features: filtrar(chuva.dados?.estacoes ?? []).map((e) => pt(e.longitude, e.latitude, { nome: e.nome, nomeEstacao: e.nomeEstacao ?? e.nome, rede: e.rede ?? '', municipio: e.municipio, mm: e.mm24h, mm1h: e.mm1h, estado: e.estado, em: formatarHora(e.ultimaLeituraEm) })) }) }, [pronto, chuva.dados, municipio]) // eslint-disable-line
+  useEffect(() => { if (pronto) set('abrigos', { type: 'FeatureCollection', features: filtrar(abrigos.dados?.abrigos ?? []).map((a) => pt(a.longitude, a.latitude, { nome: a.nome, endereco: a.endereco, ficticio: a.ficticio, disponibilidade: a.disponibilidade, fonte: a.fonte, acessibilidade: a.acessibilidade, status: a.statusFonte, atualizado: a.atualizadoNaFonteEm ? formatarHora(a.atualizadoNaFonteEm) : '' })) }) }, [pronto, abrigos.dados, municipio]) // eslint-disable-line
   useEffect(() => { if (pronto) set('relatos', { type: 'FeatureCollection', features: filtrar(relatos.dados?.celulas ?? []).map((c) => pt(c.longitude, c.latitude, { relatos: c.relatos, verificadas: c.verificadas })) }) }, [pronto, relatos.dados, municipio]) // eslint-disable-line
   const enquadrou = useRef(false)
   useEffect(() => {
@@ -178,16 +185,16 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
     const itens: { c: Camada; texto: string }[] = []
     if (tem('chuva')) itens.push({ c: 'chuva', texto: chuva.dados ? `APAC/SIRH, consultado ${formatarHora(chuva.dados.consultadoEm)}${chuva.dados.disponivel ? '' : ' (fonte indisponível agora)'}${chuva.doCache ? ' (cópia salva no aparelho)' : ''}` : chuva.erro ?? 'carregando' })
     if (tem('areasRisco')) itens.push({ c: 'areasRisco', texto: `Defesa Civil do Recife (Regional Sul), ${areas.dados?.areas.length ?? 0} pontos` })
-    if (tem('abrigos')) itens.push({ c: 'abrigos', texto: 'COP Recife; contorno branco = fictício' })
+    if (tem('abrigos')) itens.push({ c: 'abrigos', texto: `COP Recife, somente abrigos ativos publicados (${abrigos.dados?.abrigos.length ?? 0} agora)` })
     if (tem('relatos')) itens.push({ c: 'relatos', texto: relatos.dados ? `últimas 6 h, atualizado ${formatarHora(relatos.dados.atualizadoEm)}` : 'indisponível' })
     if (tem('avisos')) itens.push({ c: 'avisos', texto: 'vermelho = oficial (INMET), roxo = demonstrativo' })
     return itens
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [camadas, chuva.dados, chuva.erro, chuva.doCache, areas.dados, relatos.dados])
+  }, [camadas, chuva.dados, chuva.erro, chuva.doCache, areas.dados, relatos.dados, abrigos.dados])
 
   return (
-    <div>
-      <div ref={div} className={`${altura} w-full overflow-hidden rounded-cartao ring-1 ring-linha`} role="region" aria-label="Mapa interativo da Região Metropolitana do Recife" />
+    <div className={classeExterna}>
+      <div ref={div} className={`${altura} w-full overflow-hidden ${classeContorno}`} role="region" aria-label="Mapa interativo da Região Metropolitana do Recife" />
       {mostrarLegenda && legenda.length > 0 && (
         <ul className="mt-2 grid gap-1 text-[12.5px] text-tinta-suave sm:grid-cols-2">
           {legenda.map((l) => (

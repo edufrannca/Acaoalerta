@@ -45,7 +45,7 @@ public class AdaptadoresTestes
         var json = """{"features":[{"attributes":{"objectid":5,"no_entidade":"Escola X","tipo":"Escola","endereco":"Rua Y","latitude":-8.05,"longitude":-34.9,"status":"ATIVO","in_acessibilidade_inexistente":1,"contato_coordenador_local":"(81) 9999-9999","coordenador_local":"Fulano","last_edited_date":1767225600000}}]}""";
         using var doc = JsonDocument.Parse(json);
         var a = Assert.Single(FonteAbrigosCopRecife.Interpretar(doc.RootElement, DateTimeOffset.UtcNow));
-        Assert.Equal("Disponibilidade não verificada", a.DescricaoDisponibilidade);
+        Assert.Equal("Disponibilidade não confirmada", a.DescricaoDisponibilidade);
         Assert.Equal(AlertaEmAcao.Modulos.Abrigos.Acessibilidade.Inexistente, a.Acessibilidade);
         Assert.DoesNotContain("Fulano", JsonSerializer.Serialize(a));
     }

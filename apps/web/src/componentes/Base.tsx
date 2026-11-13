@@ -28,10 +28,10 @@ export function Selo({ tom = 'neutro', children }: { tom?: Tom; children: ReactN
 
 export function Cartao({ children, className = '', titulo, acao }: { children: ReactNode; className?: string; titulo?: string; acao?: ReactNode }) {
   return (
-    <section className={`rounded-cartao bg-branco p-4 sm:p-5 ring-1 ring-linha/70 ${className}`}>
+    <section className={`rounded-cartao bg-branco p-4 sm:p-5 ring-1 ring-linha shadow-[0_1px_2px_rgba(16,40,45,0.04)] ${className}`}>
       {titulo && (
         <header className="mb-3 flex items-baseline justify-between gap-3">
-          <h2 className="text-[17px] font-semibold text-petroleo">{titulo}</h2>
+          <h2 className="text-[18px] font-bold text-petroleo">{titulo}</h2>
           {acao}
         </header>
       )}

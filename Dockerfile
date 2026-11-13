@@ -17,6 +17,8 @@ RUN dotnet publish backend/src/AlertaEmAcao.Api/AlertaEmAcao.Api.csproj -c Relea
 
 # 3) Execução
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
+# Voz de reserva em pt-BR sintetizada no próprio servidor (software livre, sem serviço externo).
+RUN apt-get update && apt-get install -y --no-install-recommends espeak-ng && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=api /app .
 ENV ASPNETCORE_ENVIRONMENT=Production \

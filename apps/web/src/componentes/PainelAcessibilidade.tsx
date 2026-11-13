@@ -8,7 +8,7 @@ export function BotaoAcessibilidade() {
   return (
     <div className="relative">
       <button type="button" aria-expanded={aberto} aria-controls="painel-acessibilidade" onClick={() => setAberto(!aberto)}
-        className="min-h-11 min-w-11 rounded-controle border border-areia/40 px-2.5 text-[15px] font-bold text-branco hover:bg-petroleo-900">
+        className="min-h-11 min-w-11 rounded-controle border border-linha bg-branco px-2.5 text-[16px] font-bold text-petroleo hover:bg-fundo">
         <span aria-hidden="true">Aa</span><span className="sr-only">Acessibilidade: tamanho do texto e contraste</span>
       </button>
       {aberto && (
@@ -24,6 +24,14 @@ export function BotaoAcessibilidade() {
           <label className="mt-4 flex min-h-11 items-center gap-3 text-[15px]">
             <input type="checkbox" className="h-6 w-6" checked={prefs.altoContraste} onChange={(e) => alterar({ altoContraste: e.target.checked })} />
             Alto contraste
+          </label>
+          <label className="mt-3 block text-[13.5px] text-tinta-suave">Voz da leitura
+            <select className="mt-1 block min-h-11 w-full rounded-controle border border-linha bg-branco px-2 text-[15px] text-tinta" value={prefs.voz}
+              onChange={(e) => alterar({ voz: e.target.value as 'auto' | 'aparelho' | 'servidor' })}>
+              <option value="auto">Automática (aparelho; servidor se falhar)</option>
+              <option value="aparelho">Somente a voz do aparelho</option>
+              <option value="servidor">Voz do servidor (funciona no silencioso)</option>
+            </select>
           </label>
           <button type="button" className="mt-3 min-h-11 w-full rounded-controle bg-petroleo text-[15px] font-semibold text-branco" onClick={() => setAberto(false)}>Fechar</button>
         </div>

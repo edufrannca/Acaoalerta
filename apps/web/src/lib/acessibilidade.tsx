@@ -1,8 +1,10 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 /** Preferências de acessibilidade por aparelho (armazenamento local; falha silenciosa se indisponível). */
-export interface PrefsAcessibilidade { escala: number; altoContraste: boolean; velocidadeVoz: number }
-const PADRAO: PrefsAcessibilidade = { escala: 1, altoContraste: false, velocidadeVoz: 1 }
+import type { PreferenciaVoz } from './fala'
+
+export interface PrefsAcessibilidade { escala: number; altoContraste: boolean; velocidadeVoz: number; voz: PreferenciaVoz }
+const PADRAO: PrefsAcessibilidade = { escala: 1, altoContraste: false, velocidadeVoz: 1, voz: 'auto' }
 const CHAVE = 'alerta.acessibilidade'
 export const ESCALAS = [1, 1.15, 1.3, 1.5]
 

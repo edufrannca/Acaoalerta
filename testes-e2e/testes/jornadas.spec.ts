@@ -7,8 +7,10 @@ async function tokenDemo(request: APIRequestContext, perfil: string) {
 }
 
 async function entrarDemo(page: Page, perfil: string) {
-  await page.goto('/perfil')
+  await page.goto('/demo')
   await page.click(`[data-perfil="${perfil}"]`)
+  await page.waitForURL((u) => !u.pathname.startsWith('/demo') || perfil === 'admin')
+  await page.goto('/perfil')
   await expect(page.getByRole('button', { name: 'Sair' })).toBeVisible()
 }
 
@@ -82,7 +84,7 @@ test('offline: pedido fica salvo no aparelho e sincroniza sem duplicar ao voltar
   await expect(page.getByRole('heading', { name: 'Pedido salvo neste aparelho. Ainda não transmitido.' })).toBeVisible()
   const id = page.url().split('/socorro/')[1]
 
-  await page.getByRole('link', { name: 'Meus pedidos' }).first().click()
+  await page.locator('a[href="/pedidos"]:visible').first().click()
   const item = page.locator('[data-testid=item-fila]').first()
   await expect(item).toHaveAttribute('data-estado', 'salvo_no_aparelho')
   await expect(item).toContainText('Ainda não transmitido')
@@ -134,8 +136,12 @@ test('apoio comunitário: oferta → participação → organização simulada c
 test('mapa interativo e abrigos com disponibilidade não verificada', async ({ page }) => {
   await page.goto('/mapa')
   await expect(page.getByRole('region', { name: /Mapa interativo/ })).toBeVisible()
-  await expect(page.getByText('Limites municipais').first()).toBeVisible()
-  await page.goto('/')
-  await expect(page.getByText('Disponibilidade não verificada').first()).toBeVisible()
-  await expect(page.locator('a[href="tel:193"]').first()).toBeVisible()
+  await page.getByRole('radio', { name: 'Estações de chuva' }).click()
+  await expect(page.getByRole('radio', { name: 'Estações de chuva' })).toHaveAttribute('aria-checked', 'true')
+  await expect(page.locator('text=Abrigo ativo mais próximo >> visible=true').first()).toBeVisible()
+  // Experiência pública: nenhum abrigo fictício; disponibilidade nunca é inventada.
+  const publico = await (await page.request.get('/api/abrigos')).json()
+  expect(publico.abrigos.some((a: { ficticio: boolean }) => a.ficticio)).toBeFalsy()
+  await page.goto('/abrigos')
+  await expect(page.getByText(/Nenhum abrigo ativo publicado|Disponibilidade não confirmada/).first()).toBeVisible()
 })

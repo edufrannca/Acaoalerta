@@ -21,6 +21,9 @@ services:
         generateValue: true
       - key: Demo__Habilitado
         value: "true"
+      # Código para entrar na área de demonstração (/demo): usuários de teste, centrais simuladas, falhas.
+      - key: Demo__CodigoAcesso
+        value: EQUIPE-ALERTA-2026
       # IA real (Groq, compatível com OpenAI). A chave é colada pelo proprietário no painel do Render.
       - key: IA__Provedor
         value: groq

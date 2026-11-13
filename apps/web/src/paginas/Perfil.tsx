@@ -6,18 +6,6 @@ import { useDados, useLocalizacao } from '../lib/hooks'
 import { MUNICIPIOS, nomeMunicipio } from '../lib/municipios'
 import { useSessao } from '../lib/sessao'
 
-const PERFIS_DEMO: { perfil: string; rotulo: string; descricao: string }[] = [
-  { perfil: 'cidadao', rotulo: 'Ana, cidadã (Recife)', descricao: 'Família cadastrada e 2 locais monitorados' },
-  { perfil: 'cidadao-olinda', rotulo: 'João, cidadão (Olinda)', descricao: 'Local monitorado em Olinda' },
-  { perfil: 'voluntario', rotulo: 'Bia, voluntária', descricao: 'Ofertas de apoio' },
-  { perfil: 'defesa-civil-recife', rotulo: 'Defesa Civil Recife (simulada)', descricao: 'Painel e central receptora' },
-  { perfil: 'defesa-civil-olinda', rotulo: 'Defesa Civil Olinda (simulada)', descricao: 'Painel e central receptora' },
-  { perfil: 'defesa-civil-ipojuca', rotulo: 'Defesa Civil Ipojuca (simulada)', descricao: 'Painel e central receptora' },
-  { perfil: 'bombeiros', rotulo: 'Bombeiros (receptor simulado)', descricao: 'Ocorrências hidrológicas, geológicas e feridos' },
-  { perfil: 'samu', rotulo: 'SAMU (receptor simulado)', descricao: 'Feridos e necessidades médicas' },
-  { perfil: 'organizacao', rotulo: 'Organização de apoio (fictícia)', descricao: 'Recebe ofertas de ajuda' },
-  { perfil: 'admin', rotulo: 'Administrador da demonstração', descricao: 'Cenários, avisos e falhas de centrais' },
-]
 
 export function Perfil() {
   const { usuario, carregando } = useSessao()
@@ -26,7 +14,7 @@ export function Perfil() {
 }
 
 function Entrar() {
-  const { entrar, entrarDemo, registrar } = useSessao()
+  const { entrar, registrar } = useSessao()
   const [modo, setModo] = useState<'entrar' | 'registrar'>('entrar')
   const [d, setD] = useState({ nome: '', email: '', senha: '', municipioCodigo: '', telefone: '' })
   const [erro, setErro] = useState<string | null>(null)
@@ -54,19 +42,18 @@ function Entrar() {
           </button>
         </form>
       </Cartao>
-      <Cartao titulo="Modo demonstração">
-        <p className="mb-3 text-[14px] text-tinta-suave">Contas fictícias pré-cadastradas para apresentar os fluxos. Nenhuma corresponde a pessoa ou órgão real.</p>
-        <ul className="grid gap-2">
-          {PERFIS_DEMO.map((p) => (
-            <li key={p.perfil}>
-              <button onClick={() => executar(() => entrarDemo(p.perfil))} className="w-full rounded-controle bg-areia px-3 py-2.5 text-left ring-1 ring-transparent hover:ring-oceano" data-perfil={p.perfil}>
-                <span className="block text-[15px] font-semibold text-petroleo">{p.rotulo}</span>
-                <span className="block text-[13px] text-tinta-suave">{p.descricao}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </Cartao>
+      <div className="grid content-start gap-4">
+        <Cartao titulo="Recuperar acesso">
+          <p className="text-[14.5px]">Esqueceu a senha? A recuperação por e-mail ainda não está disponível nesta versão de demonstração. Você pode pedir socorro sem conta a qualquer momento.</p>
+        </Cartao>
+        <Cartao titulo="Neste aparelho">
+          <div className="grid gap-2">
+            <Link to="/pedidos" className="flex min-h-11 items-center rounded-controle bg-fundo px-3 text-[15px] font-semibold text-petroleo">Meus pedidos e envios</Link>
+            <Link to="/instalar" className="flex min-h-11 items-center rounded-controle bg-fundo px-3 text-[15px] font-semibold text-petroleo">Instalar o app no celular</Link>
+          </div>
+        </Cartao>
+        <p className="text-[13px] text-tinta-suave">Equipe do hackathon: <Link to="/demo" className="font-semibold text-oceano underline">área de demonstração</Link> (exige código de acesso).</p>
+      </div>
     </div>
   )
 }
@@ -92,6 +79,7 @@ function PerfilLogado() {
       <div className="grid content-start gap-4">
         <Cartao titulo={u.nome} acao={<Botao variante="fantasma" onClick={sair}>Sair</Botao>}>
           <p className="text-[14px]">{u.email}</p>
+          <Link to="/pedidos" className="mt-2 inline-flex min-h-11 items-center text-[15px] font-semibold text-oceano underline">Meus pedidos e envios</Link>
           <div className="mt-2 flex flex-wrap gap-2"><Selo>{u.papel}</Selo>{u.contaDemonstracao && <Selo tom="demo">Conta fictícia</Selo>}{u.centralCodigo && <Selo tom="espera">{u.centralCodigo}</Selo>}</div>
           {operador && (
             <div className="mt-3 flex flex-wrap gap-2">

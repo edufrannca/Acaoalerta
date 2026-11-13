@@ -78,6 +78,7 @@ builder.Services.AddRateLimiter(o =>
         c.Connection.RemoteIpAddress?.ToString() ?? "desconhecido", _ => new FixedWindowRateLimiterOptions { PermitLimit = limite, Window = janela });
     o.AddPolicy("autenticacao", c => PorIp(c, cfg.GetValue("LimiteRequisicoes:Autenticacao", 30), TimeSpan.FromMinutes(1)));
     // Pedido de socorro: limite generoso (sincronização offline envia vários de uma vez).
+    o.AddPolicy("voz", c => PorIp(c, cfg.GetValue("LimiteRequisicoes:Voz", 40), TimeSpan.FromMinutes(1)));
     o.AddPolicy("socorro", c => PorIp(c, cfg.GetValue("LimiteRequisicoes:Socorro", 120), TimeSpan.FromMinutes(1)));
 });
 builder.Services.Configure<ForwardedHeadersOptions>(o =>

@@ -19,7 +19,7 @@ test('PWA instalável: manifest, ícones maskable, standalone, service worker e 
     await page.goto(rota)
     await expect(page.locator('main')).toBeVisible()
   }
-  await expect(page.getByText('Você está sem internet').first()).toBeVisible()
+  await expect(page.getByText(/Sem internet\./).first()).toBeVisible()
   await context.setOffline(false)
 })
 
@@ -32,7 +32,7 @@ test('página de instalação mostra QR Code, instruções Android/iPhone e diag
   await expect(page.getByText('Service worker')).toBeVisible()
 })
 
-for (const rota of ['/', '/instalar', '/pedidos', '/ajudar', '/perfil']) {
+for (const rota of ['/', '/mapa', '/alertas', '/abrigos', '/instalar', '/pedidos', '/ajudar', '/perfil', '/demo']) {
   test(`acessibilidade automática (axe, WCAG 2 A/AA) em ${rota}`, async ({ page }) => {
     await page.goto(rota)
     await page.waitForLoadState('networkidle')
@@ -50,4 +50,26 @@ test('alto contraste e texto ampliado persistem após recarregar', async ({ page
   await page.reload()
   await expect(page.locator('html')).toHaveAttribute('data-contraste', 'alto')
   expect(await page.evaluate(() => document.documentElement.style.getPropertyValue('zoom'))).toBe('1.15')
+})
+
+test('experiência pública sem usuários ou centrais simuladas no login; área de demonstração separada', async ({ page }) => {
+  await page.goto('/perfil')
+  await expect(page.getByRole('heading', { name: 'Entrar' })).toBeVisible()
+  await expect(page.getByText('Recuperar acesso')).toBeVisible()
+  await expect(page.locator('[data-perfil]')).toHaveCount(0)
+  await expect(page.getByText(/Defesa Civil Recife \(simulada\)/)).toHaveCount(0)
+  await page.goto('/demo')
+  await expect(page.getByText(/ÁREA DE DEMONSTRAÇÃO/)).toBeVisible()
+  await expect(page.locator('[data-perfil]').first()).toBeVisible()
+})
+
+test('layout mobile: três ações com socorro em destaque e navegação inferior com 5 itens', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+  const socorro = page.getByRole('button', { name: /Preciso de socorro/ })
+  const seguro = page.getByRole('link', { name: /Estou seguro/ })
+  const bS = (await socorro.boundingBox())!, bE = (await seguro.boundingBox())!
+  expect(bS.width).toBeGreaterThan(bE.width)
+  const nav = page.getByRole('navigation', { name: 'Navegação principal' }).last()
+  for (const r of ['Início', 'Mapa', 'Alertas', 'Abrigos', 'Perfil']) await expect(nav.getByRole('link', { name: r })).toBeVisible()
 })

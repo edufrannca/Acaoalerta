@@ -47,16 +47,20 @@ public static class IdentidadeEndpoints
         });
 
         // Atalho do modo demonstração: entra numa conta FICTÍCIA pré-cadastrada.
-        auth.MapPost("/demo", async (DemoRequest r, IUnidadeTrabalho uow, IConfiguration cfg, CancellationToken ct) =>
+        // Área de demonstração separada da experiência pública: exige o código de acesso da equipe quando configurado.
+        auth.MapPost("/demo", async (DemoRequest r, HttpRequest req, IUnidadeTrabalho uow, IConfiguration cfg, CancellationToken ct) =>
         {
             if (!cfg.GetValue("Demo:Habilitado", true)) return Results.NotFound();
+            var codigo = cfg["Demo:CodigoAcesso"];
+            if (!string.IsNullOrWhiteSpace(codigo) && !AlertaEmAcao.Contratos.ChavesCentrais.Comparar(req.Headers["X-Demo-Codigo"].FirstOrDefault()?.Trim().ToUpperInvariant(), codigo.Trim().ToUpperInvariant()))
+                return Results.Json(new { codigo = "codigo_demo_invalido", erro = "Código de acesso da área de demonstração inválido." }, statusCode: 403);
             if (!PerfisDemo.TryGetValue(r.Perfil, out var login)) return Results.BadRequest(new { erro = "Perfil de demonstração inexistente.", perfis = PerfisDemo.Keys });
             var email = $"{login}@{DadosIniciais.DominioDemo}";
             var u = await uow.PrimeiroAsync(uow.Consulta<Usuario>().Where(x => x.Email == email && x.ContaDemonstracao), ct);
             return u is null ? Results.NotFound() : Results.SignIn(Usuarios.Principal(u), authenticationScheme: BearerTokenDefaults.AuthenticationScheme);
         });
 
-        auth.MapGet("/perfis-demo", () => Results.Ok(PerfisDemo.Keys));
+        auth.MapGet("/perfis-demo", (IConfiguration cfg) => Results.Ok(new { perfis = PerfisDemo.Keys, exigeCodigo = !string.IsNullOrWhiteSpace(cfg["Demo:CodigoAcesso"]) }));
 
         var eu = app.MapGroup("/api/eu").WithTags("Identidade").RequireAuthorization();
 
