@@ -2,11 +2,15 @@ import { dispositivoId } from './dispositivo'
 
 const CHAVE_TOKEN = 'alerta.token'
 
+/** Disparado quando a pessoa entra ou sai da conta (o tempo real reconecta com a nova identidade). */
+export const EVENTO_TOKEN = 'alerta:token'
+
 export function obterToken(): string | null {
   try { return localStorage.getItem(CHAVE_TOKEN) } catch { return null }
 }
 export function definirToken(t: string | null) {
   try { if (t) localStorage.setItem(CHAVE_TOKEN, t); else localStorage.removeItem(CHAVE_TOKEN) } catch { /* armazenamento indisponível */ }
+  try { window.dispatchEvent(new Event(EVENTO_TOKEN)) } catch { /* fora do navegador */ }
 }
 
 export class ErroApi extends Error {

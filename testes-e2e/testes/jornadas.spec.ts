@@ -293,6 +293,14 @@ test('familiar vinculado é avisado quando o morador pede socorro em casa', asyn
   await expect(b.getByRole('heading', { name: 'Seu pedido de ajuda foi registrado!' })).toBeVisible({ timeout: 20_000 })
   await expect(b.getByText(/Pedido associado à sua residência/)).toBeVisible({ timeout: 15_000 })
 
+  // Familiar com o app aberto: tela de alarme por escrito (sirene e vibração no aparelho), sem recarregar.
+  const alarme = a.getByRole('alertdialog', { name: /Pedido de socorro na residência monitorada/ })
+  await expect(alarme).toBeVisible({ timeout: 20_000 })
+  await expect(alarme).toContainText('Casa da minha mãe')
+  await expect(alarme.getByRole('button', { name: 'Ver detalhes' })).toBeFocused()
+  await alarme.getByRole('button', { name: 'Parar alarme' }).click()
+  await expect(alarme).toBeHidden()
+
   // Familiar vê o aviso guardado e abre o pedido com só o permitido.
   await a.reload()
   const aviso = a.getByRole('link', { name: /Pedido de socorro na residência monitorada/ })

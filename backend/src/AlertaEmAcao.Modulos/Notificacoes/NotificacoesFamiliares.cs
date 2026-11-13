@@ -111,7 +111,7 @@ public sealed class ServicoNotificacaoFamiliar(IUnidadeTrabalho uow, IEnviadorPu
     {
         try
         {
-            await tempoReal.NotificacaoUsuarioAsync(n.FamiliarId, new { tipo = "familia", n.Id, n.Titulo, n.Mensagem, n.OcorrenciaId, url = $"/familia/pedidos/{n.OcorrenciaId}" });
+            await tempoReal.NotificacaoUsuarioAsync(n.FamiliarId, new { tipo = "familia", evento = n.Tipo, n.Id, n.Titulo, n.Mensagem, n.OcorrenciaId, url = $"/familia/pedidos/{n.OcorrenciaId}" });
             n.RegistrarEntrega("tempo_real", "publicada", relogio.Agora, "Publicada para conexões abertas (sem confirmação de leitura).");
         }
         catch (Exception e) { n.RegistrarEntrega("tempo_real", "falha", relogio.Agora, e.Message); }

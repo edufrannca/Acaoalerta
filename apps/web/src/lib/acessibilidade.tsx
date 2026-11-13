@@ -4,8 +4,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { PreferenciaVoz } from './fala'
 
 /** som: sinal sonoro curto quando a atenção a alagamentos sobe (desligado por padrão); vibrar: vibração onde o aparelho suporta. */
-export interface PrefsAcessibilidade { escala: number; altoContraste: boolean; velocidadeVoz: number; voz: PreferenciaVoz; som: boolean; vibrar: boolean }
-const PADRAO: PrefsAcessibilidade = { escala: 1, altoContraste: false, velocidadeVoz: 1, voz: 'auto', som: false, vibrar: false }
+export interface PrefsAcessibilidade { escala: number; altoContraste: boolean; velocidadeVoz: number; voz: PreferenciaVoz; som: boolean; vibrar: boolean; alarme: boolean }
+const PADRAO: PrefsAcessibilidade = { escala: 1, altoContraste: false, velocidadeVoz: 1, voz: 'auto', som: false, vibrar: false, alarme: true }
 const CHAVE = 'alerta.acessibilidade'
 export const ESCALAS = [1, 1.15, 1.3, 1.5]
 

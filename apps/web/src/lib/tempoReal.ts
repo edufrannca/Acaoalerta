@@ -1,9 +1,12 @@
 import { HubConnectionBuilder, HubConnectionState, LogLevel, type HubConnection } from '@microsoft/signalr'
 import { useEffect, useRef, useState } from 'react'
-import { obterToken } from './api'
+import { EVENTO_TOKEN, obterToken } from './api'
 
 let conexao: HubConnection | null = null
 let tokenAtual: string | null = null
+// Manipuladores registrados: ao trocar de conexão (entrar/sair da conta) são religados na nova.
+const registrados = new Map<string, Set<(d: unknown) => void>>()
+const aoTrocar = new Set<() => void>()
 
 export function obterConexao(): HubConnection {
   const token = obterToken()
@@ -15,8 +18,16 @@ export function obterConexao(): HubConnection {
     .withAutomaticReconnect([0, 2000, 5000, 10000, 20000, 30000])
     .configureLogging(LogLevel.Warning)
     .build()
+  for (const [evento, hs] of registrados) for (const h of hs) conexao.on(evento, h)
   return conexao
 }
+
+if (typeof window !== 'undefined') window.addEventListener(EVENTO_TOKEN, () => {
+  if (!conexao || tokenAtual === obterToken()) return
+  obterConexao()
+  void garantirConectado()
+  for (const f of aoTrocar) f()
+})
 
 export async function garantirConectado() {
   const c = obterConexao()
@@ -35,18 +46,23 @@ export function useEvento(evento: string, aoReceber: (dados: unknown) => void, a
   refConectar.current = aoConectar
   useEffect(() => {
     let vivo = true
-    const c = obterConexao()
     const manipulador = (d: unknown) => ref.current(d)
-    c.on(evento, manipulador)
-    const reconectou = () => { setConectado(true); refConectar.current?.(c) }
-    c.onreconnected(reconectou)
-    c.onclose(() => vivo && setConectado(false))
-    void garantirConectado().then((x) => {
-      if (!vivo) return
-      setConectado(x.state === HubConnectionState.Connected)
-      if (x.state === HubConnectionState.Connected) refConectar.current?.(x)
-    })
-    return () => { vivo = false; c.off(evento, manipulador) }
+    if (!registrados.has(evento)) registrados.set(evento, new Set())
+    registrados.get(evento)!.add(manipulador)
+    const ligar = () => {
+      const c = obterConexao()
+      c.off(evento, manipulador); c.on(evento, manipulador)
+      c.onreconnected(() => { setConectado(true); refConectar.current?.(c) })
+      c.onclose(() => vivo && setConectado(false))
+      void garantirConectado().then((x) => {
+        if (!vivo || x !== conexao) return
+        setConectado(x.state === HubConnectionState.Connected)
+        if (x.state === HubConnectionState.Connected) refConectar.current?.(x)
+      })
+    }
+    ligar()
+    aoTrocar.add(ligar)
+    return () => { vivo = false; aoTrocar.delete(ligar); registrados.get(evento)?.delete(manipulador); conexao?.off(evento, manipulador) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [evento])
   return conectado

@@ -26,6 +26,11 @@ export function BotaoAcessibilidade() {
             Alto contraste
           </label>
           <label className="mt-3 flex min-h-11 items-center gap-3 text-[15px]">
+            <input type="checkbox" className="h-6 w-6" checked={prefs.alarme} onChange={(e) => alterar({ alarme: e.target.checked })} />
+            Alarme sonoro em emergências (pedido de socorro de quem você acompanha, aviso oficial, alagamento elevado)
+          </label>
+          <p className="text-[12.5px] text-tinta-suave">Com o app aberto toca mesmo no silencioso (iPhone com iOS 17 ou mais novo, Android). Com o app fechado, chega como notificação.</p>
+          <label className="mt-3 flex min-h-11 items-center gap-3 text-[15px]">
             <input type="checkbox" className="h-6 w-6" checked={prefs.som} onChange={(e) => alterar({ som: e.target.checked })} />
             Sinal sonoro quando a atenção a alagamentos aumentar
           </label>

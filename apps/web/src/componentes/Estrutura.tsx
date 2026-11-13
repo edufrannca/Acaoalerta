@@ -9,6 +9,7 @@ import { Marca } from './Base'
 import { EVENTO_NOVA_VERSAO } from '../lib/versao'
 import { useEvento } from '../lib/tempoReal'
 import { BotaoAcessibilidade } from './PainelAcessibilidade'
+import { AlarmeEmergencia } from './AlarmeEmergencia'
 import { IcAbrigo, IcInicio, IcMapa, IcPessoa, IcSino } from './Icones'
 
 instalarParadaAutomatica()
@@ -86,6 +87,7 @@ export function Estrutura({ children }: { children: ReactNode }) {
 
   return (
     <div className={`min-h-dvh ${telaMapa ? '' : 'pb-24 md:pb-10'}`}>
+      <AlarmeEmergencia />
       <a href="#conteudo" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-branco focus:px-3 focus:py-2">Pular para o conteúdo</a>
       <header className={`border-b border-linha bg-branco ${telaMapa ? 'hidden md:block' : ''}`}>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
