@@ -37,6 +37,8 @@ public static class Usuarios
     public static Guid? Id(this ClaimsPrincipal u) => Guid.TryParse(u.FindFirstValue(ClaimTypes.NameIdentifier), out var g) ? g : null;
     public static string? Central(this ClaimsPrincipal u) => u.FindFirstValue("central");
     public static bool Admin(this ClaimsPrincipal u) => u.IsInRole(nameof(Papel.Administrador));
+    /// <summary>Sessão de conta FICTÍCIA da área de demonstração.</summary>
+    public static bool Demo(this ClaimsPrincipal u) => u.FindFirstValue("demo") == "1";
 
     public static ClaimsPrincipal Principal(Usuario u)
     {
@@ -48,6 +50,7 @@ public static class Usuarios
             new(ClaimTypes.Role, u.Papel.ToString()),
         };
         if (u.CentralCodigo is not null) claims.Add(new("central", u.CentralCodigo));
+        if (u.ContaDemonstracao) claims.Add(new("demo", "1"));
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "bearer"));
     }
 }
@@ -147,7 +150,8 @@ public sealed class HubOperacao(IServiceScopeFactory escopos) : Hub
         using var s = escopos.CreateScope();
         var db = s.ServiceProvider.GetRequiredService<AlertaDbContext>();
         var uid = Context.User?.Id();
-        var ok = await db.Set<Ocorrencia>().AnyAsync(o => o.Id == ocorrenciaId && (o.DispositivoId == dispositivoId || (uid != null && o.UsuarioId == uid)));
+        var pseudonimo = Ocorrencia.PseudonimoEmissor(dispositivoId ?? "");
+        var ok = await db.Set<Ocorrencia>().AnyAsync(o => o.Id == ocorrenciaId && (o.DispositivoId == dispositivoId || o.DispositivoId == pseudonimo || (uid != null && o.UsuarioId == uid)));
         if (ok) await Groups.AddToGroupAsync(Context.ConnectionId, $"ocorrencia:{ocorrenciaId}");
         return ok;
     }

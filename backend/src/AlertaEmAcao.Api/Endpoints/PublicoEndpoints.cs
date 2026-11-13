@@ -26,6 +26,7 @@ public static class Endpoints
         app.MapApoio();
         app.MapIntegracoes();
         app.MapVozLocalidade();
+        app.MapComunidade();
     }
 
     public static object Fonte(ReferenciaFonte f) => new { f.Nome, f.Url, f.AtualizadoEm, f.Oficial, f.Demonstrativa };

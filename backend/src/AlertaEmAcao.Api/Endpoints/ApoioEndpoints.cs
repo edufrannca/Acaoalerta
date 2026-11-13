@@ -1,3 +1,4 @@
+using AlertaEmAcao.Modulos.Localizacao;
 using System.Security.Claims;
 using AlertaEmAcao.Contratos;
 using AlertaEmAcao.Infraestrutura.Persistencia;
@@ -139,6 +140,11 @@ public static class IntegracoesEndpoints
                     c?.Latitude, c?.Longitude, c?.PrecisaoMetros, criadoEm, complemento, null, false, CanalRecebimento.ProximidadeNearby,
                     $"{receptor} (Nearby)", true, m.IdentificadorMensagem), null, ct);
                 duplicado = res.JaExistia;
+                // GPS do gateway é guardado à parte; a posição do pedido continua sendo a do emissor (ou "não informada").
+                if (entrega.PosicaoReceptor is { } pr && PontoGeo.TentarCriar(pr.Latitude, pr.Longitude, out _)
+                    && await uow.PrimeiroAsync(uow.Consulta<Ocorrencia>().Where(x => x.Id == ocorrenciaId), ct) is { } oc
+                    && oc.PosicaoRetransmissor is null)
+                    oc.RegistrarPosicaoRetransmissor(new PosicaoDispositivo(pr.Latitude, pr.Longitude, pr.PrecisaoMetros, recebidoLocal, "gps_gateway"), receptor, relogio.Agora);
             }
             else
             {

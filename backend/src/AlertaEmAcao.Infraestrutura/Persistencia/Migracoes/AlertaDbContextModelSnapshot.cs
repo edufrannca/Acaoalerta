@@ -360,11 +360,17 @@ namespace AlertaEmAcao.Infraestrutura.Persistencia.Migracoes
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<string>("InstrucaoEquipe")
+                        .HasColumnType("text");
+
                     b.Property<string>("MunicipioCodigo")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<Guid?>("NecessidadeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OcorrenciaId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("OrganizacaoReferencia")
@@ -392,6 +398,8 @@ namespace AlertaEmAcao.Infraestrutura.Persistencia.Migracoes
                     b.HasKey("Id");
 
                     b.HasIndex("DispositivoId");
+
+                    b.HasIndex("OcorrenciaId");
 
                     b.ToTable("ofertas_ajuda", "alerta");
                 });
@@ -919,6 +927,10 @@ namespace AlertaEmAcao.Infraestrutura.Persistencia.Migracoes
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<string>("Compartilhamento")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("Complemento")
                         .IsRequired()
                         .HasColumnType("text");
@@ -947,6 +959,10 @@ namespace AlertaEmAcao.Infraestrutura.Persistencia.Migracoes
                         .HasColumnType("double precision");
 
                     b.Property<string>("MunicipioCodigo")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PosicoesRetransmissor")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<double?>("PrecisaoMetros")

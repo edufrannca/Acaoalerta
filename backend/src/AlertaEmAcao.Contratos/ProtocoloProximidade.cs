@@ -169,4 +169,6 @@ public sealed record EntregaGatewayV2(
     string Canal,
     string? ModeloAparelhoReceptor = null,
     string? PlataformaEmissor = null,
-    string? PlataformaReceptor = null);
+    string? PlataformaReceptor = null,
+    // Posição do APARELHO RECEPTOR (gateway), opcional. Nunca substitui coordenadasAutorizadas do emissor.
+    CoordenadasAutorizadasV2? PosicaoReceptor = null);

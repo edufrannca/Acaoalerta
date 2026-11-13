@@ -15,7 +15,8 @@ public sealed record SocorroRequest(
     DateTimeOffset? LocalizacaoLidaEm,
     ComplementoOcorrencia? Complemento,
     Guid? AvisoId,
-    bool? IncluirFamilia);
+    bool? IncluirFamilia,
+    CompartilhamentoComunitario? Compartilhamento = null);
 
 public sealed record LocalizacaoRequest(double Latitude, double Longitude, double? PrecisaoMetros, DateTimeOffset LidaEm);
 
@@ -40,8 +41,10 @@ public static class OcorrenciasEndpoints
         // Pedido de socorro: NÃO exige cadastro nem dados completos.
         g.MapPost("/ocorrencias", async (SocorroRequest r, HttpContext ctx, ClaimsPrincipal p, ServicoOcorrencias s, CancellationToken ct) =>
         {
+            // Pedido de conta fictícia (área de demonstração) é marcado e fica fora da visão comunitária pública.
             var res = await s.RegistrarSocorroAsync(new ComandoRegistrarSocorro(r.Id, Dispositivo(ctx), r.CriadaEm, r.Latitude, r.Longitude,
-                r.PrecisaoMetros, r.LocalizacaoLidaEm, r.Complemento, r.AvisoId, r.IncluirFamilia ?? true), p.Id(), ct);
+                r.PrecisaoMetros, r.LocalizacaoLidaEm, r.Complemento, r.AvisoId, r.IncluirFamilia ?? true, Demonstracao: p.Demo(),
+                Compartilhamento: r.Compartilhamento), p.Id(), ct);
             var corpo = VisaoSolicitante(res.Ocorrencia, res.Encaminhamentos);
             return res.JaExistia ? Results.Ok(corpo) : Results.Created($"/api/ocorrencias/{res.Ocorrencia.Id}", corpo);
         }).RequireRateLimiting("socorro");
@@ -69,7 +72,8 @@ public static class OcorrenciasEndpoints
         g.MapGet("/ocorrencias/do-dispositivo", async (HttpContext ctx, IUnidadeTrabalho uow, CancellationToken ct) =>
         {
             var d = Dispositivo(ctx);
-            var os = await uow.ListarAsync(uow.Consulta<Ocorrencia>().Where(o => o.DispositivoId == d).OrderByDescending(o => o.RecebidaNoServidorEm).Take(30), ct);
+            var pd = Ocorrencia.PseudonimoEmissor(d);
+            var os = await uow.ListarAsync(uow.Consulta<Ocorrencia>().Where(o => o.DispositivoId == d || o.DispositivoId == pd).OrderByDescending(o => o.RecebidaNoServidorEm).Take(30), ct);
             return Results.Ok(os.Select(o => new { o.Id, status = o.Status.ToString(), o.RecebidaNoServidorEm, o.CriadaNoDispositivoEm, o.MunicipioCodigo }));
         });
 
@@ -126,6 +130,11 @@ public static class OcorrenciasEndpoints
             ? ConfirmacaoEntrega.Descrever(NivelEntrega.RecebidoPelaCentralDemonstrativa) : ConfirmacaoEntrega.Descrever(NivelEntrega.RecebidoPeloBackend),
         municipio = o.MunicipioCodigo is null ? null : new { codigo = o.MunicipioCodigo, nome = MunicipiosRmr.Nome(o.MunicipioCodigo) },
         localizacao = o.Latitude is null ? null : new { o.Latitude, o.Longitude, o.PrecisaoMetros, lidaEm = o.LocalizacaoLidaEm },
+        canal = o.Canal.ToString(),
+        compartilhamento = new { o.Compartilhamento.Autorizado, o.Compartilhamento.IncluirPessoas, o.Compartilhamento.IncluirNecessidades, o.Compartilhamento.AtualizadoEm },
+        necessidades = o.Complemento.Necessidades ?? [],
+        // O que aparece para a comunidade, quando autorizado: área (não o ponto).
+        areaPublica = o.Ponto is { } pp && o.Compartilhamento.Autorizado ? AreaAproximada.De(pp, o.PrecisaoMetros) : (AreaAproximada?)null,
         encaminhamentos = encs.Where(e => e.TipoMensagem == TipoMensagem.Ocorrencia).Select(e => new
         {
             e.Id, central = e.InstituicaoCodigo, status = e.Status.ToString(), e.Protocolo, e.ConfirmadoEm, e.Tentativas, e.UltimoErro, e.EstadoNaCentral,

@@ -113,6 +113,9 @@ public sealed class AlertaDbContext(DbContextOptions<AlertaDbContext> opcoes) : 
             e.Property(x => x.Complemento).HasConversion(Cifrado<ComplementoOcorrencia>(), Comparador<ComplementoOcorrencia>()).HasColumnType("text");
             e.Property(x => x.Historico).HasConversion(JsonConv<List<EventoHistorico>>(), Comparador<List<EventoHistorico>>()).HasColumnType("jsonb");
             e.Property(x => x.TrilhaLocalizacao).HasConversion(Cifrado<List<PosicaoDispositivo>>(), Comparador<List<PosicaoDispositivo>>()).HasColumnType("text");
+            e.Property(x => x.PosicoesRetransmissor).HasConversion(Cifrado<List<PosicaoDispositivo>>(), Comparador<List<PosicaoDispositivo>>()).HasColumnType("text");
+            e.Ignore(x => x.PosicaoRetransmissor);
+            e.Property(x => x.Compartilhamento).HasConversion(JsonConv<CompartilhamentoComunitario>(), Comparador<CompartilhamentoComunitario>()).HasColumnType("jsonb");
             e.Ignore(x => x.Ponto);
             e.Property(x => x.Versao).IsRowVersion();
         });
@@ -206,6 +209,7 @@ public sealed class AlertaDbContext(DbContextOptions<AlertaDbContext> opcoes) : 
             e.Property(x => x.ContatoAutorizado).HasConversion(CifradoTexto()).HasColumnType("text");
             e.Property(x => x.Historico).HasConversion(JsonConv<List<EventoOferta>>(), Comparador<List<EventoOferta>>()).HasColumnType("jsonb");
             e.HasIndex(x => x.DispositivoId);
+            e.HasIndex(x => x.OcorrenciaId);
         });
 
         b.Entity<Notificacao>(e =>

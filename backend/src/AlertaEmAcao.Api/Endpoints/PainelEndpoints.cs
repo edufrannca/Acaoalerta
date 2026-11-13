@@ -80,6 +80,16 @@ public static class PainelEndpoints
                     verificacao = o.Verificacao.ToString(), o.Demonstracao, autenticado = o.UsuarioId is not null,
                     localizacao = pt is null ? null : new { latitude = pt.Value.Latitude, longitude = pt.Value.Longitude, o.PrecisaoMetros, lidaEm = o.LocalizacaoLidaEm, aproximada = !precisa },
                     trilha = precisa ? o.TrilhaLocalizacao.TakeLast(20) : null,
+                    localizacaoInformada = o.Ponto is not null,
+                    // Aparelho que retransmitiu (Nearby/QR): posição SEPARADA, nunca a da família.
+                    posicaoRetransmissor = precisa && o.PosicaoRetransmissor is { } pr ? new
+                    {
+                        pr.Latitude, pr.Longitude, pr.PrecisaoMetros, pr.LidaEm, origem = pr.Origem,
+                        observacao = "Posição aproximada do aparelho que retransmitiu. Não é a posição comprovada do solicitante.",
+                        comparacao = o.Ponto is { } pe ? ComparacaoPosicoes.Comparar(pe, o.PrecisaoMetros, new PontoGeo(pr.Latitude, pr.Longitude), pr.PrecisaoMetros) : null,
+                    } : null,
+                    compartilhamento = o.Compartilhamento,
+                    areaPublica = o.Ponto is { } pa && o.Compartilhamento.Autorizado ? AreaAproximada.De(pa, o.PrecisaoMetros) : (AreaAproximada?)null,
                     complemento = precisa ? o.Complemento : null,
                     historico = o.Historico.OrderBy(h => h.Em),
                 },
@@ -89,6 +99,8 @@ public static class PainelEndpoints
                     ia = new { status = a.StatusIA.ToString(), modelo = a.ModeloIA, resultado = precisa ? a.ResultadoIA : null, problemas = a.ProblemasValidacaoIA, a.IAConcluidaEm, a.DuracaoIAMs },
                     observacao = "Sinalizações para avaliação humana. Não constituem decisão de prioridade nem ordem de atendimento.",
                 },
+                ofertasComunitarias = (await db.Set<AlertaEmAcao.Modulos.ApoioComunitario.OfertaAjuda>().AsNoTracking().Where(f => f.OcorrenciaId == o.Id)
+                    .OrderBy(f => f.CriadaEm).ToListAsync(ct)).Select(f => ComunidadeEndpoints.VisaoOfertaEquipe(f)),
                 confirmacoes = (await db.Set<ConfirmacaoEntrega>().Where(c => c.OcorrenciaId == o.Id).OrderBy(c => c.Nivel).ThenBy(c => c.Horario).ToListAsync(ct))
                     .Select(IntegracoesEndpoints.ConfirmacaoDto),
                 encaminhamentos = encs.Select(e => new

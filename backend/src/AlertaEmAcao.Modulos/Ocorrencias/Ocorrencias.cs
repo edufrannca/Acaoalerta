@@ -10,6 +10,32 @@ public enum CanalRecebimento
     ProximidadeNearby,
     /// <summary>Recebida de um gateway de rádio SIMULADO (demonstração LoRa).</summary>
     GatewaySimulado,
+    /// <summary>Lida por câmera (código QR) num aparelho próximo com internet, que a encaminhou ao servidor.</summary>
+    ProximidadeQr,
+}
+
+/// <summary>
+/// O que o solicitante autorizou mostrar a cidadãos desconhecidos. Padrão: nada.
+/// Nunca inclui nome, telefone, dados médicos individuais, texto livre ou coordenadas precisas.
+/// </summary>
+public sealed record CompartilhamentoComunitario(bool Autorizado = false, bool IncluirPessoas = false, bool IncluirNecessidades = false, DateTimeOffset? AtualizadoEm = null)
+{
+    public CompartilhamentoComunitario() : this(false, false, false, null) { }
+    public static readonly CompartilhamentoComunitario Nenhum = new();
+}
+
+public static class NecessidadesDeclaradas
+{
+    public static readonly IReadOnlyDictionary<string, string> Rotulos = new Dictionary<string, string>
+    {
+        ["agua"] = "Água potável",
+        ["alimentos"] = "Alimentos",
+        ["abrigo"] = "Abrigo",
+        ["transporte_assistido"] = "Transporte assistido",
+        ["itens_higiene"] = "Itens de higiene",
+        ["roupas"] = "Roupas e cobertas",
+        ["outros"] = "Outros recursos",
+    };
 }
 
 /// <summary>Estado de transmissão/atendimento. Nunca avança sem evento comprovado.</summary>
@@ -56,6 +82,8 @@ public sealed record ComplementoOcorrencia
     public string? OutrosRiscos { get; init; }
     public string? Descricao { get; init; }
     public string? ReferenciaLocal { get; init; }
+    /// <summary>Necessidades declaradas (códigos de <see cref="NecessidadesDeclaradas"/>).</summary>
+    public List<string>? Necessidades { get; init; }
 
     public ComplementoOcorrencia Mesclar(ComplementoOcorrencia novo) => this with
     {
@@ -79,6 +107,7 @@ public sealed record ComplementoOcorrencia
         OutrosRiscos = Limitar(novo.OutrosRiscos ?? OutrosRiscos, 500),
         Descricao = Limitar(novo.Descricao ?? Descricao, 2000),
         ReferenciaLocal = Limitar(novo.ReferenciaLocal ?? ReferenciaLocal, 300),
+        Necessidades = novo.Necessidades ?? Necessidades,
     };
 
     public void Validar()
@@ -89,6 +118,8 @@ public sealed record ComplementoOcorrencia
             if (n is < 0 or > 500) throw new ErroDominio("contagem_invalida", "Contagens devem estar entre 0 e 500.");
         if (Pessoas?.Count > 100) throw new ErroDominio("pessoas_demais", "Máximo de 100 pessoas detalhadas.");
         if (Pessoas?.Any(p => p.Idade is < 0 or > 125) == true) throw new ErroDominio("idade_invalida", "Idade fora do intervalo.");
+        if (Necessidades is { } ns && (ns.Count > 10 || ns.Any(n => !NecessidadesDeclaradas.Rotulos.ContainsKey(n))))
+            throw new ErroDominio("necessidade_invalida", "Necessidade não reconhecida.");
     }
 
     private static string? Limitar(string? s, int max) => s is null ? null : s.Trim()[..Math.Min(max, s.Trim().Length)];
@@ -118,6 +149,10 @@ public sealed class Ocorrencia
     public List<EventoHistorico> Historico { get; private set; } = [];
     public List<PosicaoDispositivo> TrilhaLocalizacao { get; private set; } = [];
     public bool Demonstracao { get; private set; }
+    public CompartilhamentoComunitario Compartilhamento { get; private set; } = CompartilhamentoComunitario.Nenhum;
+    /// <summary>Posição do aparelho que retransmitiu (gateway). NUNCA substitui a posição do emissor.</summary>
+    public List<PosicaoDispositivo> PosicoesRetransmissor { get; private set; } = [];
+    public PosicaoDispositivo? PosicaoRetransmissor => PosicoesRetransmissor.LastOrDefault();
     public DateTimeOffset AtualizadaEm { get; private set; }
     public uint Versao { get; private set; }
 
@@ -151,6 +186,36 @@ public sealed class Ocorrencia
         });
         if (posicao is null) o.Registrar(agora, "localizacao", "Pedido sem localização. Solicitar referência ao cidadão.");
         return o;
+    }
+
+    /// <summary>
+    /// Pseudônimo estável do aparelho emissor usado quando o pedido chega por outro aparelho (QR ou Nearby importado da PWA):
+    /// quem retransmite não recebe o identificador real, mas o próprio emissor continua reconhecido quando sincronizar.
+    /// </summary>
+    public static string PseudonimoEmissor(string dispositivoId)
+    {
+        var h = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes("alerta-em-acao/emissor/v1:" + dispositivoId.Trim()));
+        return "p:" + Convert.ToBase64String(h, 0, 16).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+    }
+
+    public bool PertenceAoDispositivo(string? dispositivoId) =>
+        !string.IsNullOrWhiteSpace(dispositivoId) && (DispositivoId == dispositivoId || DispositivoId == PseudonimoEmissor(dispositivoId));
+
+    public void DefinirCompartilhamento(CompartilhamentoComunitario c, DateTimeOffset agora)
+    {
+        var novo = c.Autorizado ? c with { AtualizadoEm = agora } : CompartilhamentoComunitario.Nenhum with { AtualizadoEm = agora };
+        if (novo with { AtualizadoEm = null } == Compartilhamento with { AtualizadoEm = null }) return;
+        Compartilhamento = novo;
+        Registrar(agora, "compartilhamento", novo.Autorizado
+            ? $"Solicitante autorizou resumo comunitário (pessoas: {(novo.IncluirPessoas ? "sim" : "não")}, necessidades: {(novo.IncluirNecessidades ? "sim" : "não")})."
+            : "Solicitante não compartilha o pedido com a comunidade.");
+    }
+
+    public void RegistrarPosicaoRetransmissor(PosicaoDispositivo p, string receptor, DateTimeOffset agora)
+    {
+        PosicoesRetransmissor.Add(p);
+        if (PosicoesRetransmissor.Count > 10) PosicoesRetransmissor.RemoveAt(0);
+        Registrar(agora, "posicao_retransmissor", $"Posição aproximada do aparelho retransmissor {receptor} registrada separadamente (não é a posição do solicitante).");
     }
 
     public PontoGeo? Ponto => Latitude is not null && Longitude is not null ? new PontoGeo(Latitude.Value, Longitude.Value) : null;

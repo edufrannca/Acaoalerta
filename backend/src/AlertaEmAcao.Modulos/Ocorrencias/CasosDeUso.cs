@@ -22,7 +22,8 @@ public sealed record ComandoRegistrarSocorro(
     CanalRecebimento Canal = CanalRecebimento.Internet,
     string? RetransmitidaPor = null,
     bool Demonstracao = true,
-    string? IdentificadorMensagem = null);
+    string? IdentificadorMensagem = null,
+    CompartilhamentoComunitario? Compartilhamento = null);
 
 public sealed record ResultadoRegistro(Ocorrencia Ocorrencia, bool JaExistia, IReadOnlyList<EncaminhamentoInstitucional> Encaminhamentos);
 
@@ -39,7 +40,7 @@ public sealed class ServicoOcorrencias(IUnidadeTrabalho uow, ICatalogoMunicipios
         var existente = await uow.PrimeiroAsync(uow.Consulta<Ocorrencia>().Where(o => o.Id == cmd.Id), ct);
         if (existente is not null)
         {
-            if (existente.DispositivoId != cmd.DispositivoId && (usuarioId is null || existente.UsuarioId != usuarioId))
+            if (!existente.PertenceAoDispositivo(cmd.DispositivoId) && Ocorrencia.PseudonimoEmissor(existente.DispositivoId) != cmd.DispositivoId && (usuarioId is null || existente.UsuarioId != usuarioId))
                 throw new ErroDominio("id_conflito", "Identificador já utilizado por outro dispositivo.");
             var encsExistentes = await uow.ListarAsync(uow.Consulta<EncaminhamentoInstitucional>().Where(e => e.ReferenciaId == cmd.Id), ct);
             return new ResultadoRegistro(existente, true, encsExistentes);
@@ -60,6 +61,7 @@ public sealed class ServicoOcorrencias(IUnidadeTrabalho uow, ICatalogoMunicipios
 
         var o = Ocorrencia.Registrar(cmd.Id, usuarioId, cmd.DispositivoId, cmd.CriadaNoDispositivoEm, posicao, municipio, complemento,
             cmd.Canal, cmd.RetransmitidaPor, cmd.AvisoId, cmd.Demonstracao, agora);
+        if (cmd.Compartilhamento is { Autorizado: true } comp) o.DefinirCompartilhamento(comp, agora);
         if (posicao is not null && municipio is null)
             o.Registrar(agora, "municipio", "Coordenadas fora dos 14 municípios da RMR. Sem destino configurado.");
         uow.Adicionar(o);
@@ -161,11 +163,20 @@ public sealed class ServicoOcorrencias(IUnidadeTrabalho uow, ICatalogoMunicipios
         return (o, aceita);
     }
 
+    public async Task<Ocorrencia> DefinirCompartilhamentoAsync(Guid id, string dispositivoId, Guid? usuarioId, CompartilhamentoComunitario c, CancellationToken ct)
+    {
+        var o = await ObterDoSolicitanteAsync(id, dispositivoId, usuarioId, ct);
+        o.DefinirCompartilhamento(c, relogio.Agora);
+        await uow.SalvarAsync(ct);
+        await tempoReal.OcorrenciaAtualizadaAsync(o.Id, o.MunicipioCodigo, [], "compartilhamento");
+        return o;
+    }
+
     public async Task<Ocorrencia> ObterDoSolicitanteAsync(Guid id, string? dispositivoId, Guid? usuarioId, CancellationToken ct)
     {
         var o = await uow.PrimeiroAsync(uow.Consulta<Ocorrencia>().Where(x => x.Id == id), ct)
                 ?? throw new ErroNaoEncontrado("Pedido não encontrado.");
-        var dono = (usuarioId is not null && o.UsuarioId == usuarioId) || (!string.IsNullOrEmpty(dispositivoId) && o.DispositivoId == dispositivoId);
+        var dono = (usuarioId is not null && o.UsuarioId == usuarioId) || o.PertenceAoDispositivo(dispositivoId);
         if (!dono) throw new ErroAcessoNegado("Este pedido pertence a outro solicitante.");
         return o;
     }

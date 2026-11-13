@@ -3,7 +3,7 @@ using AlertaEmAcao.Modulos.Municipios;
 
 namespace AlertaEmAcao.Modulos.ApoioComunitario;
 
-public enum TipoAjuda { DoacaoAgua, DoacaoAlimentos, Roupas, MedicamentosViaCanalAdequado, KitHigiene, ApoioEmAbrigo, ApoioLogisticoSeguro, VoluntariadoLocalVerificado }
+public enum TipoAjuda { DoacaoAgua, DoacaoAlimentos, Roupas, MedicamentosViaCanalAdequado, KitHigiene, ApoioEmAbrigo, ApoioLogisticoSeguro, VoluntariadoLocalVerificado, TransporteAssistido }
 
 public enum StatusNecessidade { Aberta, Atendida, Encerrada }
 
@@ -57,6 +57,12 @@ public enum StatusOferta
     RecusadaPelaOrganizacao,
     Concluida,
     Cancelada,
+    /// <summary>Oferta para um pedido da comunidade, aguardando avaliação da equipe responsável.</summary>
+    AguardandoAvaliacao,
+    AceitaPelaEquipe,
+    RecusadaPelaEquipe,
+    /// <summary>Equipe enviou orientações ao voluntário (ponto seguro, o que levar). Não é despacho de resgate.</summary>
+    Encaminhada,
 }
 
 public sealed record EventoOferta(DateTimeOffset Em, string Descricao);
@@ -75,6 +81,10 @@ public sealed class OfertaAjuda
     /// <summary>Contato compartilhado apenas com a organização escolhida, com autorização explícita.</summary>
     public string? ContatoAutorizado { get; private set; }
     public Guid? NecessidadeId { get; private set; }
+    /// <summary>Pedido de socorro ao qual a oferta se refere (ajuda comunitária).</summary>
+    public Guid? OcorrenciaId { get; private set; }
+    /// <summary>Orientação da equipe ao voluntário — único canal pelo qual detalhes adicionais chegam a ele.</summary>
+    public string? InstrucaoEquipe { get; private set; }
     public StatusOferta Status { get; private set; }
     public string? ProtocoloOrganizacao { get; private set; }
     public List<EventoOferta> Historico { get; private set; } = [];
@@ -124,4 +134,56 @@ public sealed class OfertaAjuda
     }
 
     public void Concluir(DateTimeOffset agora) { Status = StatusOferta.Concluida; Historico.Add(new(agora, "Concluída.")); }
+
+    public const string AvisoSeguranca =
+        "Ajuda comunitária não é resgate. Não entre em água, correnteza, encostas ou imóveis danificados. " +
+        "Aguarde a orientação da equipe e entregue somente em local seguro indicado por ela.";
+
+    public static OfertaAjuda RegistrarParaPedido(Guid id, Guid? usuarioId, string dispositivoId, Guid ocorrenciaId, string? municipio, TipoAjuda tipo,
+        string descricao, string? disponibilidade, string? contato, bool cienteSeguranca, DateTimeOffset agora)
+    {
+        if (!cienteSeguranca) throw new ErroDominio("ciencia_obrigatoria", "Confirme que leu as orientações de segurança antes de oferecer ajuda.");
+        if (municipio is null) throw new ErroDominio("municipio_desconhecido", "Este pedido não tem município identificado na RMR.");
+        var o = Registrar(id, usuarioId, dispositivoId, municipio, null, tipo, descricao, disponibilidade, null, string.IsNullOrWhiteSpace(contato) ? null : contato.Trim()[..Math.Min(120, contato.Trim().Length)], agora);
+        o.OcorrenciaId = ocorrenciaId;
+        o.Status = StatusOferta.AguardandoAvaliacao;
+        o.Historico.Add(new(agora, "Oferta enviada para avaliação da equipe responsável pelo pedido."));
+        return o;
+    }
+
+    public void AvaliarPelaEquipe(bool aceita, string? nota, string ator, DateTimeOffset agora)
+    {
+        if (OcorrenciaId is null) throw new ErroDominio("oferta_sem_pedido", "Oferta não vinculada a pedido.");
+        if (Status != StatusOferta.AguardandoAvaliacao) throw new ErroDominio("estado_invalido", "A oferta não está aguardando avaliação.");
+        Status = aceita ? StatusOferta.AceitaPelaEquipe : StatusOferta.RecusadaPelaEquipe;
+        Historico.Add(new(agora, (aceita ? "Equipe aceitou a oferta" : "Equipe recusou a oferta") + (string.IsNullOrWhiteSpace(nota) ? "." : $": {nota.Trim()}") + $" ({ator})"));
+    }
+
+    public void Encaminhar(string instrucao, string ator, DateTimeOffset agora)
+    {
+        if (Status != StatusOferta.AceitaPelaEquipe) throw new ErroDominio("estado_invalido", "Aceite a oferta antes de encaminhar.");
+        instrucao = (instrucao ?? "").Trim();
+        if (instrucao.Length is < 5 or > 500) throw new ErroDominio("instrucao_invalida", "Escreva a orientação em 5 a 500 caracteres.");
+        InstrucaoEquipe = instrucao;
+        Status = StatusOferta.Encaminhada;
+        Historico.Add(new(agora, $"Equipe enviou orientações ao voluntário ({ator})."));
+    }
+
+    public void Acompanhar(string acao, string? nota, DateTimeOffset agora)
+    {
+        if (OcorrenciaId is null) throw new ErroDominio("oferta_sem_pedido", "Oferta não vinculada a pedido.");
+        nota = string.IsNullOrWhiteSpace(nota) ? null : nota.Trim()[..Math.Min(300, nota.Trim().Length)];
+        switch (acao)
+        {
+            case "concluida" when Status == StatusOferta.Encaminhada:
+                Status = StatusOferta.Concluida; Historico.Add(new(agora, "Voluntário informou entrega concluída" + (nota is null ? "." : $": {nota}"))); break;
+            case "cancelada" when Status is StatusOferta.AguardandoAvaliacao or StatusOferta.AceitaPelaEquipe or StatusOferta.Encaminhada:
+                Status = StatusOferta.Cancelada; Historico.Add(new(agora, "Voluntário cancelou a oferta" + (nota is null ? "." : $": {nota}"))); break;
+            case "nota" when nota is not null && Status is not (StatusOferta.Concluida or StatusOferta.Cancelada):
+                Historico.Add(new(agora, $"Atualização do voluntário: {nota}")); break;
+            default: throw new ErroDominio("acao_invalida", "Ação de acompanhamento não permitida no estado atual.");
+        }
+    }
+
+    public bool Ativa => Status is StatusOferta.AguardandoAvaliacao or StatusOferta.AceitaPelaEquipe or StatusOferta.Encaminhada;
 }
