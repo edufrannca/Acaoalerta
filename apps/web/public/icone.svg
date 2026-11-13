@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Alerta em Ação">
+  <rect width="64" height="64" rx="14" fill="#193B44"/>
+  <path d="M32 10 L50 17 V31 C50 42 42 50 32 54 C22 50 14 42 14 31 V17 Z" fill="none" stroke="#F8F5EF" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M19 34 C23 30 27 30 31 34 C35 38 39 38 45 33" fill="none" stroke="#5FB3B0" stroke-width="3.5" stroke-linecap="round"/>
+  <circle cx="32" cy="24" r="3.2" fill="#F8F5EF"/>
+</svg>

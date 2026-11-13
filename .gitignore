@@ -1,0 +1,26 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+# Node
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.vite/
+# Ambiente / segredos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+appsettings.*.local.json
+# SO
+.DS_Store
+Thumbs.db
+# Frontend publicado dentro da API (gerado no build)
+backend/src/AlertaEmAcao.Api/wwwroot/
+.sync/

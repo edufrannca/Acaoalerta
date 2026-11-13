@@ -1,0 +1,41 @@
+# Blueprint do Render (plano gratuito). Ver docs/DEPLOY.md.
+# Observação: o serviço gratuito hiberna após inatividade (primeira requisição pode levar ~1 min)
+# e o PostgreSQL gratuito do Render expira após 30 dias. Alternativa: Neon (DATABASE_URL manual).
+services:
+  - type: web
+    name: alerta-em-acao
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: alerta-em-acao-db
+          property: connectionString
+      - key: Centrais__SegredoMestre
+        generateValue: true
+      - key: Dados__ChaveCifragem
+        generateValue: true
+      - key: Demo__Habilitado
+        value: "true"
+      - key: IA__Provedor
+        sync: false
+      - key: IA__ChaveApi
+        sync: false
+      - key: IA__Modelo
+        sync: false
+      - key: WebPush__ChavePublica
+        sync: false
+      - key: WebPush__ChavePrivada
+        sync: false
+      - key: WebPush__Assunto
+        sync: false
+
+databases:
+  - name: alerta-em-acao-db
+    plan: free
+    databaseName: alerta
+    postgresMajorVersion: "16"

@@ -1,0 +1,10 @@
+**/node_modules
+**/bin
+**/obj
+**/dist
+**/.git
+**/test-results
+**/playwright-report
+backend/src/AlertaEmAcao.Api/wwwroot
+.sync
+apps/android-nearby/build

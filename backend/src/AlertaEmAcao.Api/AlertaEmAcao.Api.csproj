@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <UserSecretsId>alerta-em-acao-api</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AlertaEmAcao.Infraestrutura\AlertaEmAcao.Infraestrutura.csproj" />
+    <ProjectReference Include="..\AlertaEmAcao.CentraisSimuladas\AlertaEmAcao.CentraisSimuladas.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="AlertaEmAcao.Testes.Integracao" />
+  </ItemGroup>
+</Project>

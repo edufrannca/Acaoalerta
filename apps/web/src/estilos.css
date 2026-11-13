@@ -1,0 +1,75 @@
+@import "@fontsource-variable/dm-sans";
+@import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+/* Design tokens — Alerta em Ação */
+@theme {
+  --color-petroleo: #193B44;
+  --color-petroleo-900: #0F262C;
+  --color-oceano: #0F686D;
+  --color-oceano-claro: #5FB3B0;
+  --color-areia: #F8F5EF;
+  --color-areia-escura: #ECE6DA;
+  --color-branco: #FFFFFF;
+  --color-seguro: #2E7257;
+  --color-seguro-claro: #E3F0E9;
+  --color-emergencia: #A83232;
+  --color-emergencia-escura: #852626;
+  --color-emergencia-claro: #F6E4E2;
+  --color-atencao: #8A5A12;
+  --color-atencao-claro: #F7ECD8;
+  --color-tinta: #1D2A2E;
+  --color-tinta-suave: #4B5C61;
+  --color-linha: #D9D2C3;
+
+  --font-sans: "DM Sans Variable", "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius-cartao: 18px;
+  --radius-controle: 12px;
+}
+
+:root {
+  color-scheme: light;
+  font-family: var(--font-sans);
+  color: var(--color-tinta);
+  background: var(--color-areia);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body { margin: 0; min-height: 100dvh; }
+
+/* Foco sempre visível (WCAG 2.4.7 / 2.4.11) */
+:focus-visible {
+  outline: 3px solid var(--color-oceano);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* Linha de maré: o elemento de identidade do produto. Indica o estado da conexão. */
+.linha-mare {
+  height: 6px;
+  background-repeat: repeat-x;
+  background-size: 40px 6px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='6' viewBox='0 0 40 6'%3E%3Cpath d='M0 3 Q10 0 20 3 T40 3' fill='none' stroke='%235FB3B0' stroke-width='2'/%3E%3C/svg%3E");
+}
+.linha-mare[data-estado="offline"] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='6' viewBox='0 0 40 6'%3E%3Cpath d='M0 3 H40' fill='none' stroke='%23C9A15A' stroke-width='2' stroke-dasharray='6 4'/%3E%3C/svg%3E");
+}
+@media (prefers-reduced-motion: no-preference) {
+  .linha-mare[data-estado="online"] { animation: mare 6s linear infinite; }
+}
+@keyframes mare { from { background-position-x: 0; } to { background-position-x: 40px; } }
+
+.maplibregl-ctrl-attrib { font-size: 11px; }
+.maplibregl-popup-content { border-radius: 12px; font-family: var(--font-sans); padding: 10px 12px; }
+
+/* Botão de socorro: alvo grande, contraste alto, sem animação chamativa */
+.botao-socorro { box-shadow: 0 0 0 6px var(--color-emergencia-claro); }
+.botao-socorro:active { transform: translateY(1px); }
+
+.numero-tabular { font-variant-numeric: tabular-nums; }

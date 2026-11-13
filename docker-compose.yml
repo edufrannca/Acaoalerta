@@ -1,0 +1,24 @@
+# Execução local completa: docker compose up --build  →  http://localhost:8080
+services:
+  banco:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: alerta
+    ports: ["5432:5432"]
+    volumes: [dados-alerta:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d alerta"]
+      interval: 5s
+      retries: 20
+  app:
+    build: .
+    depends_on:
+      banco: { condition: service_healthy }
+    ports: ["8080:8080"]
+    env_file: [.env]
+    environment:
+      ConnectionStrings__Postgres: Host=banco;Port=5432;Database=alerta;Username=postgres;Password=postgres
+volumes:
+  dados-alerta:
