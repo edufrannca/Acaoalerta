@@ -77,6 +77,7 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
   const div = useRef<HTMLDivElement>(null)
   const mapa = useRef<MapaML | null>(null)
   const [pronto, setPronto] = useState(false)
+  const [semMapa, setSemMapa] = useState(false)
   const centralizou = useRef(false)
   const tem = (c: Camada) => camadas.includes(c)
 
@@ -88,7 +89,10 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
 
   useEffect(() => {
     if (!div.current) return
-    const m = new maplibregl.Map({ container: div.current, style: estilo, center: [-34.95, -8.05], zoom: 9.2, attributionControl: { compact: true }, cooperativeGestures: false })
+    // Sem WebGL o MapLibre lança exceção: o mapa vira texto e o resto da página (inclusive o socorro) continua.
+    let m: MapaML
+    try { m = new maplibregl.Map({ container: div.current, style: estilo, center: [-34.95, -8.05], zoom: 9.2, attributionControl: { compact: true }, cooperativeGestures: false }) }
+    catch { setSemMapa(true); return }
     if (controlesNativos) m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
     m.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left')
     m.on('load', () => {
@@ -217,7 +221,11 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
 
   return (
     <div className={classeExterna}>
-      <div ref={div} className={`${altura} w-full overflow-hidden ${classeContorno}`} role="region" aria-label="Mapa interativo da Região Metropolitana do Recife" />
+      {semMapa
+        ? <div className={`grid place-items-center bg-fundo p-4 text-center text-[15px] ${classeContorno}`} role="note">
+            <p>Este aparelho não consegue desenhar o mapa. As mesmas informações (chuva, avisos, abrigos e pedidos) aparecem em texto nesta página.</p>
+          </div>
+        : <div ref={div} className={`${altura} w-full overflow-hidden ${classeContorno}`} role="region" aria-label="Mapa interativo da Região Metropolitana do Recife" />}
       {mostrarLegenda && legenda.length > 0 && (
         <ul className="mt-2 grid gap-1 text-[12.5px] text-tinta-suave sm:grid-cols-2">
           {legenda.map((l) => (
