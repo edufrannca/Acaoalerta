@@ -47,11 +47,11 @@ public sealed class ConfirmacaoEntrega
 
     public static string Descrever(NivelEntrega n) => n switch
     {
-        NivelEntrega.PersistenciaLocal => "Salvo no aparelho emissor",
-        NivelEntrega.RecebidoPorDispositivoProximo => "Recebido e salvo por aparelho próximo",
-        NivelEntrega.RecebidoPorGateway => "Aceito pelo gateway para encaminhamento",
-        NivelEntrega.RecebidoPeloBackend => "Recebido pelo servidor do Alerta em Ação",
-        NivelEntrega.RecebidoPelaCentralDemonstrativa => "Recebido pela central SIMULADA (protocolo de demonstração)",
+        NivelEntrega.PersistenciaLocal => "Salvo no celular de quem pediu ajuda",
+        NivelEntrega.RecebidoPorDispositivoProximo => "Recebido e guardado por um celular próximo",
+        NivelEntrega.RecebidoPorGateway => "Recebido por um ponto de apoio para envio",
+        NivelEntrega.RecebidoPeloBackend => "Pedido de ajuda registrado",
+        NivelEntrega.RecebidoPelaCentralDemonstrativa => "A equipe de teste (simulada) recebeu o pedido",
         _ => n.ToString(),
     };
 }

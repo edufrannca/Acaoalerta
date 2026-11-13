@@ -4,7 +4,7 @@ import { AvisoSimulado, Botao, Cartao, Selo, classeEntrada } from '../componente
 import { ContatosEmergencia } from '../componentes/Contatos'
 import { api, ErroApi, formatarHora } from '../lib/api'
 import { dispositivoId, type ItemFila } from '../lib/dispositivo'
-import { descricaoEstado, observarFila, transmitir } from '../lib/filaOffline'
+import { MENSAGENS_SOCORRO as M, mensagemSocorro, observarFila, transmitir } from '../lib/filaOffline'
 import { useLocalizacao, useOnline } from '../lib/hooks'
 import { STATUS_ENCAMINHAMENTO } from '../lib/municipios'
 import { anexarPosicaoSePendente, complementar } from '../lib/socorro'
@@ -90,33 +90,45 @@ export function AcompanharSocorro() {
   const estadoLocal = local?.estado
   const recebidoServidor = estadoLocal === 'recebido_servidor' || !!servidor
   const confirmadas = servidor?.encaminhamentos.filter((e) => e.status === 'Recebido').length ?? 0
+  // "A internet voltou": só quando a conexão retorna com o pedido ainda não registrado.
+  const [internetVoltou, setInternetVoltou] = useState(false)
+  const estavaOnline = useRef(online)
+  useEffect(() => {
+    if (online && !estavaOnline.current && !recebidoServidor) setInternetVoltou(true)
+    if (!online || recebidoServidor) setInternetVoltou(false)
+    estavaOnline.current = online
+  }, [online, recebidoServidor])
 
   return (
     <div className="grid gap-4 md:grid-cols-[1.1fr_1fr]">
       <div className="grid content-start gap-4">
         <section aria-live="polite" className={`rounded-cartao p-5 ${recebidoServidor ? 'bg-petroleo text-branco' : 'bg-[#FBF1DC] text-tinta'}`}>
           <h1 className="text-[24px] font-bold leading-tight">
-            {!local && !servidor ? 'Pedido não encontrado neste aparelho' : recebidoServidor ? 'Pedido recebido pelo servidor' : 'Seu pedido está salvo neste aparelho.'}
+            {!local && !servidor ? 'Pedido não encontrado neste celular' : recebidoServidor ? M.registrado : internetVoltou && local?.estado !== 'recebido_servidor' ? M.internetVoltou : mensagemSocorro(local!.estado, local!.ultimoErro, online)}
           </h1>
-          <p className={`mt-1 text-[15px] ${recebidoServidor ? 'text-areia/90' : ''}`}>
-            {servidor ? servidor.statusDescricao : local ? (local.estado === 'salvo_no_aparelho' ? 'Ainda não transmitido ao servidor.' : descricaoEstado[local.estado]) + (online ? '' : ' Sem internet: enviaremos assim que a conexão voltar.') : ''}
-          </p>
+          {recebidoServidor ? (
+            <>
+              <p className="mt-1 text-[16px] text-areia/90">{M.acompanhando}</p>
+              <p className="mt-1 text-[15px] font-semibold">{servidor?.nivelComprovado === 5 ? M.equipeRecebeu : servidor && servidor.status !== 'RecebidaPeloServidor' ? servidor.statusDescricao : M.aguardandoEquipe}</p>
+              <p className="mt-2 text-[13.5px] text-areia/90">{M.naoACaminho}</p>
+              <p className="mt-1 text-[13px] text-areia/80">{M.demonstracao}</p>
+            </>
+          ) : local && !online ? <p className="mt-1 text-[15px]">Sem internet agora. Vamos enviar assim que a conexão voltar. Se houver risco imediato, ligue 193 ou 199.</p> : null}
           <p className={`mt-2 text-[14px] font-semibold ${recebidoServidor ? 'text-branco' : ''}`} data-testid="nivel-comprovado">
-            Último nível comprovado: {servidor?.nivelComprovado ? `Nível ${servidor.nivelComprovado} — ${servidor.nivelDescricao}` : 'Nível 1 — salvo neste aparelho'}
+            Último nível comprovado: {servidor?.nivelComprovado ? `Nível ${servidor.nivelComprovado} — ${servidor.nivelDescricao}` : 'Nível 1 — salvo neste celular'}
           </p>
-          {servidor?.nivelComprovado === 5 && <p className="text-[12.5px] text-areia/80">Central SIMULADA de demonstração. Nenhum órgão real foi acionado.</p>}
           {local?.ultimoErro && !recebidoServidor && <p className="mt-1 text-[13.5px]">Última tentativa: {local.ultimoErro} ({local.tentativas}x)</p>}
           {!recebidoServidor && local && (
             <div className="mt-3 flex flex-wrap gap-2">
               <Botao variante="primario" onClick={() => transmitir(id)}>Tentar enviar agora</Botao>
-              <Botao variante="secundario" onClick={() => setProximo(!proximo)} aria-expanded={proximo}>Procurar aparelhos próximos para transmitir</Botao>
+              <Botao variante="secundario" onClick={() => setProximo(!proximo)} aria-expanded={proximo}>Procurar celulares próximos para enviar</Botao>
             </div>
           )}
           {servidor && <p className="mt-2 text-[13px] text-areia/80">Identificador do pedido: <span className="numero-tabular">{servidor.id.slice(0, 8)}</span>{servidor.municipio ? `, ${servidor.municipio.nome}` : ''}</p>}
         </section>
 
         {proximo && !recebidoServidor && local && (
-          <Cartao titulo="Transmitir por um aparelho próximo">
+          <Cartao titulo="Enviar por um celular próximo">
             <TransmitirProximo ocorrenciaId={id} aoExibir={marcarExibido} />
           </Cartao>
         )}
@@ -138,7 +150,7 @@ export function AcompanharSocorro() {
       <div className="grid content-start gap-4">
         <Cartao titulo="Para quem foi encaminhado" acao={servidor ? <Selo tom={confirmadas === servidor.encaminhamentos.length && confirmadas > 0 ? 'ok' : 'espera'}>{confirmadas}/{servidor.encaminhamentos.length} confirmações</Selo> : undefined}>
           <AvisoSimulado texto="Centrais simuladas: nenhum órgão real recebe este pedido na demonstração." />
-          {!servidor ? <p className="mt-3 text-[14px] text-tinta-suave">Os destinos aparecem quando o servidor receber o pedido.</p> : (
+          {!servidor ? <p className="mt-3 text-[14px] text-tinta-suave">As equipes aparecem aqui depois que seu pedido for registrado.</p> : (
             <ul className="mt-3 grid gap-2">
               {servidor.encaminhamentos.length === 0 && <li className="text-[14px]">Sem central configurada para este local. Ligue 193 ou 199.</li>}
               {servidor.encaminhamentos.map((e) => {

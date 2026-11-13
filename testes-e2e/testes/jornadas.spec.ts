@@ -54,7 +54,12 @@ test('pedido de socorro → IA/regras → centrais simuladas → painel → atua
   await page.getByLabel('Descreva em poucas palavras').fill('Estamos na laje com uma criança de 5 anos')
   await page.getByRole('button', { name: 'Enviar informações' }).click()
 
-  await expect(page.getByRole('heading', { name: 'Pedido recebido pelo servidor' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Seu pedido de ajuda foi registrado!' })).toBeVisible()
+  await expect(page.getByText('Agora estamos acompanhando o envio para a equipe responsável.')).toBeVisible()
+  await expect(page.getByText('Isso não significa que o socorro já está a caminho.')).toBeVisible()
+  await expect(page.getByText('A equipe de teste recebeu seu pedido.')).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByText(/equipes são simuladas e não representam atendimento real/)).toBeVisible()
+  await expect(page.getByText(/servidor/)).toHaveCount(0)
   await expect(page.getByText(/Protocolo demonstrativo SIM-DC-RECIFE-/).first()).toBeVisible()
   await expect(page.getByText(/Protocolo demonstrativo SIM-CBM-SIM-/).first()).toBeVisible()
   await expect(page.getByText('Centrais simuladas: nenhum órgão real recebe')).toBeVisible()
@@ -81,13 +86,13 @@ test('offline: pedido fica salvo no aparelho e sincroniza sem duplicar ao voltar
   await expect(page.getByText('Conectado').or(page.getByRole('link', { name: 'Início' })).first()).toBeVisible()
   await context.setOffline(true)
   await page.getByRole('button', { name: /Preciso de socorro/ }).first().click()
-  await expect(page.getByRole('heading', { name: 'Seu pedido está salvo neste aparelho.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Seu pedido está salvo neste celular. Ainda não foi enviado.' })).toBeVisible()
   const id = page.url().split('/socorro/')[1]
 
   await page.locator('a[href="/pedidos"]:visible').first().click()
   const item = page.locator('[data-testid=item-fila]').first()
   await expect(item).toHaveAttribute('data-estado', 'salvo_no_aparelho')
-  await expect(item).toContainText('Ainda não transmitido')
+  await expect(item).toContainText('Ainda não foi enviado')
 
   await context.setOffline(false)
   await page.evaluate(() => window.dispatchEvent(new Event('online')))
@@ -153,15 +158,15 @@ test('sem internet: pedido salvo → código QR → aparelho próximo encaminha 
   await page.getByRole('button', { name: /Preciso de socorro/ }).first().click()
   await expect(page).toHaveURL(/\/socorro\//)
   const id = page.url().split('/socorro/')[1]
-  await expect(page.getByRole('heading', { name: 'Seu pedido está salvo neste aparelho.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Seu pedido está salvo neste celular. Ainda não foi enviado.' })).toBeVisible()
   await page.getByRole('button', { name: 'Água potável' }).click()
   await page.getByRole('button', { name: 'Estou ilhado' }).click()
   await page.getByRole('button', { name: 'Enviar informações' }).click()
   await page.getByLabel('Mostrar um resumo do meu pedido para a comunidade').check()
-  await page.getByRole('button', { name: 'Procurar aparelhos próximos para transmitir' }).click()
+  await page.getByRole('button', { name: 'Procurar celulares próximos para enviar' }).click()
   const qr = page.getByRole('img', { name: 'Código QR com o pedido de socorro' })
   await expect(qr).toBeVisible()
-  await expect(page.getByText('Código exibido para um aparelho próximo')).toBeVisible()
+  await expect(page.getByText('Código mostrado para um celular próximo')).toBeVisible()
   const url = await qr.getAttribute('data-url')
   expect(url).toContain('/retransmitir#p=')
 
@@ -174,12 +179,12 @@ test('sem internet: pedido salvo → código QR → aparelho próximo encaminha 
   await expect(pa.getByText('Precisa de: Água potável')).toBeVisible()
   await pa.getByLabel(/Enviar também a posição aproximada deste aparelho/).check()
   await pa.getByRole('button', { name: 'Encaminhar pedido' }).click()
-  await expect(pa.getByRole('heading', { name: /Recebido pelo servidor|Central simulada confirmou/ })).toBeVisible({ timeout: 20_000 })
+  await expect(pa.getByRole('heading', { name: /O pedido de ajuda foi registrado!|A equipe de teste recebeu o pedido/ })).toBeVisible({ timeout: 20_000 })
   await ajudante.close()
 
   // O solicitante volta a ter internet: o mesmo pedido sincroniza sem duplicar.
   await context.setOffline(false)
-  await expect(page.getByRole('heading', { name: 'Pedido recebido pelo servidor' })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('heading', { name: 'Seu pedido de ajuda foi registrado!' })).toBeVisible({ timeout: 30_000 })
   await expect(page.getByText(/Níveis 2–3 · lido por QR/)).toBeVisible({ timeout: 15_000 })
   expect(id).toMatch(/[0-9a-f-]{36}/)
 })
@@ -285,7 +290,7 @@ test('familiar vinculado é avisado quando o morador pede socorro em casa', asyn
   // Morador pede socorro (um toque, como sempre).
   await b.goto('/')
   await b.getByRole('button', { name: /Preciso de socorro/ }).first().click()
-  await expect(b.getByRole('heading', { name: 'Pedido recebido pelo servidor' })).toBeVisible({ timeout: 20_000 })
+  await expect(b.getByRole('heading', { name: 'Seu pedido de ajuda foi registrado!' })).toBeVisible({ timeout: 20_000 })
   await expect(b.getByText(/Pedido associado à sua residência/)).toBeVisible({ timeout: 15_000 })
 
   // Familiar vê o aviso guardado e abre o pedido com só o permitido.

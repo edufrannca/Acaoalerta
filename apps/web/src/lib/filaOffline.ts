@@ -72,7 +72,7 @@ export async function transmitir(id: string): Promise<ItemFila | undefined> {
         item.ultimoErro = e.message
       } else {
         item.estado = 'salvo_no_aparelho'
-        item.ultimoErro = e instanceof ErroRede ? 'Sem conexão com o servidor' : e instanceof Error ? e.message : 'Falha'
+        item.ultimoErro = e instanceof ErroRede ? 'Sem internet no momento' : e instanceof Error ? e.message : 'Falha'
       }
     }
     await db.put('fila', item)
@@ -111,8 +111,30 @@ export function iniciarSincronizacaoAutomatica() {
 }
 
 export const descricaoEstado: Record<ItemFila['estado'], string> = {
-  salvo_no_aparelho: 'Pedido salvo neste aparelho. Ainda não transmitido.',
-  transmitindo: 'Transmitindo ao servidor…',
-  recebido_servidor: 'Recebido pelo servidor do Alerta em Ação.',
-  recusado: 'O servidor recusou este envio. Verifique os dados.',
+  salvo_no_aparelho: 'Salvo neste celular. Ainda não foi enviado.',
+  transmitindo: 'Enviando…',
+  recebido_servidor: 'Registrado!',
+  recusado: 'Não foi possível registrar. Confira os dados e envie de novo.',
+}
+
+/** Mensagens ao cidadão sobre o pedido de socorro (o estado interno não muda). */
+export const MENSAGENS_SOCORRO = {
+  salvo: 'Seu pedido está salvo neste celular. Ainda não foi enviado.',
+  enviando: 'Estamos enviando seu pedido de ajuda.',
+  registrado: 'Seu pedido de ajuda foi registrado!',
+  acompanhando: 'Agora estamos acompanhando o envio para a equipe responsável.',
+  naoACaminho: 'Isso não significa que o socorro já está a caminho.',
+  aguardandoEquipe: 'Estamos aguardando a confirmação da equipe.',
+  equipeRecebeu: 'A equipe de teste recebeu seu pedido.',
+  falha: 'Não conseguimos enviar seu pedido agora. Ele continua salvo neste celular.',
+  internetVoltou: 'A internet voltou. Estamos tentando enviar seu pedido.',
+  demonstracao: 'Demonstração: as equipes são simuladas e não representam atendimento real. Em emergência, ligue 193 ou 199.',
+} as const
+
+export function mensagemSocorro(estado: ItemFila['estado'], ultimoErro?: string | null, online = typeof navigator === 'undefined' || navigator.onLine) {
+  if (estado === 'recebido_servidor') return MENSAGENS_SOCORRO.registrado
+  if (estado === 'transmitindo') return MENSAGENS_SOCORRO.enviando
+  if (estado === 'recusado') return descricaoEstado.recusado
+  // Sem internet o pedido está apenas salvo; "falha" é quando houve conexão e o envio não deu certo.
+  return ultimoErro && online ? MENSAGENS_SOCORRO.falha : MENSAGENS_SOCORRO.salvo
 }

@@ -3,15 +3,15 @@ import { Link } from 'react-router'
 import { Botao, Cartao, Selo, Vazio } from '../componentes/Base'
 import { formatarHora } from '../lib/api'
 import type { ItemFila } from '../lib/dispositivo'
-import { descricaoEstado, observarFila, sincronizar } from '../lib/filaOffline'
+import { descricaoEstado, mensagemSocorro, observarFila, sincronizar } from '../lib/filaOffline'
 import { useOnline } from '../lib/hooks'
 
 const TIPOS: Record<ItemFila['tipo'], string> = { socorro: 'Pedido de socorro', complemento: 'Informações do pedido', situacao: 'Estou seguro', localizacao: 'Localização', oferta: 'Oferta de ajuda', oferta_pedido: 'Oferta de ajuda a um pedido', compartilhamento: 'Compartilhamento com a comunidade', retransmissao: 'Pedido de outra pessoa (lido por QR)' }
 const NIVEL: Record<ItemFila['estado'], string> = {
-  salvo_no_aparelho: 'Nível 1 — salvo neste aparelho (ainda não transmitido)',
-  transmitindo: 'Nível 1 — salvo neste aparelho; transmissão em andamento',
-  recebido_servidor: 'Nível 4 — recebido pelo servidor do Alerta em Ação',
-  recusado: 'Recusado pelo servidor — corrija e envie novamente',
+  salvo_no_aparelho: 'Nível 1 — salvo neste celular (ainda não foi enviado)',
+  transmitindo: 'Nível 1 — salvo neste celular; envio em andamento',
+  recebido_servidor: 'Nível 4 — registrado no Alerta em Ação',
+  recusado: 'Não foi registrado — confira os dados e envie de novo',
 }
 const TOM = { salvo_no_aparelho: 'atencao', transmitindo: 'espera', recebido_servidor: 'ok', recusado: 'erro' } as const
 
@@ -26,7 +26,7 @@ export function MeusPedidos() {
     <div className="mx-auto grid max-w-2xl gap-4">
       <h1 className="text-[26px] font-bold text-petroleo">Meus pedidos e envios</h1>
       <Cartao>
-        <p className="text-[14.5px]">Tudo que você envia fica primeiro neste aparelho. Mostramos aqui se cada envio chegou ao servidor, sem confundir "salvo" com "transmitido".</p>
+        <p className="text-[14.5px]">Tudo que você envia fica primeiro neste celular. Aqui você vê se cada envio já foi registrado ou se ainda está só salvo no celular.</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Selo tom={pendentes ? 'atencao' : 'ok'}>{pendentes ? `${pendentes} aguardando envio` : 'Nada pendente'}</Selo>
           <Botao variante="secundario" disabled={!online || sincronizando || !pendentes} onClick={async () => { setSincronizando(true); await sincronizar(); setSincronizando(false) }}>
@@ -40,7 +40,7 @@ export function MeusPedidos() {
             <li key={i.id} className="rounded-cartao bg-branco p-4 ring-1 ring-linha/70" data-testid="item-fila" data-estado={i.estado}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-semibold text-petroleo">{TIPOS[i.tipo]}</span>
-                <Selo tom={TOM[i.estado]}>{descricaoEstado[i.estado]}</Selo>
+                <Selo tom={TOM[i.estado]}>{i.tipo === 'socorro' ? mensagemSocorro(i.estado, i.ultimoErro) : descricaoEstado[i.estado]}</Selo>
               </div>
               <p className="numero-tabular mt-1 text-[13px] text-tinta-suave">
                 Criado {formatarHora(i.criadoEm)}{i.recebidoEm ? `, recebido ${formatarHora(i.recebidoEm)}` : ''}{i.tentativas ? `, ${i.tentativas} tentativa(s)` : ''}

@@ -19,7 +19,7 @@ describe('fila offline', () => {
     await esperar()
     const item = await obter('p1')
     expect(item?.estado).toBe('salvo_no_aparelho')
-    expect(item?.ultimoErro).toMatch(/Sem conexão/)
+    expect(item?.ultimoErro).toMatch(/Sem internet/)
     expect(item?.recebidoEm).toBeUndefined()
   })
 

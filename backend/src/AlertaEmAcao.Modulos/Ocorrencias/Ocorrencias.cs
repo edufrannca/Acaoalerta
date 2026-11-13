@@ -187,7 +187,7 @@ public sealed class Ocorrencia
         if (posicao is not null) o.AplicarPosicao(posicao);
         o.Registrar(agora, "recebida", canal switch
         {
-            CanalRecebimento.Internet => "Pedido recebido e armazenado pelo servidor.",
+            CanalRecebimento.Internet => "Pedido de ajuda registrado.",
             CanalRecebimento.ProximidadeNearby => $"Pedido recebido via retransmissão por proximidade (aparelho {retransmitidaPor}).",
             _ => $"Pedido recebido via gateway SIMULADO {retransmitidaPor}.",
         });

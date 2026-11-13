@@ -31,9 +31,9 @@ export const TIPOS_AJUDA: Record<string, string> = {
 
 export const STATUS_ENCAMINHAMENTO: Record<string, { rotulo: string; tom: 'ok' | 'espera' | 'erro' }> = {
   Pendente: { rotulo: 'Aguardando envio', tom: 'espera' },
-  Transmitindo: { rotulo: 'Transmitindo', tom: 'espera' },
+  Transmitindo: { rotulo: 'Enviando', tom: 'espera' },
   Recebido: { rotulo: 'Recebimento confirmado', tom: 'ok' },
   FalhaTemporaria: { rotulo: 'Falha; nova tentativa agendada', tom: 'erro' },
-  Rejeitado: { rotulo: 'Recusado pela central', tom: 'erro' },
+  Rejeitado: { rotulo: 'Recusado pela equipe de teste', tom: 'erro' },
   Esgotado: { rotulo: 'Tentativas esgotadas', tom: 'erro' },
 }

@@ -54,9 +54,9 @@ export function Retransmitir() {
   const marcas = Object.entries(pedido.m).filter(([, v]) => v).map(([k]) => SITUACOES[k] ?? k)
   const nec = pedido.nec.map((n) => NECESSIDADES.find((x) => x.codigo === n)?.rotulo ?? n)
   const estado = !item ? null
-    : item.estado === 'recebido_servidor' ? (resp?.nivelComprovado === 5 ? 'Central simulada confirmou' : 'Recebido pelo servidor')
-    : item.estado === 'transmitindo' ? 'Transmitindo ao servidor…'
-    : item.estado === 'recusado' ? 'Servidor recusou' : 'Recebido por este aparelho · encaminhamento pendente'
+    : item.estado === 'recebido_servidor' ? (resp?.nivelComprovado === 5 ? 'A equipe de teste recebeu o pedido' : 'O pedido de ajuda foi registrado!')
+    : item.estado === 'transmitindo' ? 'Estamos enviando o pedido de ajuda.'
+    : item.estado === 'recusado' ? 'Não foi possível registrar o pedido' : 'O pedido está salvo neste celular. Ainda não foi enviado.'
 
   return (
     <div className="mx-auto grid max-w-2xl gap-4">
@@ -92,7 +92,7 @@ export function Retransmitir() {
           <h2 className="text-[21px] font-bold">{estado}</h2>
           {item.estado === 'recebido_servidor' && resp ? (
             <>
-              <p className="mt-1 text-[15px]">Nível {resp.nivelComprovado}: {resp.nivelDescricao}. Ref. {resp.referencia}, {formatarHora(resp.recebidoEm)}.{resp.duplicado ? ' Este pedido já tinha chegado ao servidor; nada foi duplicado.' : ''}</p>
+              <p className="mt-1 text-[15px]">Nível {resp.nivelComprovado}: {resp.nivelDescricao}. Ref. {resp.referencia}, {formatarHora(resp.recebidoEm)}.{resp.duplicado ? ' Este pedido já estava registrado; nada foi duplicado.' : ''}</p>
               <p className="mt-2 text-[14px] opacity-90">Mostre esta tela à pessoa que pediu ajuda. {resp.observacao}</p>
             </>
           ) : item.estado === 'recusado' ? (

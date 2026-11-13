@@ -7,7 +7,7 @@ const pedido: PedidoComunitario = {
   id: 'pedido-um',
   referencia: 'ABC123',
   necessidades: null,
-  situacao: 'Recebido pelo servidor, aguardando confirmação',
+  situacao: 'Pedido registrado, aguardando a confirmação da equipe',
   verificacao: 'Não verificado',
   municipio: 'Recife',
   area: { latitude: -8.05, longitude: -34.9, raioMetros: 400 },

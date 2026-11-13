@@ -146,12 +146,12 @@ public static class OcorrenciasEndpoints
 
     public static string DescreverStatus(StatusOcorrencia s) => s switch
     {
-        StatusOcorrencia.RecebidaPeloServidor => "Recebido pelo servidor do Alerta em Ação. Aguardando confirmação das centrais.",
-        StatusOcorrencia.ConfirmadaParcialmente => "Parte das centrais (simuladas) confirmou o recebimento. Outras ainda pendentes.",
-        StatusOcorrencia.ConfirmadaPorTodas => "Todas as centrais (simuladas) pertinentes confirmaram o recebimento técnico.",
-        StatusOcorrencia.FalhaNoEncaminhamento => "Falha ao entregar às centrais. Novas tentativas automáticas em andamento.",
-        StatusOcorrencia.SemDestinoConfigurado => "Recebido, mas sem central configurada para este local. Ligue 193 ou 199.",
-        StatusOcorrencia.EmAtendimentoSimulado => "Atendimento FICTÍCIO registrado pela central simulada.",
+        StatusOcorrencia.RecebidaPeloServidor => "Estamos aguardando a confirmação da equipe.",
+        StatusOcorrencia.ConfirmadaParcialmente => "Parte das equipes de teste recebeu seu pedido. Estamos aguardando as outras.",
+        StatusOcorrencia.ConfirmadaPorTodas => "A equipe de teste recebeu seu pedido.",
+        StatusOcorrencia.FalhaNoEncaminhamento => "Ainda não conseguimos entregar seu pedido à equipe. Continuamos tentando.",
+        StatusOcorrencia.SemDestinoConfigurado => "Seu pedido foi registrado, mas não há equipe cadastrada para este local. Ligue 193 ou 199.",
+        StatusOcorrencia.EmAtendimentoSimulado => "A equipe de teste registrou um atendimento simulado. Não é atendimento real.",
         StatusOcorrencia.Encerrada => "Pedido encerrado.",
         _ => s.ToString(),
     };

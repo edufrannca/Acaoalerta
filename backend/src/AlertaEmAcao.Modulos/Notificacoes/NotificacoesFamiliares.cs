@@ -52,11 +52,11 @@ public sealed class ServicoNotificacaoFamiliar(IUnidadeTrabalho uow, IEnviadorPu
     /// <summary>Descrição do estado que o familiar vê. Nunca afirma que um órgão real recebeu.</summary>
     public static string EstadoParaFamiliar(StatusOcorrencia s) => s switch
     {
-        StatusOcorrencia.ConfirmadaParcialmente or StatusOcorrencia.ConfirmadaPorTodas => "Confirmado por central SIMULADA (nenhum órgão real foi acionado)",
+        StatusOcorrencia.ConfirmadaParcialmente or StatusOcorrencia.ConfirmadaPorTodas => "A equipe de teste SIMULADA recebeu o pedido (nenhum órgão real foi acionado)",
         StatusOcorrencia.EmAtendimentoSimulado => "Em atendimento simulado",
         StatusOcorrencia.Encerrada => "Pedido encerrado",
-        StatusOcorrencia.FalhaNoEncaminhamento => "Recebido pelo servidor; encaminhamento à central simulada em nova tentativa",
-        _ => "Recebido pelo servidor",
+        StatusOcorrencia.FalhaNoEncaminhamento => "Pedido registrado; ainda tentando entregar à equipe de teste",
+        _ => "Pedido registrado, aguardando a confirmação da equipe",
     };
 
     public async Task<int> ProcessarAsync(Guid ocorrenciaId, string motivo, CancellationToken ct)
@@ -77,7 +77,7 @@ public sealed class ServicoNotificacaoFamiliar(IUnidadeTrabalho uow, IEnviadorPu
         (string Tipo, string Chave, string Titulo, Func<VinculoFamiliar, string> Msg)? ev = motivo switch
         {
             "registrada" or "residencia_associada" => ("pedido", $"{o.Id}:pedido", "Pedido de socorro na residência monitorada",
-                v => $"A residência \"{v.ApelidoParaFamiliar}\", em {municipio}, registrou um pedido de ajuda às {hora}. Recebido pelo servidor. Toque para ver as informações compartilhadas e o estado de recebimento."),
+                v => $"A residência \"{v.ApelidoParaFamiliar}\", em {municipio}, registrou um pedido de ajuda às {hora}. O pedido foi registrado. Toque para ver as informações compartilhadas e o estado de recebimento."),
             "complemento" => ("complemento", $"{o.Id}:complemento:{o.Historico.Count(h => h.Tipo == "complemento")}", "Novas informações no pedido",
                 v => $"O pedido da residência \"{v.ApelidoParaFamiliar}\" recebeu informações complementares."),
             "situacao" => ("situacao", $"{o.Id}:situacao:{o.Historico.Count(h => h.Tipo == "situacao")}", "Atualização do solicitante",

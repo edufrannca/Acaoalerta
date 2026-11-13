@@ -36,7 +36,7 @@ export function FamiliaPedido() {
       </section>
       <Cartao titulo="Estado de recebimento">
         <p className="text-[17px] font-semibold">{d.estado}</p>
-        <p className="mt-1 text-[14px]">Nível {d.nivelComprovado}: {d.nivelComprovado === 5 ? 'confirmado por central SIMULADA' : 'recebido e gravado pelo servidor'} ({formatarHora(d.recebidoPeloServidorEm)}).</p>
+        <p className="mt-1 text-[14px]">Nível {d.nivelComprovado}: {d.nivelComprovado === 5 ? 'a equipe de teste (simulada) recebeu' : 'pedido de ajuda registrado'} ({formatarHora(d.recebidoPeloServidorEm)}).</p>
         <ul className="mt-3 grid gap-1 text-[13.5px]">
           {d.historico.map((h, i) => <li key={i}>{formatarHora(h.em)} · {EVENTO[h.tipo] ?? h.tipo}</li>)}
         </ul>

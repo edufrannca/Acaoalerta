@@ -76,10 +76,10 @@ public static class ResumoComunitario
 
     public static string Situacao(StatusOcorrencia s) => s switch
     {
-        StatusOcorrencia.ConfirmadaParcialmente or StatusOcorrencia.ConfirmadaPorTodas => "Confirmado por central simulada",
+        StatusOcorrencia.ConfirmadaParcialmente or StatusOcorrencia.ConfirmadaPorTodas => "A equipe de teste (simulada) recebeu",
         StatusOcorrencia.EmAtendimentoSimulado => "Em atendimento (simulado)",
         StatusOcorrencia.Encerrada => "Encerrado",
-        _ => "Recebido pelo servidor, aguardando confirmação",
+        _ => "Pedido registrado, aguardando a confirmação da equipe",
     };
 
     public static string Verificacao(VerificacaoOcorrencia v) => v switch

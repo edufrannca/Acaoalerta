@@ -12,10 +12,20 @@ describe('Meus pedidos', () => {
 
   it('deixa explícito que o pedido está salvo no aparelho e ainda não foi transmitido', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('offline'))
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
     await enfileirar({ id: 'x', tipo: 'socorro', caminho: '/api/ocorrencias', corpo: {} })
     render(<MemoryRouter><MeusPedidos /></MemoryRouter>)
-    expect(await screen.findByText('Pedido salvo neste aparelho. Ainda não transmitido.')).toBeInTheDocument()
+    expect(await screen.findByText('Seu pedido está salvo neste celular. Ainda não foi enviado.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Acompanhar pedido' })).toHaveAttribute('href', '/socorro/x')
+  })
+
+  it('com internet, falha no envio diz que o pedido continua salvo', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('falhou'))
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true)
+    await enfileirar({ id: 'y', tipo: 'socorro', caminho: '/api/ocorrencias', corpo: {} })
+    render(<MemoryRouter><MeusPedidos /></MemoryRouter>)
+    expect(await screen.findByText('Não conseguimos enviar seu pedido agora. Ele continua salvo neste celular.')).toBeInTheDocument()
+    expect(screen.queryByText(/servidor/)).toBeNull()
   })
 })
 

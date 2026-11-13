@@ -55,11 +55,11 @@ export function TransmitirProximo({ ocorrenciaId, aoExibir }: { ocorrenciaId: st
 export function EtapasEntrega({ salvoAqui, codigoExibido, canal, nivel }: { salvoAqui: boolean; codigoExibido: boolean; canal: string | null; nivel: number | null }) {
   const viaProximo = canal === 'ProximidadeQr' || canal === 'ProximidadeNearby'
   const etapas: { rotulo: string; estado: 'feito' | 'agora' | 'pendente' | 'nao_aplica'; detalhe?: string }[] = [
-    { rotulo: 'Salvo neste aparelho', estado: salvoAqui || nivel ? 'feito' : 'pendente', detalhe: 'Nível 1' },
-    ...(codigoExibido && !nivel ? [{ rotulo: 'Código exibido para um aparelho próximo', estado: 'agora' as const, detalhe: 'aguardando leitura; ainda não é confirmação' }] : []),
-    { rotulo: 'Recebido por aparelho próximo e encaminhado', estado: viaProximo ? 'feito' : nivel ? 'nao_aplica' : 'pendente', detalhe: viaProximo ? (canal === 'ProximidadeQr' ? 'Níveis 2–3 · lido por QR' : 'Níveis 2–3 · Nearby') : nivel ? 'enviado direto pela internet' : 'Níveis 2–3' },
-    { rotulo: 'Recebido pelo servidor', estado: nivel && nivel >= 4 ? 'feito' : 'pendente', detalhe: 'Nível 4' },
-    { rotulo: 'Central simulada confirmou', estado: nivel === 5 ? 'feito' : 'pendente', detalhe: 'Nível 5 · demonstração, nenhum órgão real' },
+    { rotulo: 'Salvo neste celular', estado: salvoAqui || nivel ? 'feito' : 'pendente', detalhe: 'Nível 1' },
+    ...(codigoExibido && !nivel ? [{ rotulo: 'Código mostrado para um celular próximo', estado: 'agora' as const, detalhe: 'aguardando leitura; ainda não é confirmação' }] : []),
+    { rotulo: 'Recebido por um celular próximo e repassado', estado: viaProximo ? 'feito' : nivel ? 'nao_aplica' : 'pendente', detalhe: viaProximo ? (canal === 'ProximidadeQr' ? 'Níveis 2–3 · lido por QR' : 'Níveis 2–3 · Nearby') : nivel ? 'enviado direto pela internet' : 'Níveis 2–3' },
+    { rotulo: 'Pedido de ajuda registrado', estado: nivel && nivel >= 4 ? 'feito' : 'pendente', detalhe: 'Nível 4' },
+    { rotulo: 'A equipe de teste recebeu', estado: nivel === 5 ? 'feito' : 'pendente', detalhe: 'Nível 5 · demonstração, nenhum órgão real' },
   ]
   const marca = { feito: '✓', agora: '…', pendente: '○', nao_aplica: '–' }
   return (
