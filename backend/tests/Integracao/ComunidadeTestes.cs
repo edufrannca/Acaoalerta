@@ -304,6 +304,21 @@ public class ComunidadeTestes(FabricaApi f)
     }
 }
 
+[Collection("api")]
+public class ComunidadeForaRmrTestes(FabricaApi f)
+{
+    [Fact]
+    public async Task Pedido_compartilhado_fora_da_RMR_nao_aparece_com_oferta_impossivel()
+    {
+        var c = f.ClienteDispositivo("fora-" + Guid.NewGuid());
+        var id = Guid.NewGuid();
+        (await c.PostAsJsonAsync("/api/ocorrencias", new { id, criadaEm = DateTimeOffset.UtcNow, latitude = -7.60, longitude = -34.80, precisaoMetros = 10,
+            compartilhamento = new { autorizado = true, incluirNecessidades = true } })).EnsureSuccessStatusCode();
+        var r = await f.CreateClient().GetStringAsync("/api/comunidade/pedidos?lat=-7.60&lon=-34.80&raioKm=5");
+        Assert.DoesNotContain(id.ToString(), r);
+    }
+}
+
 public class ParidadeQrTestes
 {
     [Fact]

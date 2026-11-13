@@ -74,7 +74,8 @@ public static class ComunidadeEndpoints
             if (municipio is not null) q = q.Where(o => o.MunicipioCodigo == municipio);
             var todas = await q.OrderByDescending(o => o.RecebidaNoServidorEm).Take(500).ToListAsync(ct);
 
-            var compartilhadas = todas.Where(o => o.Compartilhamento.Autorizado && o.Ponto is not null).Select(o =>
+            // Fora dos 14 municípios não há equipe para avaliar ofertas: o pedido não entra na lista (evita botão que não funciona).
+            var compartilhadas = todas.Where(o => o.Compartilhamento.Autorizado && o.Ponto is not null && o.MunicipioCodigo is not null).Select(o =>
             {
                 var area = AreaAproximada.De(o.Ponto!.Value, o.PrecisaoMetros);
                 // Distância de QUEM CONSULTA até a BORDA da área (nunca até o ponto real).

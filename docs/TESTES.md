@@ -7,7 +7,7 @@ Todos os números abaixo vêm de execuções reais em 13/11/2026 (.NET 10, Postg
 | Unitários (domínio, protocolo de proximidade, área aproximada, comparação de GPS, ofertas) | xUnit | 100 | 100 aprovados |
 | Avaliação da IA (validador, Groq com HTTP controlado: 429, timeout, JSON inválido, indisponível) | xUnit | 24 | 24 aprovados (*) |
 | Arquitetura (dependências entre camadas) | xUnit + reflexão | 7 | 7 aprovados |
-| Integração (API + banco real + centrais via HTTP + gateway v2 + comunidade + retransmissão QR + locais, vínculos, consentimentos, notificações familiares) | xUnit + WebApplicationFactory | 60 | 60 aprovados |
+| Integração (API + banco real + centrais via HTTP + gateway v2 + comunidade + retransmissão QR + locais, vínculos, consentimentos, notificações familiares) | xUnit + WebApplicationFactory | 61 | 61 aprovados |
 | Frontend (fila offline, telas, leitura por voz, acessibilidade, QR de retransmissão, cartão comunitário mínimo) | Vitest + Testing Library + fake-indexeddb | 19 | 19 aprovados |
 | Ponta a ponta (jornadas, offline → QR → aparelho próximo, comunidade e oferta, família avisada, instalação PWA, axe WCAG 2 A/AA em 12 telas, alto contraste) | Playwright + axe-core | 24 | 24 aprovados |
 | Protocolo Kotlin contra os vetores | kotlinc 2.1 (JVM) | 3 vetores | conferem |
