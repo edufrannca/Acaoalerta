@@ -1,36 +1,50 @@
-# Roteiro de demonstração (12 cenários, ~8 min)
+# Roteiro de demonstração (13/11/2026, 15h)
 
-> Todos os dados, pessoas e centrais são **fictícios**. Diga em voz alta: **"Ambiente simulado: nenhum órgão real foi acionado."**
+> Diga em voz alta: **"Ambiente simulado: nenhum órgão real foi acionado."** Todos os dados, pessoas e centrais são fictícios.
+> **Só apresente o que já passou num ensaio antes das 15h.** Itens marcados ⚠ dependem de teste físico ainda não realizado: se não passarem
+> no ensaio, mostre a gravação identificada ("gravação do ensaio de HH:MM") ou pule, dizendo o estado real.
 
-## Preparação (15 min antes)
-1. Abrir a URL publicada (acorda o serviço gratuito) ou rodar `docker compose up`.
-2. Abrir três janelas lado a lado:
-   - **A, celular** (DevTools em modo dispositivo ou um telefone real): `/` → Perfil → *Ana, cidadã (Recife)*;
-   - **B, operador**: `/perfil` → *Defesa Civil Recife (simulada)* → `/painel`;
-   - **C, administrador**: `/perfil` → *Administrador da demonstração* → `/demo`.
-3. Em `/demo`, confirme que todas as centrais estão em **Normal**.
+## Preparação (14h30)
+1. Abra a URL publicada (acorda o plano gratuito) e confira `/health`. Contingência: `docker compose up` no notebook.
+2. Celulares: PWA instalada (Android via Chrome, iPhone via Safari); apps nativos instalados e configurados (grupo `ALERTA-DEMO-2026`, chave do gateway em `/demo`).
+3. Telas: A = celular espelhado; B = `/painel` (operador DC Recife); C = `/demo` (Administrador). Centrais em **Normal**.
+4. Rode `ALERTA_URL=<url> python3 simuladores/nearby-ponta-a-ponta.py` (confirma gateway → centrais).
 
-Contas fictícias (senha `Demo@2026`, domínio `@demo.alerta`): `cidada`, `cidadao.olinda`, `voluntaria`, `operador.dc.recife`, `operador.dc.olinda`, `operador.dc.ipojuca`, `operador.dc.jaboatao`, `operador.bombeiros`, `operador.samu`, `org.maos`, `admin`.
+Contas fictícias (senha `Demo@2026`, domínio `@demo.alerta`): `cidada`, `cidadao.olinda`, `voluntaria`, `operador.dc.recife`, `operador.dc.olinda`,
+`operador.dc.ipojuca`, `operador.dc.jaboatao`, `operador.bombeiros`, `operador.samu`, `org.maos`, `admin` (ou Perfil → Modo demonstração).
 
-## Cenários
-| # | Cenário | Onde | O que mostrar |
+## Sequência (≈ 9 min)
+| # | O que mostrar | Onde | Estado |
 |---|---|---|---|
-| 1 | Prevenção | A: Início → "Usar minha localização" (ou escolher Recife) | Município identificado, aviso vigente, chuva da estação APAC mais próxima com horário, área documentada com distância e fonte. Frase: "ausência de registros não comprova ausência de perigo". |
-| 2 | Alerta proativo | C: "Publicar aviso demonstrativo" → área *Ibura e entorno* → "Publicar e processar" | Contador de usuários notificados (só os locais dentro do polígono). Rótulo **[DEMONSTRAÇÃO]**. |
-| 3 | Check-in | A: cartão "Você e sua família estão bem?" → **Estou seguro** | Registro salvo e transmitido; aparece em C (`/demo` → notificações). |
-| 4 | Pedido de socorro | A (ou aba anônima): **Preciso de socorro** | Pedido enviado **antes** de qualquer pergunta; 193/199/192/190 visíveis. Complemento: "ilhados", 4 pessoas (criança de 3 anos, idosa de 78 com mobilidade reduzida), água subindo, rua sem acesso. |
-| 5 | IA / regras | B: abrir a ocorrência | Sinalizações com evidência (ex.: `AGUA_SUBINDO_COM_ILHAMENTO`), "necessidade de assistência" em nível **atenção** (idade não é ameaça), contexto territorial, resumo da IA rotulado (ou "IA não configurada: regras aplicadas"). |
-| 6 | Encaminhamento | B: aba destinos; abrir `/central/DC-RECIFE` e `/central/CBM-SIM` | Cada central **recebeu e persistiu**; protocolo `SIM-…`; horário de envio e de recebimento. |
-| 7 | Painel | B | Localização, pessoas, IA, destinos, horários, confirmações, histórico; mudar o estado na central → "Equipe designada" aparece na linha do tempo de A. |
-| 8 | Falha institucional | C: `CBM-SIM` → **Indisponível (503)**; A: novo pedido em Recife com "água subindo" | B mostra Bombeiros em "Falha temporária" com tentativas e a Defesa Civil recebida normalmente. C: voltar a **Normal** → retentativa → **Recebido**, sem duplicar. |
-| 9 | Offline | A: DevTools → Network → **Offline**; enviar um complemento ou novo pedido | "Pedido salvo neste aparelho. Ainda não transmitido." → Meus pedidos: *salvo no aparelho* → **Online** → *recebido pelo servidor*. |
-| 10 | Nearby | (sem aparelhos) | Explicar a PoC e mostrar o código e `docs/NEARBY_ANDROID_IOS.md`. Opcional: `simuladores/gateway-nearby.sh` faz o POST no gateway e o pedido aparece com canal "Gateway simulado". **Não afirmar que foi testado em aparelhos.** |
-| 11 | Apoio comunitário | A: **Quero ajudar** → oferta para uma necessidade; outra janela: *Organização de apoio (fictícia)* → `/central/ORG-MAOS` | Organização confirma; o andamento aparece em A. |
-| 12 | Abrigos | A: Mapa → camada Abrigos | Abrigos da COP Recife (fonte e data) e fictícios rotulados; **"Disponibilidade não verificada"** em todos. |
+| 1 | App instalado no Android (ícone, abre em tela cheia) | celular Android | ⚠ ensaiar |
+| 2 | App instalado no iPhone | iPhone | ⚠ ensaiar |
+| 3 | Identidade visual; botão **Aa** (texto 115–150%, alto contraste) | PWA | pronto (E2E + axe) |
+| 4 | Leitura por voz: "Ouvir situação da região", pausar, repetir | PWA | pronto no navegador; ⚠ voz pt-BR no celular |
+| 5 | GPS e mapa: município identificado, limites dos 14 | PWA | pronto; ⚠ GPS no celular |
+| 6 | Riscos e fontes: aviso INMET, chuva APAC com horário, área documentada, "ausência de registros não comprova ausência de perigo" | PWA | pronto |
+| 7 | Alerta proativo demonstrativo (C → "Publicar aviso", área Ibura) | `/demo` | pronto |
+| 8 | "Há um aviso para sua região. Você e sua família estão bem?" | PWA (Ana) | pronto; ⚠ push no celular |
+| 9 | Check-in **Estou seguro** | PWA | pronto |
+| 10 | Pedido fictício — enviado antes do formulário; 193/199/192/190 visíveis (não ligar) | PWA | pronto |
+| 11 | Complemento: 4 pessoas, idades 3/34/78, mobilidade reduzida, água subindo, ilhados | PWA | pronto |
+| 12 | Análise **Groq real** no painel (modelo, tempo, pessoas citadas, evidências) | `/painel` | ⚠ só se a chave estiver no Render e aparecer "Concluida" no ensaio; senão mostre "regras aplicadas" |
+| 13 | Encaminhamento por município (Recife → DC-RECIFE + CBM-SIM; Olinda → DC-OLINDA) | painel | pronto |
+| 14 | Centrais simuladas recebendo (`/central/DC-RECIFE`) | central | pronto |
+| 15 | Protocolos `SIM-…` e níveis 4/5 | painel | pronto |
+| 16 | Falha de central (CBM-SIM Indisponível) → retentativa → Recebido sem duplicar | `/demo` + painel | pronto |
+| 17 | Apoio comunitário: oferta → organização simulada confirma | PWA + `/central/ORG-MAOS` | pronto |
+| 18 | PWA offline: modo avião → "Pedido salvo neste aparelho. Ainda não transmitido." → religar → recebido | celular | pronto no E2E; ⚠ ensaiar no celular |
+| 19 | Nearby Android → Android (AA-01-B, emissor sem internet) | apps nativos | ⚠ depende de APK + teste físico |
+| 20 | Nearby Android → iPhone (AI-01) | apps nativos | ⚠ depende de build iOS + teste físico |
+| 21 | Nearby iPhone → Android (IA-01) | apps nativos | ⚠ idem |
+| 22 | Nearby iPhone → iPhone (II-01) | apps nativos | ⚠ idem (exige 2 iPhones) |
+| 23 | Gateway encaminhando ao backend (receptor com internet → níveis 4 e 5) | app receptor + painel | pronto via script (SIMULADO); ⚠ físico |
+| 24 | Painel "Níveis de entrega comprovados" (1 a 5; nunca 6) | painel | pronto |
 
 ## Encerramento
-Voltar ao painel com a linha do tempo completa e dizer: "Tudo o que vocês viram passou por HTTP, banco e protocolo de verdade; só o destinatário é simulado. O próximo passo é homologar com uma Defesa Civil."
+"Tudo passou por HTTP, banco e protocolo de verdade; só o destinatário é simulado. O nível 6 — recebimento por um órgão real — exige homologação: é o próximo passo."
 
 ## Plano B
-- Sem internet no local: `docker compose up` no notebook (mapa base sem tiles; todo o resto funciona).
-- Serviço hibernado: abrir `/health` e aguardar cerca de 1 minuto.
+- Servidor hibernado: abrir `/health` e aguardar ~1 min; ou notebook com `docker compose up`.
+- Nearby falhou ao vivo: mostrar a gravação do ensaio (identificada com horário) e a matriz preenchida; não improvisar teste novo no palco.
+- Groq indisponível: o painel mostra "IA indisponível; regras determinísticas" — comportamento projetado.
