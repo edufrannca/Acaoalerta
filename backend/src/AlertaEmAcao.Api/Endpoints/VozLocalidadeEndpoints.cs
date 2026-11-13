@@ -34,10 +34,11 @@ public static class VozLocalidadeEndpoints
 
         api.MapPost("/voz", async (PedidoVoz p, CancellationToken ct) =>
         {
-            var exe = CaminhoEspeak();
-            if (exe is null) return Results.Problem("Voz do servidor indisponível neste ambiente.", statusCode: 503);
+            // Entrada inválida é 400 em qualquer ambiente; só depois verifica se o sintetizador existe.
             var texto = (p.Texto ?? "").Trim();
             if (texto.Length is 0 or > 1500) return Results.BadRequest(new { codigo = "texto_invalido", erro = "Texto vazio ou maior que 1500 caracteres." });
+            var exe = CaminhoEspeak();
+            if (exe is null) return Results.Problem("Voz do servidor indisponível neste ambiente.", statusCode: 503);
             var palavrasMin = (int)Math.Clamp(Math.Round(165 * (p.Velocidade ?? 1)), 90, 260);
             var chave = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{palavrasMin}|{texto}")));
             if (!CacheVoz.TryGetValue(chave, out var wav))
