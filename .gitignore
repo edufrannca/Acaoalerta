@@ -24,3 +24,13 @@ Thumbs.db
 # Frontend publicado dentro da API (gerado no build)
 backend/src/AlertaEmAcao.Api/wwwroot/
 .sync/
+
+# Apps nativos
+apps/android-nearby/.gradle/
+apps/android-nearby/**/build/
+apps/android-nearby/local.properties
+apps/ios-nearby/*.xcodeproj/
+apps/ios-nearby/AlertaNearby/Info.plist
+apps/ios-nearby/DerivedData/
+*.apk
+*.ipa

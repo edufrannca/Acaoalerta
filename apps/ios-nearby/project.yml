@@ -1,0 +1,68 @@
+# Projeto Xcode gerado com XcodeGen (brew install xcodegen && xcodegen generate).
+# Assinatura: defina DEVELOPMENT_TEAM (ex.: DEVELOPMENT_TEAM=ABCDE12345 xcodegen generate) e um bundle id único
+# (BUNDLE_ID=br.alertaemacao.nearby.seunome) — contas Apple gratuitas exigem bundle id exclusivo.
+name: AlertaNearby
+options:
+  deploymentTarget:
+    iOS: "15.0"
+  bundleIdPrefix: br.alertaemacao
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    DEVELOPMENT_TEAM: ${DEVELOPMENT_TEAM}
+    CODE_SIGN_STYLE: Automatic
+packages:
+  NearbyConnections:
+    url: https://github.com/google/nearby
+    # Commit fixado para builds reproduzíveis (branch main em 13/11/2026).
+    revision: 878ed1f9000bb33107986aaa38b8be0b517cbe06
+targets:
+  AlertaNearby:
+    type: application
+    platform: iOS
+    sources: [AlertaNearby/Fontes]
+    dependencies:
+      - package: NearbyConnections
+        product: NearbyConnections
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ${BUNDLE_ID}
+        MARKETING_VERSION: "0.2"
+        CURRENT_PROJECT_VERSION: "2"
+        TARGETED_DEVICE_FAMILY: "1"
+        INFOPLIST_KEY_CFBundleDisplayName: "Alerta Proximidade"
+    info:
+      path: AlertaNearby/Info.plist
+      properties:
+        CFBundleDisplayName: Alerta Proximidade
+        UILaunchScreen: {}
+        UIApplicationSupportsIndirectInputEvents: true
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSBluetoothAlwaysUsageDescription: "O Alerta em Ação usa o Bluetooth para enviar e receber pedidos de socorro de demonstração com aparelhos próximos, mesmo sem internet."
+        NSLocalNetworkUsageDescription: "O Alerta em Ação usa a rede local para se comunicar com aparelhos próximos e trocar pedidos de socorro de demonstração."
+        NSLocationWhenInUseUsageDescription: "A localização é exigida pelo iOS para conexões Wi-Fi diretas com aparelhos próximos. O app de demonstração envia apenas coordenadas fictícias."
+        # Primeiros 6 bytes do SHA-256 de "br.alertaemacao.nearby", em hexadecimal maiúsculo (mesma regra do SDK).
+        NSBonjourServices: ["_6D2B796E03F0._tcp"]
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+  AlertaNearbyTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - AlertaNearby/Testes
+      - path: ../../docs/protocolo/vetores-v2.json
+        buildPhase: resources
+    dependencies:
+      - target: AlertaNearby
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ${BUNDLE_ID}.tests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  AlertaNearby:
+    build:
+      targets:
+        AlertaNearby: all
+        AlertaNearbyTests: [test]
+    test:
+      targets: [AlertaNearbyTests]
