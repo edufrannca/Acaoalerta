@@ -39,6 +39,9 @@ docker compose up --build
 | `Demo__Habilitado` | não (true) | Login rápido por perfil e `/demo` |
 
 ## Situação na entrega
+**Publicado em 13/11/2026: https://alerta-em-acao.onrender.com** — `/health` ok (banco ok, PostGIS 3.6.2); validado às 02:30: gateway v2 até nível 5, IA Groq real concluída (839 ms), alerta demonstrativo com a pergunta correta, `/instalar` e manifest com 4 ícones.
+
+### Histórico
 `Dockerfile` e blueprint escritos. **O build da imagem não foi executado** (o ambiente de desenvolvimento não tinha daemon Docker); as etapas equivalentes foram verificadas separadamente: build do front, `dotnet publish -c Release` e execução do pacote publicado em modo Production com `DATABASE_URL` num banco vazio (migrações, 14 municípios, um pedido de socorro recebeu o protocolo `SIM-DC-RECIFE-…` da central simulada). **Nenhuma URL pública foi verificada**: a publicação depende do login do usuário no GitHub e no Render.
 
 ## Validação após publicar (checklist)

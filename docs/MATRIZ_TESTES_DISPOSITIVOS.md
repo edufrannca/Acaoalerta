@@ -12,7 +12,9 @@ Classificações: **PASSOU — teste físico executado** · **FALHOU — teste f
 | Nenhum teste físico executado | O desenvolvimento ocorreu em ambiente de nuvem sem aparelhos; os testes dependem da equipe na sala |
 | APK Android | **BLOQUEADO** até o GitHub Actions iniciar (todo run termina em `startup_failure`, inclusive um workflow mínimo) ou até compilar no Android Studio |
 | App iOS | **BLOQUEADO** até compilar no Mac com Xcode e Apple ID |
-| Caminho do gateway até a central | **SIMULADO**: `simuladores/nearby-ponta-a-ponta.py` passou (níveis 1–5, reenvio sem duplicar, 1,4 s) — não substitui o teste físico |
+| Caminho do gateway até a central | **SIMULADO**: local (1,4 s) e **no ambiente publicado** (02:30, 2,6 s até o nível 5, protocolos SIM-DC-RECIFE-20261113-000001 e SIM-CBM-SIM-20261113-000001, reenvio por outro gateway sem duplicar) — não substitui o teste físico |
+
+| GW-SIM-PUB | 13/11 02:30 | navegador (aparelho A simulado) | navegador (gateway) | — | — | — | — | — | — | ocorrência ec92dff7… | — | — | — | — | simulado | 723 ms | SIM-DC-RECIFE-20261113-000001, SIM-CBM-SIM-20261113-000001 | SIMULADO — somente ambiente de teste | — | registro na conversa de validação |
 
 ## Inventário de aparelhos (preencher antes de começar)
 | Apelido | Modelo | Sistema e versão | App (versão) | Dono/autorização |

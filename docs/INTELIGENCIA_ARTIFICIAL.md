@@ -32,7 +32,13 @@ A IA **resume e organiza** um pedido para um operador humano. Ela **não** decid
 - Novo campo validado: `pessoasIdentificadas` (idade + condições + evidência). Idade só é aceita se foi informada; condições descrevem assistência, nunca prioridade.
 - Painel: resumo, pessoas citadas, perigos, sinalizações com justificativa, ausências, não verificados, modelo e tempo de resposta.
 
-## Inferência real — estado em 13/11/2026
-**Não executada.** O ambiente de desenvolvimento não alcança `api.groq.com` (proxy de saída) e o GitHub Actions da conta não inicia.
-Executa automaticamente: (a) no Render, quando `IA__ChaveApi` for preenchida; (b) no CI, job `ia-groq`, com o secret `GROQ_API_KEY` — o relatório
-`relatorio-ia-groq.json` traz modelo, tempo, validade do esquema, itens descartados e falhas por caso. Nenhum resultado foi inventado aqui.
+## Inferência real — executada em 13/11/2026 (02:30, Recife)
+Ambiente público `https://alerta-em-acao.onrender.com`, pedido FICTÍCIO entregue pelo gateway v2 (Recife, 4 pessoas, idades 3/34/78, água subindo, ilhados):
+- Provedor/modelo: `groq/openai/gpt-oss-20b` · tempo de resposta **839 ms** · status **Concluida** · validação do esquema sem problemas, 0 itens descartados.
+- Pessoas extraídas: 3, 34 e 78 anos (78 com "andador"), todas com evidência literal; `pessoasEnvolvidas = 4`.
+- Perigos com evidência: água subindo rápido; ilhamento. Sinalizações para avaliação humana: AGUA_SUBINDO, ILHAMENTO, PESSOA_ISOLADA, ACESSO_BLOQUEADO, NECESSIDADE_ASSISTENCIA.
+- **Erro observado:** o resumo livre disse "outras duas pessoas (34 anos)", mas só uma idade 34 foi informada. O resumo não é ancorado como os demais campos;
+  o painel mostra os dados estruturados validados ao lado e a decisão é sempre humana. Melhoria pendente: validar números citados no resumo.
+- Regras determinísticas no mesmo pedido: AGUA_SUBINDO_COM_ILHAMENTO (indício de ameaça imediata), NECESSIDADE_ASSISTENCIA, PESSOA_ISOLADA, ACESSO_BLOQUEADO (atenção).
+
+A bateria de 10 casos do CI (`ia-groq`) segue pendente: o GitHub Actions da conta não inicia.

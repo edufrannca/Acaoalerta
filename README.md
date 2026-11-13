@@ -1,5 +1,7 @@
 # Alerta em Ação
 
+**Demonstração publicada:** https://alerta-em-acao.onrender.com (instalar no celular: `/instalar`)
+
 **Rede metropolitana de prevenção, comunicação resiliente e proteção comunitária para os 14 municípios da Região Metropolitana do Recife.**
 
 Hackathon *Devs Criam com IA 2026*, Trilha 2: Alertar e Proteger.

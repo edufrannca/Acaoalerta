@@ -38,3 +38,12 @@ Ou `./scripts/testar-tudo.sh`. A CI (`.github/workflows/ci.yml`) roda backend e 
 - Web Push entregue em aparelho real (o envio está implementado; não houve VAPID nem aparelho na execução).
 - Chamadas às APIs públicas ao vivo dentro dos testes (usamos respostas gravadas; a coleta ao vivo foi verificada manualmente pelo navegador).
 - Carga e desempenho; acessibilidade com leitor de tela.
+
+## Validação no ambiente publicado (13/11/2026, 02:30)
+| Verificação | Resultado |
+|---|---|
+| `/health` | ok, banco ok, PostGIS 3.6.2 |
+| Gateway v2 → API → centrais SIMULADAS | nível 5 em 2,6 s; protocolos DC-RECIFE e CBM-SIM; reenvio por outro gateway `duplicado=true` |
+| IA Groq real (`openai/gpt-oss-20b`) | Concluida em 839 ms, esquema válido; resumo com 1 imprecisão (ver INTELIGENCIA_ARTIFICIAL) |
+| Alerta demonstrativo (área Ibura) | 1 notificação; pergunta "Há um aviso para sua região. Você e sua família estão bem?" |
+| `/instalar`, manifest | 200; 4 ícones (2 maskable) |
