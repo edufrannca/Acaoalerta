@@ -83,3 +83,7 @@ Ver [docs/TESTES.md](docs/TESTES.md).
 ## Documentação
 
 [Visão do produto](docs/VISAO_PRODUTO.md) · [Arquitetura](docs/ARQUITETURA.md) · [Requisitos funcionais](docs/REQUISITOS_FUNCIONAIS.md) · [Não funcionais](docs/REQUISITOS_NAO_FUNCIONAIS.md) · [Municípios da RMR](docs/MUNICIPIOS_RMR.md) · [Integrações](docs/INTEGRACOES.md) · [Inteligência territorial](docs/INTELIGENCIA_TERRITORIAL.md) · [IA](docs/INTELIGENCIA_ARTIFICIAL.md) · [Alertas proativos](docs/ALERTAS_PROATIVOS.md) · [Offline](docs/COMUNICACAO_OFFLINE.md) · [Nearby](docs/NEARBY_ANDROID_IOS.md) · [Encaminhamento](docs/ENCAMINHAMENTO_INSTITUCIONAL.md) · [Centrais simuladas](docs/CENTRAIS_SIMULADAS.md) · [Segurança e LGPD](docs/SEGURANCA_LGPD.md) · [Modelo de dados](docs/MODELO_DADOS.md) · [Testes](docs/TESTES.md) · [Deploy](docs/DEPLOY.md) · [Limitações](docs/LIMITACOES.md) · [Roadmap](docs/ROADMAP.md) · [Roteiro da demonstração](docs/ROTEIRO_DEMONSTRACAO.md) · [Pitch](docs/PITCH.md) · [Protocolo de proximidade](docs/PROTOCOLO_PROXIMIDADE.md) · [Matriz de testes em aparelhos](docs/MATRIZ_TESTES_DISPOSITIVOS.md)
+
+## Rede comunitária e retransmissão offline
+- [Rede comunitária](docs/REDE_COMUNITARIA.md): o que a comunidade vê (só com autorização), área aproximada, "Quero ajudar" com aceite e orientação da equipe.
+- [Retransmissão por aparelho próximo](docs/RETRANSMISSAO_OFFLINE.md): QR (sem app) e Nearby (app nativo), níveis 1–5, GPS do emissor separado do GPS do gateway, o que funciona só na PWA e o que exige app nativo.

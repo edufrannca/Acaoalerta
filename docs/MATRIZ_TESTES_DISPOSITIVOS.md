@@ -16,6 +16,31 @@ Classificações: **PASSOU — teste físico executado** · **FALHOU — teste f
 
 | GW-SIM-PUB | 13/11 02:30 | navegador (aparelho A simulado) | navegador (gateway) | — | — | — | — | — | — | ocorrência ec92dff7… | — | — | — | — | simulado | 723 ms | SIM-DC-RECIFE-20261113-000001, SIM-CBM-SIM-20261113-000001 | SIMULADO — somente ambiente de teste | — | registro na conversa de validação |
 
+## Rede comunitária e retransmissão (testes A–F, 13/11/2026)
+Estado: **NENHUM EXECUTADO EM APARELHO FÍSICO.** O fluxo QR foi validado só em navegador automatizado (E2E "sem internet: pedido salvo → código QR → …", dois contextos de navegador na mesma máquina) — isso **não** conta como teste físico.
+
+| Teste | Caminho | Montagem | Esperado |
+|---|---|---|---|
+| A | Android sem internet → iPhone com internet | (A-QR) PWA no tablet/Android em modo avião mostra o QR; câmera do iPhone abre o link. (A-NB) PWA → "Abrir no app Nearby" → app Android → app iOS como gateway | iPhone: "Recebido pelo servidor"; tablet ao voltar a internet: mesmo id, "Níveis 2–3", 1 ocorrência |
+| B | iPhone sem internet → Android com internet | igual a A, invertendo os aparelhos | idem |
+| C | ambos sem internet | o aparelho que ajuda já abriu a PWA antes (cache); lê o QR em modo avião → "Recebido por este aparelho · encaminhamento pendente"; painel **sem** a ocorrência; religar internet do ajudante | nível 4 só depois de religar; 1 ocorrência |
+| D | transmissão interrompida | ajudante lê o QR e fica sem sinal antes de enviar; ou derrubar a conexão Nearby no meio | pedido preservado nos dois; reenvio com `duplicado=true`; 1 ocorrência |
+| E | nenhum aparelho próximo | emissor em modo avião, ninguém lê o QR, fechar e reabrir a PWA | "Seu pedido está salvo neste aparelho." persiste; sai sozinho ao religar a internet |
+| F | comunidade | pedido com "Pedir apoio da comunidade" ligado; outro aparelho abre Mapa → Pedidos de ajuda e Quero ajudar | vê tipo, pessoas, faixas, necessidades, área ≥ 600 m; **não** vê nome, telefone, relato, coordenadas; oferta só depois de marcar a ciência de segurança; aparece no painel da central |
+
+Registro por aparelho (copiar uma linha por aparelho e por teste):
+
+| Teste | Aparelho (modelo, SO) | Papel (emissor/ajudante) | Internet | Id do pedido (8 primeiros) | Horário do pedido | Horário recebido local | Horário servidor | Estados vistos na tela (em ordem) | Precisão GPS emissor (m) | Posição do ajudante enviada? (m) | Nível final | Protocolo SIMULADO | Duplicado? | Resultado | Evidência (foto/vídeo) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| A | | | | | | | | | | | | | | NÃO EXECUTADO — pendente | |
+| B | | | | | | | | | | | | | | NÃO EXECUTADO — pendente | |
+| C | | | | | | | | | | | | | | NÃO EXECUTADO — pendente | |
+| D | | | | | | | | | | | | | | NÃO EXECUTADO — pendente | |
+| E | | | | | | | | | | | | | | NÃO EXECUTADO — pendente | |
+| F | | | | | | | | | | | | | | NÃO EXECUTADO — pendente | |
+
+Conferência no painel (perfil Defesa Civil Recife na área /demo): o detalhe da ocorrência mostra "Canal ProximidadeQr" ou "ProximidadeNearby", a posição do aparelho que retransmitiu separada da posição do solicitante e a comparação pelas margens de precisão.
+
 ## Inventário de aparelhos (preencher antes de começar)
 | Apelido | Modelo | Sistema e versão | App (versão) | Dono/autorização |
 |---|---|---|---|---|

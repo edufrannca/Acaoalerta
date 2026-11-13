@@ -72,3 +72,8 @@ envia PEDIDO_SOCORRO ──────────► valida, verifica HMAC, SA
 ## O que este protocolo não é
 Não é Cell Broadcast, não usa a rede das operadoras e não tem roteamento multissalto automático. `AVISO_DEMONSTRATIVO` é distribuição local
 de teste entre aparelhos conectados, sempre rotulada como não oficial.
+
+## Acréscimos de 13/11/2026 (compatíveis com v2)
+- `EntregaGatewayV2.posicaoReceptor` (opcional): `{latitude, longitude, precisaoMetros}` do aparelho **gateway**. Fica fora da mensagem assinada, é guardado à parte (cifrado) e nunca substitui `coordenadasAutorizadas` do emissor. Sem coordenadas do emissor, a ocorrência fica "sem localização".
+- Novas chaves aceitas em `dadosEstruturados`: `necessidades` (lista: agua, alimentos, abrigo, transporte_assistido, itens_higiene, roupas, outros), `compartilhamento` (`{autorizado, incluirPessoas, incluirNecessidades}` — escolha do emissor sobre o resumo comunitário), `equipamentoMedicoEssencial`, `sozinho`, `riscoSegurancaPublica`, `origem: "pwa"`.
+- Importação da PWA: `alertaemacao://importar#p=<base64url do JSON aea-qr/1>`. O app nativo usa o mesmo `identificadorOcorrencia`, o `horarioCriacao` e a posição da PWA e o pseudônimo `p:…` como `remetentePseudonimizado`. Ver `RETRANSMISSAO_OFFLINE.md`.

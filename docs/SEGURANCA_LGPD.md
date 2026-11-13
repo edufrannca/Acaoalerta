@@ -35,3 +35,13 @@ Locais monitorados: até a remoção. Ocorrências: prazo a definir com as Defes
 
 ## Fora do escopo do MVP
 Relatório de impacto (RIPD), designação de encarregado, acordos de tratamento com órgãos reais e testes de intrusão.
+
+## Rede comunitária e retransmissão (13/11/2026)
+- **Minimização:** a comunidade só vê o resumo que o solicitante autorizou (padrão: nada), com faixas em vez de números para grupos vulneráveis, horário arredondado a 15 min e área ≥ 600 m que contém o ponto sem revelá-lo. Totais regionais só com ≥ 3 pedidos.
+- **Base legal pretendida:** consentimento específico e revogável do titular para o resumo comunitário; proteção da vida para o encaminhamento às centrais.
+- **Voluntários:** nunca recebem posição, nome ou contato da família. Recebem apenas a orientação escrita pela equipe responsável depois do aceite. O contato do voluntário vai só para essa equipe, se ele autorizar (cifrado em repouso).
+- **Auditoria:** aceite, recusa e encaminhamento de ofertas gravam registro com papel, horário e recurso, como o acesso ao detalhe da ocorrência.
+- **Retransmissão:** o QR e o link de importação levam um pseudônimo do aparelho (não o identificador real) e nenhum texto livre; o conteúdo fica no fragmento da URL (não vai para logs do servidor). A posição do aparelho que ajuda é opcional, separada e cifrada.
+- **Integridade:** QR com hash SHA-256 do texto canônico (detecta corrupção/edição; não autentica); Nearby com HMAC do grupo e chave por gateway; idempotência pelo identificador gerado no emissor.
+- **Limite honesto:** o código de grupo `ALERTA-DEMO-2026` e o código da área de demonstração são compartilhados e servem só para a demonstração. Produção exigiria chaves por aparelho emitidas no cadastro e assinatura do emissor.
+- **Dados fictícios separados:** pedidos de contas fictícias e QR marcados como demonstração ficam fora da lista pública.
