@@ -342,4 +342,83 @@ public class FluxoSocorroTestes(FabricaApi f)
         Assert.Contains("Não certifica", await r1.Content.ReadAsStringAsync());
         Assert.Equal(HttpStatusCode.OK, (await c.PostAsJsonAsync("/api/situacoes", corpo)).StatusCode);
     }
+
+    private static HttpRequestMessage EntregaV2(object corpo, string receptor = "gateway-teste-v2", string? chave = null)
+    {
+        var req = new HttpRequestMessage(HttpMethod.Post, "/api/gateway/v2/mensagens") { Content = JsonContent.Create(corpo) };
+        req.Headers.Add("X-Gateway-Receptor", receptor);
+        req.Headers.Add("X-Gateway-Chave", chave ?? ChavesCentrais.Derivar("segredo-de-teste", "gateway:" + receptor));
+        return req;
+    }
+
+    private static MensagemProximidadeV2 MensagemV2(Guid ocorrencia, Guid? mensagem = null, string codigo = "ALERTA-DEMO-2026")
+    {
+        var agora = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+        var dados = JsonDocument.Parse("""{"ficticio":true,"quantidadePessoas":3,"idades":[4,40,79],"aguaSubindo":true,"ilhado":true,"descricao":"[FICTÍCIO] água subindo"}""").RootElement.Clone();
+        var m = new MensagemProximidadeV2
+        {
+            VersaoProtocolo = ProtocoloProximidade.Versao, IdentificadorMensagem = (mensagem ?? Guid.NewGuid()).ToString(), IdentificadorOcorrencia = ocorrencia.ToString(),
+            TipoMensagem = ProtocoloProximidade.Tipos.PedidoSocorro, Municipio = "2611606", CoordenadasAutorizadas = new(-8.0631, -34.8711, 25),
+            HorarioCriacao = agora, HorarioUltimaAtualizacao = agora, RemetentePseudonimizado = ProtocoloProximidade.Pseudonimizar("teste-" + ocorrencia),
+            DadosEstruturados = dados, NumeroTentativas = 0, EstadoTransmissao = ProtocoloProximidade.Estados.SalvoNoAparelho,
+        };
+        return m with { IntegridadeMensagem = ProtocoloProximidade.CalcularIntegridade(m, ProtocoloProximidade.ChaveGrupo(codigo)) };
+    }
+
+    [Fact]
+    public async Task Gateway_v2_registra_niveis_1_a_5_sem_duplicar_e_rejeita_integridade_ou_chave_invalidas()
+    {
+        var c = f.CreateClient();
+        var ocorrencia = Guid.NewGuid();
+        var m = MensagemV2(ocorrencia);
+        var corpo = new EntregaGatewayV2(m, ProtocoloProximidade.Pseudonimizar("receptor-B"), DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"), "ble", "Aparelho de teste", "android", "ios");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await c.SendAsync(EntregaV2(corpo, chave: "chave-errada"))).StatusCode);
+        var adulterada = corpo with { Mensagem = m with { Municipio = "2609600" } };
+        var r422 = await c.SendAsync(EntregaV2(adulterada));
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, r422.StatusCode);
+        Assert.Contains("integridade_invalida", await r422.Content.ReadAsStringAsync());
+        var outroGrupo = corpo with { Mensagem = MensagemV2(Guid.NewGuid(), codigo: "OUTRO-GRUPO") };
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await c.SendAsync(EntregaV2(outroGrupo))).StatusCode);
+
+        var r1 = await c.SendAsync(EntregaV2(corpo));
+        Assert.Equal(HttpStatusCode.OK, r1.StatusCode);
+        var j1 = await r1.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(4, j1.GetProperty("nivelComprovado").GetInt32());
+        Assert.Equal("RECEBIDO_PELO_SERVIDOR", j1.GetProperty("estadoTransmissao").GetString());
+        Assert.False(j1.GetProperty("duplicado").GetBoolean());
+
+        // Reenvio (outra tentativa ou outro gateway) não duplica ocorrência nem confirmações.
+        var r2 = await c.SendAsync(EntregaV2(corpo with { Mensagem = m with { NumeroTentativas = 3 } }, receptor: "gateway-teste-v2-outro"));
+        Assert.True((await r2.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("duplicado").GetBoolean());
+
+        await f.DespacharAsync();
+        await f.DespacharAsync();
+        var conf = new HttpRequestMessage(HttpMethod.Get, $"/api/gateway/v2/ocorrencias/{ocorrencia}/confirmacoes");
+        conf.Headers.Add("X-Gateway-Receptor", "gateway-teste-v2");
+        conf.Headers.Add("X-Gateway-Chave", ChavesCentrais.Derivar("segredo-de-teste", "gateway:gateway-teste-v2"));
+        var jc = await (await c.SendAsync(conf)).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(5, jc.GetProperty("nivelComprovado").GetInt32());
+        var niveis = jc.GetProperty("confirmacoes").EnumerateArray().Select(x => x.GetProperty("nivel").GetInt32()).ToList();
+        Assert.Equal(1, niveis.Count(n => n == 1));
+        Assert.Equal(1, niveis.Count(n => n == 2));
+        Assert.Equal(1, niveis.Count(n => n == 3));
+        Assert.Equal(1, niveis.Count(n => n == 4));
+        Assert.Contains(5, niveis);
+        Assert.All(jc.GetProperty("confirmacoes").EnumerateArray().Where(x => x.GetProperty("nivel").GetInt32() == 5),
+            x => Assert.StartsWith("SIM-", x.GetProperty("comprovante").GetString()));
+        Assert.DoesNotContain(niveis, n => n > 5);
+
+        var total = await f.NoEscopoAsync(sp => sp.GetRequiredService<AlertaDbContext>().Set<Ocorrencia>().CountAsync(x => x.Id == ocorrencia));
+        Assert.Equal(1, total);
+        var o = await f.NoEscopoAsync(sp => sp.GetRequiredService<AlertaDbContext>().Set<Ocorrencia>().FirstAsync(x => x.Id == ocorrencia));
+        Assert.Equal(CanalRecebimento.ProximidadeNearby, o.Canal);
+        Assert.Equal(3, o.Complemento.Pessoas!.Count);
+        Assert.True(o.Complemento.Ilhado);
+
+        var desconhecida = new HttpRequestMessage(HttpMethod.Get, $"/api/gateway/v2/ocorrencias/{Guid.NewGuid()}/confirmacoes");
+        desconhecida.Headers.Add("X-Gateway-Receptor", "gateway-teste-v2");
+        desconhecida.Headers.Add("X-Gateway-Chave", ChavesCentrais.Derivar("segredo-de-teste", "gateway:gateway-teste-v2"));
+        Assert.Equal(HttpStatusCode.NotFound, (await c.SendAsync(desconhecida)).StatusCode);
+    }
 }

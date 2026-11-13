@@ -157,6 +157,10 @@ public sealed class ServicoDespacho(IUnidadeTrabalho uow, IClienteCentral client
                 var ultima = enc.HistoricoTentativas[^1];
                 var chave = $"{enc.InstituicaoCodigo}#{ultima.Numero}#{ultima.Resultado}";
                 if (o.Historico.Any(h => h.Tipo == "encaminhamento:" + chave)) continue;
+                if (enc.Status == StatusEncaminhamento.Recebido && enc.Protocolo is not null)
+                    uow.Adicionar(ConfirmacaoEntrega.Criar(o.Id, enc.Id.ToString(), NivelEntrega.RecebidoPelaCentralDemonstrativa,
+                        "api-alerta-em-acao", enc.InstituicaoCodigo + " (SIMULADA)", enc.ConfirmadoEm ?? agora, "http",
+                        "persistido pela central simulada", enc.Protocolo, agora));
                 o.Registrar(agora, "encaminhamento:" + chave, enc.Status switch
                 {
                     StatusEncaminhamento.Recebido => $"Central SIMULADA {enc.InstituicaoCodigo} confirmou recebimento técnico. Protocolo demonstrativo {enc.Protocolo}.",

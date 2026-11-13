@@ -851,6 +851,57 @@ namespace AlertaEmAcao.Infraestrutura.Persistencia.Migracoes
                     b.ToTable("notificacoes", "alerta");
                 });
 
+            modelBuilder.Entity("AlertaEmAcao.Modulos.Ocorrencias.ConfirmacaoEntrega", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Canal")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Comprovante")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Destino")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("Horario")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IdentificadorMensagem")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("Nivel")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("OcorrenciaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Origem")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("RegistradoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Resultado")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OcorrenciaId");
+
+                    b.HasIndex("OcorrenciaId", "Nivel", "IdentificadorMensagem", "Destino")
+                        .IsUnique();
+
+                    b.ToTable("confirmacoes_entrega", "alerta");
+                });
+
             modelBuilder.Entity("AlertaEmAcao.Modulos.Ocorrencias.Ocorrencia", b =>
                 {
                     b.Property<Guid>("Id")

@@ -40,6 +40,8 @@ public interface IProvedorIA
 public sealed record FatoExtraido(string Descricao, string Evidencia);
 public sealed record PerigoIdentificado(string Tipo, string Descricao, string Evidencia);
 public sealed record SinalizacaoIA(string Codigo, string Explicacao, string Evidencia);
+/// <summary>Pessoa mencionada no pedido. Idade e condições servem para descrever necessidades de assistência, nunca para priorizar.</summary>
+public sealed record PessoaIdentificada(int? Idade, List<string>? Condicoes, string Evidencia);
 
 public sealed record ResultadoAnaliseIA
 {
@@ -52,6 +54,8 @@ public sealed record ResultadoAnaliseIA
     public required List<string> InformacoesAusentes { get; init; }
     public required List<string> InformacoesNaoVerificadas { get; init; }
     public required List<SinalizacaoIA> SinalizacoesParaAvaliacaoHumana { get; init; }
+    /// <summary>Opcional (versões anteriores do esquema não tinham o campo).</summary>
+    public List<PessoaIdentificada>? PessoasIdentificadas { get; init; }
 }
 
 public sealed record ResultadoValidacaoIA(bool Valido, ResultadoAnaliseIA? Resultado, IReadOnlyList<string> Problemas, int ItensDescartados);
@@ -99,9 +103,15 @@ public static class ValidadorSaidaIA
             .Where(s => (CodigosPermitidos.Contains(s.Codigo) || Contar(ref descartados)) && (Ancorada(s.Evidencia) || Contar(ref descartados)))
             .ToList();
 
-        // Número de pessoas: só aceito se coincidir com algo informado.
+        // Número de pessoas e idades: só aceitos se coincidirem com algo informado.
         int? pessoas = r.PessoasEnvolvidas;
         var informados = NumerosInformados(entrada.Complemento);
+        var pessoasIdentificadas = (r.PessoasIdentificadas ?? [])
+            .Where(p => (Ancorada(p.Evidencia) || Contar(ref descartados)) &&
+                        (p.Idade is null || informados.Contains(p.Idade.Value) || Contar(ref descartados)))
+            .Take(30)
+            .Select(p => p with { Condicoes = (p.Condicoes ?? []).Take(10).ToList() })
+            .ToList();
         if (pessoas is not null && !informados.Contains(pessoas.Value))
         {
             problemas.Add($"pessoasEnvolvidas={pessoas} não corresponde a nenhum dado informado; removido.");
@@ -118,6 +128,7 @@ public static class ValidadorSaidaIA
             PossiveisPerigos = perigos,
             SinalizacoesParaAvaliacaoHumana = sinais,
             PessoasEnvolvidas = pessoas,
+            PessoasIdentificadas = pessoasIdentificadas,
             NecessidadesAssistencia = r.NecessidadesAssistencia.Take(20).ToList(),
             IndiciosAgravamento = r.IndiciosAgravamento.Take(20).ToList(),
             InformacoesAusentes = r.InformacoesAusentes.Take(20).ToList(),
@@ -134,6 +145,8 @@ public static class ValidadorSaidaIA
         if (c.QuantidadePessoas is { } q) s.Add(q);
         if (c.Pessoas is { Count: > 0 } p) s.Add(p.Count);
         if (c.Sozinho == true) s.Add(1);
+        if (c.IdadeSolicitante is { } idade) s.Add(idade);
+        if (c.Pessoas is { } lista) foreach (var pessoa in lista) if (pessoa.Idade is { } i) s.Add(i);
         foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(c.Descricao ?? "", @"\b(\d{1,3})\b"))
             s.Add(int.Parse(m.Value));
         return s;
@@ -198,8 +211,10 @@ public sealed class AnaliseOcorrencia
         Contexto = ctx;
         Fontes = fontes.ToList();
         RegrasAvaliadasEm = agora;
-        if (StatusIA != StatusAnaliseIA.Concluida)
-            StatusIA = iaConfigurada ? StatusAnaliseIA.Pendente : StatusAnaliseIA.NaoConfigurada;
+        // Toda informação nova (registro ou complemento) gera nova interpretação pela IA.
+        // O resultado anterior permanece visível até ser substituído.
+        StatusIA = iaConfigurada ? StatusAnaliseIA.Pendente : StatusAnaliseIA.NaoConfigurada;
+        TentativasIA = 0;
     }
 
     public void RegistrarIA(ResultadoValidacaoIA v, string modelo, long duracaoMs, DateTimeOffset agora)
@@ -221,5 +236,11 @@ public sealed class AnaliseOcorrencia
         StatusIA = StatusAnaliseIA.Falhou;
     }
 
-    public bool PrecisaIA => StatusIA == StatusAnaliseIA.Pendente || (StatusIA == StatusAnaliseIA.Falhou && TentativasIA < 3);
+    public const int MaximoTentativasIA = 4;
+    public bool PrecisaIA => StatusIA == StatusAnaliseIA.Pendente || (StatusIA == StatusAnaliseIA.Falhou && TentativasIA < MaximoTentativasIA);
+
+    /// <summary>Espera entre tentativas após falha (timeout, limite de requisições): 15 s, 30 s, 60 s.</summary>
+    public bool ProntaParaTentar(DateTimeOffset agora) =>
+        StatusIA == StatusAnaliseIA.Pendente ||
+        (PrecisaIA && IAConcluidaEm is { } ultima && agora - ultima >= TimeSpan.FromSeconds(15 * Math.Pow(2, Math.Max(0, TentativasIA - 1))));
 }

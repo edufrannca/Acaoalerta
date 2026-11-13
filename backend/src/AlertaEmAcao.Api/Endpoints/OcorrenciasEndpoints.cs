@@ -120,6 +120,10 @@ public static class OcorrenciasEndpoints
         statusDescricao = DescreverStatus(o.Status),
         o.RecebidaNoServidorEm,
         o.CriadaNoDispositivoEm,
+        // Último nível realmente comprovado (o nível 6 — órgão real — não existe neste ambiente).
+        nivelComprovado = encs.Any(e => e.TipoMensagem == TipoMensagem.Ocorrencia && e.Status == StatusEncaminhamento.Recebido) ? 5 : 4,
+        nivelDescricao = encs.Any(e => e.TipoMensagem == TipoMensagem.Ocorrencia && e.Status == StatusEncaminhamento.Recebido)
+            ? ConfirmacaoEntrega.Descrever(NivelEntrega.RecebidoPelaCentralDemonstrativa) : ConfirmacaoEntrega.Descrever(NivelEntrega.RecebidoPeloBackend),
         municipio = o.MunicipioCodigo is null ? null : new { codigo = o.MunicipioCodigo, nome = MunicipiosRmr.Nome(o.MunicipioCodigo) },
         localizacao = o.Latitude is null ? null : new { o.Latitude, o.Longitude, o.PrecisaoMetros, lidaEm = o.LocalizacaoLidaEm },
         encaminhamentos = encs.Where(e => e.TipoMensagem == TipoMensagem.Ocorrencia).Select(e => new

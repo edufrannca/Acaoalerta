@@ -63,7 +63,7 @@ public static class InjecaoDependencias
         Http<IEnviadorPush, EnviadorWebPush>(TimeSpan.FromSeconds(15));
         var provedor = (cfg["IA:Provedor"] ?? "").Trim().ToLowerInvariant();
         if (provedor == "anthropic") Http<IProvedorIA, ProvedorIAAnthropic>(TimeSpan.FromSeconds(50));
-        else if (provedor is "openai" or "openai-compat") Http<IProvedorIA, ProvedorIACompativelOpenAI>(TimeSpan.FromSeconds(50));
+        else if (provedor is "openai" or "openai-compat" or "groq") Http<IProvedorIA, ProvedorIACompativelOpenAI>(TimeSpan.FromSeconds(50));
         else s.TryAddSingleton<IProvedorIA, ProvedorIANulo>();
 
         // Casos de uso

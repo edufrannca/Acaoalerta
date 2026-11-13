@@ -89,6 +89,8 @@ public static class PainelEndpoints
                     ia = new { status = a.StatusIA.ToString(), modelo = a.ModeloIA, resultado = precisa ? a.ResultadoIA : null, problemas = a.ProblemasValidacaoIA, a.IAConcluidaEm, a.DuracaoIAMs },
                     observacao = "Sinalizações para avaliação humana. Não constituem decisão de prioridade nem ordem de atendimento.",
                 },
+                confirmacoes = (await db.Set<ConfirmacaoEntrega>().Where(c => c.OcorrenciaId == o.Id).OrderBy(c => c.Nivel).ThenBy(c => c.Horario).ToListAsync(ct))
+                    .Select(IntegracoesEndpoints.ConfirmacaoDto),
                 encaminhamentos = encs.Select(e => new
                 {
                     e.Id, tipo = e.TipoMensagem.ToString(), central = e.InstituicaoCodigo, centralNome = insts.GetValueOrDefault(e.InstituicaoId)?.Nome,

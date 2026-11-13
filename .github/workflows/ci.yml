@@ -2,6 +2,7 @@ name: CI
 on:
   push: { branches: [main] }
   pull_request:
+  workflow_dispatch:
 jobs:
   backend:
     runs-on: ubuntu-latest
@@ -16,9 +17,40 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with: { dotnet-version: "10.0.x" }
-      - run: dotnet test backend/AlertaEmAcao.sln -c Release
+      - run: dotnet test backend/AlertaEmAcao.sln -c Release --logger "trx;LogFilePrefix=resultado" --results-directory resultados-testes
         env:
           TESTES_POSTGRES: Host=localhost;Port=5432;Username=postgres;Password=postgres
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: resultados-backend, path: resultados-testes }
+
+  # Inferência REAL na Groq com casos fictícios. Só roda se o secret GROQ_API_KEY existir no repositório.
+  # O relatório não contém a chave nem dados pessoais.
+  ia-groq:
+    runs-on: ubuntu-latest
+    env:
+      TEM_CHAVE: ${{ secrets.GROQ_API_KEY != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        if: env.TEM_CHAVE == 'true'
+      - uses: actions/setup-dotnet@v4
+        if: env.TEM_CHAVE == 'true'
+        with: { dotnet-version: "10.0.x" }
+      - name: Avaliação com modelo real (openai/gpt-oss-20b)
+        if: env.TEM_CHAVE == 'true'
+        run: dotnet test backend/tests/AvaliacaoIA -c Release --filter "FullyQualifiedName~Modelo_real" --logger "console;verbosity=detailed"
+        env:
+          IA__CHAVEAPI: ${{ secrets.GROQ_API_KEY }}
+          IA__PROVEDOR: groq
+          IA__MODELO: openai/gpt-oss-20b
+          IA__RELATORIO: ${{ github.workspace }}/relatorio-ia-groq.json
+      - uses: actions/upload-artifact@v4
+        if: env.TEM_CHAVE == 'true' && always()
+        with: { name: relatorio-ia-groq, path: relatorio-ia-groq.json, if-no-files-found: warn }
+      - name: Sem chave configurada
+        if: env.TEM_CHAVE != 'true'
+        run: echo "GROQ_API_KEY não configurado — inferência real NÃO executada."
+
   frontend:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: apps/web } }

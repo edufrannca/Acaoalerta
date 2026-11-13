@@ -21,7 +21,8 @@ public sealed record ComandoRegistrarSocorro(
     bool IncluirResumoFamilia,
     CanalRecebimento Canal = CanalRecebimento.Internet,
     string? RetransmitidaPor = null,
-    bool Demonstracao = true);
+    bool Demonstracao = true,
+    string? IdentificadorMensagem = null);
 
 public sealed record ResultadoRegistro(Ocorrencia Ocorrencia, bool JaExistia, IReadOnlyList<EncaminhamentoInstitucional> Encaminhamentos);
 
@@ -62,6 +63,9 @@ public sealed class ServicoOcorrencias(IUnidadeTrabalho uow, ICatalogoMunicipios
         if (posicao is not null && municipio is null)
             o.Registrar(agora, "municipio", "Coordenadas fora dos 14 municípios da RMR. Sem destino configurado.");
         uow.Adicionar(o);
+        // Nível 4: gravado na mesma transação da ocorrência — só existe se a ocorrência foi persistida.
+        uow.Adicionar(ConfirmacaoEntrega.Criar(o.Id, cmd.IdentificadorMensagem, NivelEntrega.RecebidoPeloBackend,
+            cmd.RetransmitidaPor ?? "aparelho-emissor", "api-alerta-em-acao", agora, cmd.Canal.ToString(), "persistido", o.Id.ToString(), agora));
 
         var a = await analise.AvaliarRegrasAsync(o, ct);
         var encs = await CriarEncaminhamentosAsync(o, TipoMensagem.Ocorrencia, [], ct);

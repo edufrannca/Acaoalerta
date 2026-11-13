@@ -47,9 +47,10 @@ public sealed class ServicoAnalise(IUnidadeTrabalho uow, ServicoTerritorio terri
     public async Task<int> ProcessarPendentesAsync(int limite, CancellationToken ct)
     {
         if (!ia.Configurado) return 0;
-        var pendentes = await uow.ListarAsync(uow.Consulta<AnaliseOcorrencia>()
-            .Where(a => a.StatusIA == StatusAnaliseIA.Pendente || (a.StatusIA == StatusAnaliseIA.Falhou && a.TentativasIA < 3))
-            .OrderBy(a => a.RegrasAvaliadasEm).Take(limite), ct);
+        var candidatos = await uow.ListarAsync(uow.Consulta<AnaliseOcorrencia>()
+            .Where(a => a.StatusIA == StatusAnaliseIA.Pendente || (a.StatusIA == StatusAnaliseIA.Falhou && a.TentativasIA < AnaliseOcorrencia.MaximoTentativasIA))
+            .OrderBy(a => a.RegrasAvaliadasEm).Take(limite * 4), ct);
+        var pendentes = candidatos.Where(a => a.ProntaParaTentar(relogio.Agora)).Take(limite).ToList();
         var n = 0;
         foreach (var analise in pendentes)
         {

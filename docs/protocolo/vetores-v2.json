@@ -1,0 +1,91 @@
+{
+  "versaoProtocolo": "alerta-em-acao/proximidade/v2",
+  "codigoGrupo": "ALERTA-DEMO-2026",
+  "chaveGrupoHex": "26626f455dc0c9e6c1bb8914da89290fe216018fdc83f7a9e9b03124426ede7c",
+  "pseudonimos": [
+    {
+      "instalacao": "instalacao-ficticia-A",
+      "remetente": "ap-ada7453f6bcf869e"
+    },
+    {
+      "instalacao": "instalacao-ficticia-B",
+      "remetente": "ap-17776781df84af98"
+    }
+  ],
+  "identificadorServicoNearby": "br.alertaemacao.nearby",
+  "servicoBonjour": "_6D2B796E03F0._tcp",
+  "vetores": [
+    {
+      "mensagem": {
+        "versaoProtocolo": "alerta-em-acao/proximidade/v2",
+        "identificadorMensagem": "6f1d2c3b-4a59-4e6f-8a7b-9c0d1e2f3a4b",
+        "identificadorOcorrencia": "0b8e7d6c-5f4a-4b3c-9d2e-1f0a9b8c7d6e",
+        "tipoMensagem": "PEDIDO_SOCORRO",
+        "municipio": "2611606",
+        "coordenadasAutorizadas": {
+          "latitude": -8.1262,
+          "longitude": -34.9478,
+          "precisaoMetros": 12.4
+        },
+        "horarioCriacao": "2026-11-13T14:05:09.123Z",
+        "horarioUltimaAtualizacao": "2026-11-13T14:05:09.123Z",
+        "remetentePseudonimizado": "ap-ada7453f6bcf869e",
+        "dadosEstruturados": {
+          "ficticio": true,
+          "quantidadePessoas": 4,
+          "idades": [
+            3,
+            34,
+            78
+          ],
+          "aguaSubindo": true,
+          "ilhado": true,
+          "mobilidadeReduzida": true,
+          "descricao": "[FICTÍCIO] Água subindo, 2º andar,\nrua sem acesso",
+          "referenciaLocal": null
+        },
+        "numeroTentativas": 0,
+        "estadoTransmissao": "SALVO_NO_APARELHO",
+        "integridadeMensagem": "hmac-sha256:TlEj_NrZeFDpdR_2FRvDtkWxfMJW_OfHSXHQVaUW7Tc"
+      },
+      "canonica": "alerta-em-acao/proximidade/v2\n6f1d2c3b-4a59-4e6f-8a7b-9c0d1e2f3a4b\n0b8e7d6c-5f4a-4b3c-9d2e-1f0a9b8c7d6e\nPEDIDO_SOCORRO\n2611606\n-8.126200\n-34.947800\n12\n2026-11-13T14:05:09.123Z\n2026-11-13T14:05:09.123Z\nap-ada7453f6bcf869e\n\naguaSubindo=true\ndescricao=[FICTÍCIO] Água subindo, 2º andar,\\nrua sem acesso\nficticio=true\nidades=3,34,78\nilhado=true\nmobilidadeReduzida=true\nquantidadePessoas=4\n",
+      "integridade": "hmac-sha256:TlEj_NrZeFDpdR_2FRvDtkWxfMJW_OfHSXHQVaUW7Tc"
+    },
+    {
+      "mensagem": {
+        "versaoProtocolo": "alerta-em-acao/proximidade/v2",
+        "identificadorMensagem": "a2b3c4d5-e6f7-4a8b-9c0d-1e2f3a4b5c6d",
+        "identificadorOcorrencia": "c7d8e9f0-a1b2-4c3d-8e4f-5a6b7c8d9e0f",
+        "tipoMensagem": "PEDIDO_SOCORRO",
+        "horarioCriacao": "2026-11-13T14:10:00.000Z",
+        "horarioUltimaAtualizacao": "2026-11-13T14:10:00.000Z",
+        "remetentePseudonimizado": "ap-17776781df84af98",
+        "numeroTentativas": 2,
+        "integridadeMensagem": "hmac-sha256:I-Dvv2ZCJTYDq42sun9MZLAzX2rr9lrQlXjgrbv-hyk"
+      },
+      "canonica": "alerta-em-acao/proximidade/v2\na2b3c4d5-e6f7-4a8b-9c0d-1e2f3a4b5c6d\nc7d8e9f0-a1b2-4c3d-8e4f-5a6b7c8d9e0f\nPEDIDO_SOCORRO\n\n\n\n\n2026-11-13T14:10:00.000Z\n2026-11-13T14:10:00.000Z\nap-17776781df84af98\n\n",
+      "integridade": "hmac-sha256:I-Dvv2ZCJTYDq42sun9MZLAzX2rr9lrQlXjgrbv-hyk"
+    },
+    {
+      "mensagem": {
+        "versaoProtocolo": "alerta-em-acao/proximidade/v2",
+        "identificadorMensagem": "11111111-2222-4333-8444-555555555555",
+        "identificadorOcorrencia": "0b8e7d6c-5f4a-4b3c-9d2e-1f0a9b8c7d6e",
+        "tipoMensagem": "CONFIRMACAO",
+        "horarioCriacao": "2026-11-13T14:05:11.500Z",
+        "horarioUltimaAtualizacao": "2026-11-13T14:05:11.500Z",
+        "remetentePseudonimizado": "ap-67ba8e70e4bfa323",
+        "identificadorCorrelacao": "6f1d2c3b-4a59-4e6f-8a7b-9c0d1e2f3a4b",
+        "dadosEstruturados": {
+          "nivel": 2,
+          "comprovante": "persistido:recebidos.jsonl#7"
+        },
+        "numeroTentativas": 0,
+        "estadoTransmissao": "RECEBIDO_POR_PROXIMIDADE",
+        "integridadeMensagem": "hmac-sha256:BGSTqAzt5Hb_rcYU9ZZMuqkCNd1UpmL7mHRXA876JQQ"
+      },
+      "canonica": "alerta-em-acao/proximidade/v2\n11111111-2222-4333-8444-555555555555\n0b8e7d6c-5f4a-4b3c-9d2e-1f0a9b8c7d6e\nCONFIRMACAO\n\n\n\n\n2026-11-13T14:05:11.500Z\n2026-11-13T14:05:11.500Z\nap-67ba8e70e4bfa323\n6f1d2c3b-4a59-4e6f-8a7b-9c0d1e2f3a4b\ncomprovante=persistido:recebidos.jsonl#7\nnivel=2\n",
+      "integridade": "hmac-sha256:BGSTqAzt5Hb_rcYU9ZZMuqkCNd1UpmL7mHRXA876JQQ"
+    }
+  ]
+}

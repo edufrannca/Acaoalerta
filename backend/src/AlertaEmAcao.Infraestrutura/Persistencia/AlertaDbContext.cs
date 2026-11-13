@@ -124,6 +124,15 @@ public sealed class AlertaDbContext(DbContextOptions<AlertaDbContext> opcoes) : 
             e.HasIndex(x => x.UsuarioId);
         });
 
+        b.Entity<ConfirmacaoEntrega>(e =>
+        {
+            e.ToTable("confirmacoes_entrega"); e.HasKey(x => x.Id);
+            e.Property(x => x.Nivel).HasConversion<int>();
+            e.Property(x => x.IdentificadorMensagem).HasMaxLength(64);
+            e.HasIndex(x => x.OcorrenciaId);
+            e.HasIndex(x => new { x.OcorrenciaId, x.Nivel, x.IdentificadorMensagem, x.Destino }).IsUnique();
+        });
+
         b.Entity<AnaliseOcorrencia>(e =>
         {
             e.ToTable("analises_ocorrencias"); e.HasKey(x => x.OcorrenciaId);
