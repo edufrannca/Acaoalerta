@@ -77,6 +77,20 @@ body { margin: 0; min-height: 100dvh; }
 
 .numero-tabular { font-variant-numeric: tabular-nums; }
 
+/* Cores para daltonismo (protanopia/deuteranopia): vermelho→laranja-avermelhado e verde→azul (paleta Okabe-Ito, contraste AA). */
+html[data-daltonismo="sim"] {
+  --color-seguro: #0B5A8C;
+  --color-seguro-claro: #E1EEF7;
+  --color-seguro-vivo: #0068A8;
+  --color-emergencia: #B03C00;
+  --color-emergencia-escura: #8A2E00;
+  --color-emergencia-claro: #FBE8DC;
+  --color-atencao: #6B4E00;
+  --color-atencao-claro: #FFF4CC;
+  --color-oceano: #0B5A8C;
+  --color-oceano-suave: #E1EEF7;
+}
+
 /* Alto contraste (preferência do usuário). Texto escuro sobre fundo claro, bordas e links reforçados. */
 html[data-contraste="alto"] {
   --color-tinta: #000000;

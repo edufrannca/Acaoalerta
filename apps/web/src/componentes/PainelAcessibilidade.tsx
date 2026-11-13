@@ -26,21 +26,23 @@ export function BotaoAcessibilidade() {
             Alto contraste
           </label>
           <label className="mt-3 flex min-h-11 items-center gap-3 text-[15px]">
-            <input type="checkbox" className="h-6 w-6" checked={prefs.alarme} onChange={(e) => alterar({ alarme: e.target.checked })} />
-            Alarme sonoro em emergências (pedido de socorro de quem você acompanha, aviso oficial, alagamento elevado)
+            <input type="checkbox" className="h-6 w-6" checked={prefs.daltonismo} onChange={(e) => alterar({ daltonismo: e.target.checked })} />
+            Cores para daltonismo
           </label>
-          <p className="text-[12.5px] text-tinta-suave">Com o app aberto toca mesmo no silencioso (iPhone com iOS 17 ou mais novo, Android). Com o app fechado, chega como notificação.</p>
+          <label className="mt-3 flex min-h-11 items-center gap-3 text-[15px]">
+            <input type="checkbox" className="h-6 w-6" checked={prefs.alarme} onChange={(e) => alterar({ alarme: e.target.checked })} />
+            Alarme sonoro em emergências
+          </label>
           <label className="mt-3 flex min-h-11 items-center gap-3 text-[15px]">
             <input type="checkbox" className="h-6 w-6" checked={prefs.som} onChange={(e) => alterar({ som: e.target.checked })} />
-            Sinal sonoro quando a atenção a alagamentos aumentar
+            Bipe quando a chuva piorar
           </label>
           {'vibrate' in navigator && (
             <label className="mt-3 flex min-h-11 items-center gap-3 text-[15px]">
               <input type="checkbox" className="h-6 w-6" checked={prefs.vibrar} onChange={(e) => alterar({ vibrar: e.target.checked })} />
-              Vibrar quando a atenção aumentar
+              Vibrar quando a chuva piorar
             </label>
           )}
-          <p className="mt-1 text-[12.5px] text-tinta-suave">Todo alerta aparece também por escrito; nada é só sonoro.</p>
           <label className="mt-3 block text-[13.5px] text-tinta-suave">Voz da leitura
             <select className="mt-1 block min-h-11 w-full rounded-controle border border-linha bg-branco px-2 text-[15px] text-tinta" value={prefs.voz}
               onChange={(e) => alterar({ voz: e.target.value as 'auto' | 'aparelho' | 'servidor' })}>

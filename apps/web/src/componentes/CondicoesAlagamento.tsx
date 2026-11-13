@@ -85,7 +85,7 @@ export function CondicoesAlagamento({ latitude, longitude, regiao, titulo = 'Con
         <span className="grid size-12 shrink-0 place-items-center rounded-controle bg-oceano-suave text-oceano" aria-hidden="true"><IcChuva tamanho={28} /></span>
         <div className="min-w-0 flex-1">
           <h2 id={idT} className="text-[19px] font-bold text-petroleo">{titulo}</h2>
-          <p className="text-[13.5px] text-tinta-suave">Chuva medida (APAC), avisos (INMET) e ocorrências verificadas. Não é previsão de alagamento.</p>
+          <p className="text-[13.5px] text-tinta-suave">Chuva medida pela APAC e avisos do INMET.</p>
         </div>
       </div>
       <p className="sr-only" role="status" aria-live={i?.nivel === 'Critico' ? 'assertive' : 'polite'}>{anuncio}</p>
@@ -107,7 +107,7 @@ export function CondicoesAlagamento({ latitude, longitude, regiao, titulo = 'Con
               <p className="mt-1 text-[15px]">{i.regiao}</p>
             </div>
 
-            <p className="text-[16px] leading-relaxed">{i.explicacao}</p>
+            {(!compacto || i.nivel !== 'SemEvidenciaSuficiente') && <p className="text-[16px] leading-relaxed">{i.explicacao}</p>}
             {doCache && <p className="text-[13.5px] font-semibold text-atencao">Cópia salva no aparelho: pode estar desatualizada.</p>}
 
             <dl className="grid gap-2 text-[15px] sm:grid-cols-2">
@@ -116,10 +116,10 @@ export function CondicoesAlagamento({ latitude, longitude, regiao, titulo = 'Con
               <div><dt className="font-semibold">Estação e distância</dt>
                 <dd>{i.estacao ? `${i.estacao.nome}, a ${km(i.estacao.distanciaMetros)}${i.estacao.leituraEm ? ` · leitura ${formatarHora(i.estacao.leituraEm)}` : ''}` : '—'}
                   {i.estacao && !i.estacao.atual && <strong className="block text-atencao">Leitura antiga: não é tempo real.</strong>}</dd></div>
-              <div><dt className="font-semibold">Intensidade e tendência</dt><dd>{i.intensidade}. {i.tendencia}.</dd></div>
-              <div><dt className="font-semibold">Previsão oficial</dt><dd>{i.separacao.previsaoOficial}</dd></div>
-              <div><dt className="font-semibold">Alagamento confirmado</dt><dd>{i.separacao.alagamentoConfirmado}</dd></div>
-              <div><dt className="font-semibold">Estimativa de horário</dt><dd>{i.estimativaTemporal.mensagem}</dd></div>
+              {(!compacto || i.nivel !== 'SemEvidenciaSuficiente') && <div><dt className="font-semibold">Intensidade e tendência</dt><dd>{i.intensidade}. {i.tendencia}.</dd></div>}
+              {(!compacto || i.avisos.length > 0) && <div><dt className="font-semibold">Aviso oficial</dt><dd>{i.separacao.previsaoOficial}</dd></div>}
+              {(!compacto || i.ocorrenciasVerificadas > 0) && <div><dt className="font-semibold">Alagamento confirmado</dt><dd>{i.separacao.alagamentoConfirmado}</dd></div>}
+              {i.nivel !== 'SemEvidenciaSuficiente' && <div><dt className="font-semibold">Quando pode alagar</dt><dd>{i.estimativaTemporal.mensagem}</dd></div>}
             </dl>
 
             {!compacto && (
@@ -137,7 +137,7 @@ export function CondicoesAlagamento({ latitude, longitude, regiao, titulo = 'Con
               <p className="text-[15px] font-semibold">O que fazer</p>
               <ul className="mt-1 grid list-disc gap-1 pl-5 text-[15px]">{i.orientacoes.slice(0, compacto ? 3 : 5).map((o) => <li key={o}>{o}</li>)}</ul>
             </div>
-            <p className="text-[13px] text-tinta-suave">Fontes: APAC e INMET · avaliado às {formatarHora(i.avaliadoEm)} · válido até {formatarHora(i.validoAte)} · atualiza a cada 5 min com o app aberto.</p>
+            <p className="text-[13px] text-tinta-suave">Fontes: APAC e INMET · atualizado às {formatarHora(i.avaliadoEm)}</p>
             <LeitorVoz rotulo="Ouvir informações" texto={textoFala(i)} destaque />
           </div>
         )}

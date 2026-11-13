@@ -209,7 +209,7 @@ export function AcompanharSocorro() {
 
 function Complemento({ id }: { id: string }) {
   const [marcados, setMarcados] = useState<Record<string, boolean>>({})
-  const [pessoas, setPessoas] = useState({ quantidadePessoas: '', criancas: '', idosos: '', pessoasFeridas: '', idadeSolicitante: '' })
+  const [pessoas, setPessoas] = useState({ quantidadePessoas: '', criancas: '', idosos: '', pessoasFeridas: '', idadeSolicitante: '', animais: '' })
   const [descricao, setDescricao] = useState('')
   const [referencia, setReferencia] = useState('')
   const [necessidades, setNecessidades] = useState<string[]>([])
@@ -262,6 +262,7 @@ function Complemento({ id }: { id: string }) {
         {contador('criancas', 'Crianças')}
         {contador('idosos', 'Pessoas idosas')}
         {contador('pessoasFeridas', 'Feridos')}
+        {contador('animais', 'Animais de estimação')}
         {contador('idadeSolicitante', 'Sua idade')}
       </div>
       <label className="mt-3 block">

@@ -12,7 +12,7 @@ const METODOS: { id: Metodo; rotulo: string }[] = [
   { id: 'cep', rotulo: 'Pelo CEP' }, { id: 'endereco', rotulo: 'Pelo endereço' }, { id: 'mapa', rotulo: 'No mapa' }, { id: 'gps', rotulo: 'Onde estou' },
 ]
 const enderecoVazio: Endereco = { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, municipio: null, uf: 'PE' }
-const moradoresVazio: Moradores = { total: null, criancas: null, idosos: null, mobilidadeReduzida: null, dependemAssistencia: null, contatoReferencia: null, observacoes: null }
+const moradoresVazio: Moradores = { total: null, criancas: null, idosos: null, mobilidadeReduzida: null, dependemAssistencia: null, contatoReferencia: null, observacoes: null, animais: null }
 
 interface RespostaCep { endereco: { cep: string; logradouro: string | null; bairro: string | null; municipio: string; uf: string }; dentroRmr: boolean; posicoes: ResultadoGeo[]; exigeEscolhaNoMapa: boolean; aviso: string | null }
 interface RespostaEndereco { resultados: (ResultadoGeo & { municipio: { nome: string } | null })[]; ambiguo: boolean; aviso: string | null }
@@ -196,13 +196,14 @@ export function EditorLocal() {
 
       {tipo === 'Residencia' && (
         <Cartao titulo="3. Moradores (opcional)">
-          <p className="mb-3 text-[13.5px] text-tinta-suave">Só números, sem nomes. Ajuda a equipe a saber quantas pessoas podem precisar de ajuda. Nunca aparece no mapa público; fica cifrado.</p>
+          <p className="mb-3 text-[13.5px] text-tinta-suave">Só números. Ajuda a equipe a saber quem pode precisar de ajuda, incluindo os animais. Fica privado.</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {campoMor('total', 'Moradores')}
             {campoMor('criancas', 'Crianças')}
             {campoMor('idosos', 'Idosos')}
             {campoMor('mobilidadeReduzida', 'Mobilidade reduzida')}
             {campoMor('dependemAssistencia', 'Dependem de assistência')}
+            {campoMor('animais', 'Animais de estimação')}
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <Campo rotulo="Contato de referência (opcional)"><input className={classeEntrada} maxLength={120} value={mor.contatoReferencia ?? ''} onChange={(e) => setMor({ ...mor, contatoReferencia: e.target.value || null })} /></Campo>

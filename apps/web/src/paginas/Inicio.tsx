@@ -71,7 +71,7 @@ export function Inicio() {
               <span className="text-[18px] font-bold leading-[1.1] sm:text-[20px]">Quero ajudar</span>
             </Link>
           </div>
-          <p id="dica-socorro" className="mt-2 text-[13px] text-tinta-suave">Um toque em “Preciso de socorro” registra o pedido com sua localização; os detalhes vêm depois.</p>
+          <p id="dica-socorro" className="mt-2 text-[13px] text-tinta-suave">Um toque envia seu pedido com sua localização.</p>
         </section>
 
         {/* Localização */}
@@ -89,12 +89,12 @@ export function Inicio() {
           <div className="border-t border-linha px-4 py-3">
             {posicao ? (
               <>
-                <p className="flex items-center gap-2 text-[15px] font-medium"><span className="size-2.5 rounded-full bg-seguro-vivo" aria-hidden="true" />Localização ativa (atualiza com o app aberto)</p>
+                <p className="flex items-center gap-2 text-[15px] font-medium"><span className="size-2.5 rounded-full bg-seguro-vivo" aria-hidden="true" />Localização ativa</p>
                 <p className="numero-tabular mt-0.5 text-[13px] text-tinta-suave">Precisão ±{posicao.precisao ?? '?'} m · última leitura {formatarRelativo(posicao.lidaEm)}{local.dados?.precisao === 'municipio' ? ' · bairro não confirmado' : ''}</p>
               </>
             ) : (
               <div className="grid gap-2">
-                <p className="text-[14.5px]">{gps === 'negado' ? 'Permissão de localização negada. Você ainda pode pedir socorro e informar uma referência.' : gps === 'indisponivel' ? 'GPS indisponível agora.' : gps === 'solicitando' ? 'Aguardando o GPS…' : 'Ative para ver riscos conhecidos, chuva e abrigos perto de você.'}</p>
+                <p className="text-[14.5px]">{gps === 'negado' ? 'Permissão de localização negada. Você ainda pode pedir socorro e informar uma referência.' : gps === 'indisponivel' ? 'GPS indisponível agora.' : gps === 'solicitando' ? 'Aguardando o GPS…' : 'Ative para ver chuva, avisos e abrigos perto de você.'}</p>
                 <div className="flex flex-wrap items-center gap-2">
                   {gps !== 'solicitando' && <Botao variante="primario" onClick={iniciar}>Usar minha localização</Botao>}
                   <label className="sr-only" htmlFor="mun-manual">Ou escolha seu município</label>
@@ -109,8 +109,7 @@ export function Inicio() {
           </div>
         </section>
 
-        <CondicoesAlagamento latitude={posicao?.latitude ?? null} longitude={posicao?.longitude ?? null} regiao={ctx.dados?.municipio?.nome ? `Perto de você, ${ctx.dados.municipio.nome}` : null} />
-        <ClimaRisco ctx={ctx.dados} doCache={ctx.doCache} temPosicao={!!posicao} />
+        <CondicoesAlagamento compacto titulo="Chuva e alagamento perto de você" latitude={posicao?.latitude ?? null} longitude={posicao?.longitude ?? null} regiao={ctx.dados?.municipio?.nome ? `Perto de você, ${ctx.dados.municipio.nome}` : null} />
         <PedidosProximosInicio posicao={posicao} municipio={municipio} />
         <div className="hidden lg:block">
           <Mapa camadas={['limites', 'avisos', 'chuva', 'areasRisco', 'abrigos']} municipio={municipio} posicao={posicao} altura="h-[340px]" mostrarLegenda={false} />
@@ -124,10 +123,9 @@ export function Inicio() {
         <Cartao titulo="Canais de emergência"><ContatosEmergencia compacto /></Cartao>
         <Cartao titulo="Prepare-se">
           <ul className="grid list-disc gap-1.5 pl-5 text-[15px]">
-            {(ctx.dados?.orientacoes ?? ORIENTACOES).slice(0, 6).map((o) => <li key={o}>{o}</li>)}
+            {(ctx.dados?.orientacoes ?? ORIENTACOES).slice(0, 3).map((o) => <li key={o}>{o}</li>)}
           </ul>
-          <Fonte nome="Orientações preventivas aprovadas, adaptadas de orientações públicas de Defesa Civil" />
-          <LeitorVoz rotulo="Ouvir orientações" compacto texto={(ctx.dados?.orientacoes ?? ORIENTACOES).slice(0, 6).join('. ')} />
+          <LeitorVoz rotulo="Ouvir orientações" compacto texto={(ctx.dados?.orientacoes ?? ORIENTACOES).slice(0, 3).join('. ')} />
         </Cartao>
       </div>
     </div>
@@ -149,7 +147,7 @@ function PedidosProximosInicio({ posicao, municipio }: { posicao: Posicao | null
           {pedidos.length === 1 ? '1 pedido de ajuda compartilhado na região' : `${pedidos.length} pedidos de ajuda compartilhados na região`}
         </h2>
         <p className="mt-1 text-[13px] text-tinta-suave">
-          Apenas resumos autorizados pelas famílias, com localização aproximada. Ofertas são avaliadas pela equipe responsável.
+          Localização aproximada.
         </p>
       </div>
       {pedidos.slice(0, 3).map((p) => (
@@ -230,7 +228,7 @@ function AvisosRegiao({ avisos, municipio, doCache }: { avisos: Aviso[]; municip
             {doCache && <Selo tom="atencao">Cópia salva {formatarRelativo(doCache)}</Selo>}
           </div>
           {avisos.length === 0 ? (
-            <p className="mt-1 text-[15px]">Nenhum aviso vigente {municipio ? `para ${nomeMunicipio(municipio)}` : 'na RMR'} nas fontes consultadas (INMET). Isso não significa ausência de risco.</p>
+            <p className="mt-1 text-[15px]">Nenhum aviso vigente {municipio ? `para ${nomeMunicipio(municipio)}` : 'na RMR'} agora. Em área de risco, siga a Defesa Civil (199).</p>
           ) : (
             <ul className="mt-2 grid gap-3">
               {avisos.slice(0, 3).map((a) => (
@@ -261,8 +259,8 @@ export function AbrigosProximos({ dados, doCache, posicao, municipio }: { dados:
         <p className="mt-2 rounded-controle bg-fundo p-3 text-[14.5px]">
           {dados?.fonte && !dados.fonte.disponivel && !dados.fonte.ultimoSucessoEm
             ? 'Não foi possível consultar a base de abrigos agora.'
-            : 'Nenhum abrigo ativo publicado nas fontes consultadas neste momento.'}{' '}
-          Abrigos são abertos pelas prefeituras durante emergências. Em caso de necessidade, ligue para a Defesa Civil (199).
+            : 'Nenhum abrigo aberto agora.'}{' '}
+          Em caso de necessidade, ligue 199 (Defesa Civil).
         </p>
       ) : (
         <ul className="mt-1 divide-y divide-linha">
@@ -278,7 +276,7 @@ export function AbrigosProximos({ dados, doCache, posicao, municipio }: { dados:
           ))}
         </ul>
       )}
-      <p className="mt-1 text-[12.5px] text-tinta-suave">{dados?.observacao}{doCache ? ' Lista salva no aparelho.' : ''}</p>
+      {doCache && <p className="mt-1 text-[12.5px] text-tinta-suave">Lista salva no aparelho.</p>}
     </section>
   )
 }

@@ -4,8 +4,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { PreferenciaVoz } from './fala'
 
 /** som: sinal sonoro curto quando a atenção a alagamentos sobe (desligado por padrão); vibrar: vibração onde o aparelho suporta. */
-export interface PrefsAcessibilidade { escala: number; altoContraste: boolean; velocidadeVoz: number; voz: PreferenciaVoz; som: boolean; vibrar: boolean; alarme: boolean }
-const PADRAO: PrefsAcessibilidade = { escala: 1, altoContraste: false, velocidadeVoz: 1, voz: 'auto', som: false, vibrar: false, alarme: true }
+export interface PrefsAcessibilidade { escala: number; altoContraste: boolean; velocidadeVoz: number; voz: PreferenciaVoz; som: boolean; vibrar: boolean; alarme: boolean; daltonismo: boolean }
+const PADRAO: PrefsAcessibilidade = { escala: 1, altoContraste: false, velocidadeVoz: 1, voz: 'auto', som: false, vibrar: false, alarme: true, daltonismo: false }
 const CHAVE = 'alerta.acessibilidade'
 export const ESCALAS = [1, 1.15, 1.3, 1.5]
 
@@ -22,6 +22,7 @@ export function ProvedorAcessibilidade({ children }: { children: ReactNode }) {
     // Os tamanhos do layout são em px; o zoom do documento amplia texto, alvos de toque e espaçamentos juntos.
     html.style.setProperty('zoom', String(prefs.escala))
     html.dataset.contraste = prefs.altoContraste ? 'alto' : 'normal'
+    html.dataset.daltonismo = prefs.daltonismo ? 'sim' : 'nao'
     try { localStorage.setItem(CHAVE, JSON.stringify(prefs)) } catch { /* modo privado */ }
   }, [prefs])
   return <Ctx.Provider value={{ prefs, alterar: (p) => setPrefs((a) => ({ ...a, ...p })) }}>{children}</Ctx.Provider>

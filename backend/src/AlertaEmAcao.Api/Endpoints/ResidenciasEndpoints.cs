@@ -199,7 +199,7 @@ public static class ResidenciasEndpoints
                 situacao = ResumoComunitario.TiposEmergencia(cp),
                 necessidades = v.Permissoes.VerNecessidades ? (cp.Necessidades ?? []).Select(n => NecessidadesDeclaradas.Rotulos[n]) : null,
                 pessoasNoLocal = v.Permissoes.VerMoradores ? cp.QuantidadePessoas ?? cp.Pessoas?.Count : null,
-                moradoresCadastrados = v.Permissoes.VerMoradores && res is not null ? new { res.Moradores.Total, res.Moradores.Criancas, res.Moradores.Idosos, res.Moradores.MobilidadeReduzida } : null,
+                moradoresCadastrados = v.Permissoes.VerMoradores && res is not null ? new { res.Moradores.Total, res.Moradores.Criancas, res.Moradores.Idosos, res.Moradores.MobilidadeReduzida, res.Moradores.Animais } : null,
                 posicao = v.Permissoes.VerPosicaoDoPedido && o.Latitude is not null ? new { o.Latitude, o.Longitude, o.PrecisaoMetros, lidaEm = o.LocalizacaoLidaEm } : null,
                 historico = o.Historico.Where(h => h.Tipo is "registro" or "encaminhamento" or "retorno_central" or "complemento" or "status" or "residencia" or "situacao")
                     .Select(h => new { h.Em, h.Tipo }).TakeLast(20),

@@ -168,7 +168,7 @@ function DetalheOcorrencia({ id, versao, admin, central }: { id: string; versao:
           <div className="mt-3 rounded-controle bg-areia p-3 text-[14px]">
             <p className="font-semibold text-petroleo">Informado pelo cidadão</p>
             <p>
-              {[c.quantidadePessoas && `${c.quantidadePessoas} pessoa(s)`, c.criancas && `${c.criancas} criança(s)`, c.idosos && `${c.idosos} idoso(s)`, c.pessoasFeridas && `${c.pessoasFeridas} ferido(s)`,
+              {[c.quantidadePessoas && `${c.quantidadePessoas} pessoa(s)`, c.criancas && `${c.criancas} criança(s)`, c.idosos && `${c.idosos} idoso(s)`, c.pessoasFeridas && `${c.pessoasFeridas} ferido(s)`, c.animais && `${c.animais} animal(is) de estimação`,
                 sim('ilhado') && 'ilhado', sim('aguaSubindo') && 'água subindo', sim('correnteza') && 'correnteza', sim('riscoDeslizamento') && 'risco de deslizamento',
                 sim('desmoronamento') && 'desabamento', sim('acessoBloqueado') && 'acesso bloqueado', sim('mobilidadeReduzida') && 'mobilidade reduzida',
                 sim('equipamentoMedicoEssencial') && 'equipamento médico', sim('sozinho') && 'sozinho(a)'].filter(Boolean).join(', ') || 'Sem dados estruturados'}

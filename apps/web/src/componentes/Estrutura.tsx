@@ -135,8 +135,7 @@ export function Estrutura({ children }: { children: ReactNode }) {
       <main id="conteudo" className={telaMapa ? '' : 'mx-auto max-w-6xl px-4 pt-4 md:pt-6'}>{children}</main>
       {!telaMapa && (
         <footer className="mx-auto mt-8 max-w-6xl px-4 text-[12.5px] text-tinta-suave">
-          Versão de demonstração do hackathon Devs Criam com IA 2026: as centrais de atendimento são simuladas e nenhum órgão real é acionado.
-          {' '}<Link to="/instalar" className="font-semibold text-oceano underline">Instalar no celular</Link>
+          <Link to="/instalar" className="font-semibold text-oceano underline">Instalar no celular</Link>
         </footer>
       )}
       <NavInferior />

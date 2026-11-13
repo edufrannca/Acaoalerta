@@ -26,9 +26,9 @@ public sealed record EnderecoLocal(string? Cep, string? Logradouro, string? Nume
 /// visíveis só ao dono, a familiar com vínculo aprovado e permissão, e a operador do pedido.
 /// </summary>
 public sealed record MoradoresResidencia(int? Total, int? Criancas, int? Idosos, int? MobilidadeReduzida, int? DependemAssistencia,
-    string? ContatoReferencia, string? Observacoes)
+    string? ContatoReferencia, string? Observacoes, int? Animais = null)
 {
-    public MoradoresResidencia() : this(null, null, null, null, null, null, null) { }
+    public MoradoresResidencia() : this(null, null, null, null, null, null, null, null) { }
     public static MoradoresResidencia Vazio { get; } = new();
     public MoradoresResidencia Validado()
     {
@@ -37,7 +37,8 @@ public sealed record MoradoresResidencia(int? Total, int? Criancas, int? Idosos,
         var r = new MoradoresResidencia(t, N(Criancas, "Crianças"), N(Idosos, "Idosos"), N(MobilidadeReduzida, "Mobilidade reduzida"),
             N(DependemAssistencia, "Dependem de assistência"),
             string.IsNullOrWhiteSpace(ContatoReferencia) ? null : ContatoReferencia.Trim()[..Math.Min(120, ContatoReferencia.Trim().Length)],
-            string.IsNullOrWhiteSpace(Observacoes) ? null : Observacoes.Trim()[..Math.Min(500, Observacoes.Trim().Length)]);
+            string.IsNullOrWhiteSpace(Observacoes) ? null : Observacoes.Trim()[..Math.Min(500, Observacoes.Trim().Length)],
+            N(Animais, "Animais de estimação"));
         if (t is { } tot && new[] { r.Criancas, r.Idosos, r.MobilidadeReduzida, r.DependemAssistencia }.Any(x => x > tot))
             throw new ErroDominio("moradores_invalidos", "Nenhum grupo pode ser maior que o total de moradores.");
         return r;

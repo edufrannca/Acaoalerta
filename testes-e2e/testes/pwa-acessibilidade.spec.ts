@@ -96,7 +96,7 @@ test('acessibilidade (axe) no cadastro com autorizações, perfil e cadastro de 
 test('condições de chuva e alagamentos: texto, teclado, axe e celular sem rolagem lateral', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
-  const secao = page.getByRole('region', { name: 'Condições de chuva e atenção a alagamentos' })
+  const secao = page.getByRole('region', { name: 'Chuva e alagamento perto de você' })
   await expect(secao).toBeVisible()
   await expect(secao.getByText(/Nível de atenção a alagamentos:/)).toBeAttached()
   await expect(secao.getByText(/não existem dados suficientes para estimar|Sem estação|Sem leitura|APAC/).first()).toBeVisible()
@@ -109,6 +109,10 @@ test('condições de chuva e alagamentos: texto, teclado, axe e celular sem rola
   const r = await new AxeBuilder({ page }).include('section[aria-labelledby^="titulo-alag"]').withTags(['wcag2a', 'wcag2aa', 'wcag22aa']).analyze()
   expect(r.violations.map((v) => `${v.id}: ${v.nodes[0]?.target}`)).toEqual([])
   await page.getByRole('button', { name: /Acessibilidade/ }).click()
-  await expect(page.getByRole('checkbox', { name: /Sinal sonoro/ })).not.toBeChecked()
-  await expect(page.getByText(/nada é só sonoro/)).toBeVisible()
+  await expect(page.getByRole('checkbox', { name: /Bipe quando a chuva piorar/ })).not.toBeChecked()
+  // Modo daltonismo troca as cores de emergência/segurança (o nível continua por texto e ícone).
+  await page.getByRole('checkbox', { name: 'Cores para daltonismo' }).check()
+  expect(await page.evaluate(() => document.documentElement.dataset.daltonismo)).toBe('sim')
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--color-emergencia').trim().toLowerCase())).toBe('#b03c00')
+  await expect(page.getByText(/Devs Criam com IA/)).toHaveCount(0)
 })

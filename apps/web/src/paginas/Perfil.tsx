@@ -66,7 +66,7 @@ function Entrar() {
             <Link to="/instalar" className="flex min-h-11 items-center rounded-controle bg-fundo px-3 text-[15px] font-semibold text-petroleo">Instalar o app no celular</Link>
           </div>
         </Cartao>
-        <p className="text-[13px] text-tinta-suave">Equipe do hackathon: <Link to="/demo" className="font-semibold text-oceano underline">área de demonstração</Link> (exige código de acesso).</p>
+        <p className="text-[13px] text-tinta-suave"><Link to="/demo" className="font-semibold text-oceano underline">Acesso das equipes de atendimento</Link></p>
       </div>
     </div>
   )
@@ -119,8 +119,8 @@ function PerfilLogado() {
         <Notificacoes />
       </div>
       <div className="grid content-start gap-4">
-        <LocaisMonitorados />
         <Acompanhar />
+        <LocaisMonitorados />
         <Familia />
       </div>
     </div>
@@ -197,7 +197,7 @@ function LocaisMonitorados() {
   const cheio = (dados?.length ?? 0) >= 5
   return (
     <Cartao titulo="Locais monitorados" acao={<span className="text-[13px] text-tinta-suave">{dados?.length ?? 0} de 5</span>}>
-      <p className="mb-3 text-[13.5px] text-tinta-suave">Sua casa, o trabalho ou a casa de um familiar, mesmo longe de você. Cadastre pelo CEP, pelo endereço ou no mapa.</p>
+      <p className="mb-3 text-[13.5px] text-tinta-suave">Sua casa, o trabalho ou a casa de um familiar.</p>
       {(dados ?? []).length === 0 ? <Vazio>Nenhum local monitorado.</Vazio> : (
         <ul className="grid gap-2">
           {dados!.map((l) => (
@@ -216,6 +216,41 @@ function LocaisMonitorados() {
   )
 }
 
+/** Morador: gera o código para um familiar acompanhar a casa em tempo real. */
+function ConvidarFamiliar() {
+  const { dados } = useDados<LocalMonitorado[]>('/api/eu/locais')
+  const casa = (dados ?? []).find((l) => l.tipo === 'Residencia' && l.moroAqui)
+  const [convite, setConvite] = useState<{ codigo: string; expiraEm: string } | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+  const gerar = async () => {
+    setErro(null)
+    try { setConvite(await api(`/api/eu/locais/${casa!.id}/convites`, { method: 'POST' })) } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível gerar o código.') }
+  }
+  return (
+    <div>
+      <h3 className="text-[16px] font-bold text-petroleo">Convidar um familiar para acompanhar minha casa</h3>
+      {!dados ? null : !casa ? (
+        <>
+          <p className="mt-1 text-[14px]">Primeiro cadastre sua casa e marque “Eu moro aqui”.</p>
+          <Link to="/locais/novo" className="mt-2 flex min-h-11 items-center justify-center rounded-controle bg-petroleo px-4 text-[15px] font-semibold text-branco">Cadastrar minha casa</Link>
+        </>
+      ) : (
+        <>
+          <Botao className="mt-2 w-full" onClick={gerar}>Gerar código de convite</Botao>
+          {convite && (
+            <div role="status" className="mt-2 rounded-controle bg-oceano-suave p-3">
+              <p className="numero-tabular select-all text-[26px] font-bold tracking-widest text-petroleo">{convite.codigo}</p>
+              <p className="text-[13.5px]">Envie ao familiar. Vale uma vez, até {formatarHora(convite.expiraEm)}.</p>
+            </div>
+          )}
+          <Link to={`/locais/${casa.id}`} className="mt-2 inline-flex min-h-11 items-center text-[15px] font-semibold text-oceano underline">Aprovar familiares de “{casa.apelido}”</Link>
+          {erro && <p role="alert" className="text-[14px] text-emergencia-escura">{erro}</p>}
+        </>
+      )}
+    </div>
+  )
+}
+
 interface Acompanhado { id: string; apelidoParaFamiliar: string; status: string; municipio: string | null }
 
 /** Familiar: usa o código recebido do morador. Nada é liberado antes da aprovação dele. */
@@ -230,8 +265,10 @@ function Acompanhar() {
   }
   const sairDe = async (id: string) => { await api(`/api/eu/vinculos/${id}`, { method: 'DELETE' }); void recarregar() }
   return (
-    <Cartao titulo="Acompanhar uma residência">
-      <p className="mb-3 text-[13.5px] text-tinta-suave">Para receber avisos quando um familiar pedir socorro em casa. Peça a ele o código de convite (Perfil → local onde mora → Gerar código).</p>
+    <Cartao titulo="Família">
+      <ConvidarFamiliar />
+      <h3 className="mt-5 text-[16px] font-bold text-petroleo">Acompanhar a casa de um familiar</h3>
+      <p className="mb-2 text-[13.5px] text-tinta-suave">Digite o código que ele gerou. Você será avisado se alguém pedir socorro lá.</p>
       <div className="grid gap-2 sm:grid-cols-2">
         <Campo rotulo="Código de convite"><input className={`${classeEntrada} uppercase tracking-widest`} value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="ABCDE-FGHJK" autoComplete="off" /></Campo>
         <Campo rotulo="Como você chama essa casa"><input className={classeEntrada} maxLength={60} value={apelido} onChange={(e) => setApelido(e.target.value)} placeholder="Casa da minha mãe" /></Campo>

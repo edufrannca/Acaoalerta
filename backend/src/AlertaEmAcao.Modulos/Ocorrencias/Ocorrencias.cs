@@ -73,6 +73,8 @@ public sealed record ComplementoOcorrencia
     public int? PessoasFeridas { get; init; }
     public int? Criancas { get; init; }
     public int? Idosos { get; init; }
+    /// <summary>Animais de estimação no local (informativo para a equipe; não altera a prioridade).</summary>
+    public int? Animais { get; init; }
     public bool? MobilidadeReduzida { get; init; }
     public bool? EquipamentoMedicoEssencial { get; init; }
     public bool? Sozinho { get; init; }
@@ -98,6 +100,7 @@ public sealed record ComplementoOcorrencia
         PessoasFeridas = novo.PessoasFeridas ?? PessoasFeridas,
         Criancas = novo.Criancas ?? Criancas,
         Idosos = novo.Idosos ?? Idosos,
+        Animais = novo.Animais ?? Animais,
         MobilidadeReduzida = novo.MobilidadeReduzida ?? MobilidadeReduzida,
         EquipamentoMedicoEssencial = novo.EquipamentoMedicoEssencial ?? EquipamentoMedicoEssencial,
         Sozinho = novo.Sozinho ?? Sozinho,
@@ -119,7 +122,7 @@ public sealed record ComplementoOcorrencia
     {
         if (IdadeSolicitante is < 0 or > 125) throw new ErroDominio("idade_invalida", "Idade fora do intervalo.");
         if (QuantidadePessoas is < 1 or > 500) throw new ErroDominio("pessoas_invalido", "Quantidade de pessoas fora do intervalo (1–500).");
-        foreach (var n in new[] { PessoasFeridas, Criancas, Idosos })
+        foreach (var n in new[] { PessoasFeridas, Criancas, Idosos, Animais })
             if (n is < 0 or > 500) throw new ErroDominio("contagem_invalida", "Contagens devem estar entre 0 e 500.");
         if (Pessoas?.Count > 100) throw new ErroDominio("pessoas_demais", "Máximo de 100 pessoas detalhadas.");
         if (Pessoas?.Any(p => p.Idade is < 0 or > 125) == true) throw new ErroDominio("idade_invalida", "Idade fora do intervalo.");
