@@ -106,7 +106,7 @@ public class SegurancaAlertasApoioTestes(FabricaApi f)
         var ana = await f.ClienteDemoAsync("cidadao");
         var minhas = await ana.GetFromJsonAsync<JsonElement>("/api/eu/notificacoes");
         var minha = minhas.EnumerateArray().Single(n => n.GetProperty("aviso").GetProperty("id").GetGuid() == avisoId);
-        Assert.Equal("Você e sua família estão bem?", minha.GetProperty("pergunta").GetString());
+        Assert.Equal("Há um aviso para sua região. Você e sua família estão bem?", minha.GetProperty("pergunta").GetString());
         Assert.False(minha.GetProperty("avisoOficial").GetBoolean());
         Assert.StartsWith("[DEMONSTRAÇÃO]", minha.GetProperty("titulo").GetString());
         Assert.Single(notificacoes); // João (Olinda) não está na área

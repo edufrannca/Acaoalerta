@@ -62,14 +62,15 @@ Entre em **Perfil → Modo demonstração** e escolha um perfil fictício (Ana, 
 ./scripts/testar-tudo.sh
 ```
 
-| Conjunto | Quantidade | Resultado na última execução (12/11/2026) |
+| Conjunto | Quantidade | Resultado na última execução (13/11/2026) |
 |---|---|---|
-| Backend: unitários | 87 | passaram |
-| Backend: integração (PostgreSQL + PostGIS reais, HTTP real até as centrais) | 38 | passaram |
+| Backend: unitários (inclui protocolo de proximidade com vetores compartilhados) | 90 | passaram |
+| Backend: integração (PostgreSQL + PostGIS reais, HTTP real até as centrais, gateway v2) | 39 | passaram |
 | Backend: arquitetura (dependências entre camadas) | 7 | passaram |
-| Backend: avaliação de IA (casos fictícios revisados, alucinação, esquema) | 19 | passaram (o teste com modelo real é ignorado sem chave) |
-| Frontend: Vitest + Testing Library | 8 | passaram |
-| E2E: Playwright (6 jornadas, incluindo offline real) | 6 | passaram |
+| Backend: avaliação de IA (casos fictícios, alucinação, esquema, falhas da Groq) | 24 | passaram (a inferência real é ignorada sem chave — **não executada até agora**) |
+| Frontend: Vitest + Testing Library | 10 | passaram |
+| E2E: Playwright (jornadas, offline real, instalação PWA, axe WCAG) | 14 | passaram |
+| Apps nativos (APK, iOS) e aparelhos físicos | — | **não executados** — ver docs/MATRIZ_TESTES_DISPOSITIVOS.md |
 
 Ver [docs/TESTES.md](docs/TESTES.md).
 
@@ -79,4 +80,4 @@ Ver [docs/TESTES.md](docs/TESTES.md).
 
 ## Documentação
 
-[Visão do produto](docs/VISAO_PRODUTO.md) · [Arquitetura](docs/ARQUITETURA.md) · [Requisitos funcionais](docs/REQUISITOS_FUNCIONAIS.md) · [Não funcionais](docs/REQUISITOS_NAO_FUNCIONAIS.md) · [Municípios da RMR](docs/MUNICIPIOS_RMR.md) · [Integrações](docs/INTEGRACOES.md) · [Inteligência territorial](docs/INTELIGENCIA_TERRITORIAL.md) · [IA](docs/INTELIGENCIA_ARTIFICIAL.md) · [Alertas proativos](docs/ALERTAS_PROATIVOS.md) · [Offline](docs/COMUNICACAO_OFFLINE.md) · [Nearby](docs/NEARBY_ANDROID_IOS.md) · [Encaminhamento](docs/ENCAMINHAMENTO_INSTITUCIONAL.md) · [Centrais simuladas](docs/CENTRAIS_SIMULADAS.md) · [Segurança e LGPD](docs/SEGURANCA_LGPD.md) · [Modelo de dados](docs/MODELO_DADOS.md) · [Testes](docs/TESTES.md) · [Deploy](docs/DEPLOY.md) · [Limitações](docs/LIMITACOES.md) · [Roadmap](docs/ROADMAP.md) · [Roteiro da demonstração](docs/ROTEIRO_DEMONSTRACAO.md) · [Pitch](docs/PITCH.md)
+[Visão do produto](docs/VISAO_PRODUTO.md) · [Arquitetura](docs/ARQUITETURA.md) · [Requisitos funcionais](docs/REQUISITOS_FUNCIONAIS.md) · [Não funcionais](docs/REQUISITOS_NAO_FUNCIONAIS.md) · [Municípios da RMR](docs/MUNICIPIOS_RMR.md) · [Integrações](docs/INTEGRACOES.md) · [Inteligência territorial](docs/INTELIGENCIA_TERRITORIAL.md) · [IA](docs/INTELIGENCIA_ARTIFICIAL.md) · [Alertas proativos](docs/ALERTAS_PROATIVOS.md) · [Offline](docs/COMUNICACAO_OFFLINE.md) · [Nearby](docs/NEARBY_ANDROID_IOS.md) · [Encaminhamento](docs/ENCAMINHAMENTO_INSTITUCIONAL.md) · [Centrais simuladas](docs/CENTRAIS_SIMULADAS.md) · [Segurança e LGPD](docs/SEGURANCA_LGPD.md) · [Modelo de dados](docs/MODELO_DADOS.md) · [Testes](docs/TESTES.md) · [Deploy](docs/DEPLOY.md) · [Limitações](docs/LIMITACOES.md) · [Roadmap](docs/ROADMAP.md) · [Roteiro da demonstração](docs/ROTEIRO_DEMONSTRACAO.md) · [Pitch](docs/PITCH.md) · [Protocolo de proximidade](docs/PROTOCOLO_PROXIMIDADE.md) · [Matriz de testes em aparelhos](docs/MATRIZ_TESTES_DISPOSITIVOS.md)

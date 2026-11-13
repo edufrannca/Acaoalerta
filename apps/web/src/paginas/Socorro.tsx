@@ -14,6 +14,8 @@ interface VisaoServidor {
   id: string
   status: string
   statusDescricao: string
+  nivelComprovado?: number
+  nivelDescricao?: string
   municipio: { codigo: string; nome: string } | null
   localizacao: { latitude: number; longitude: number; precisaoMetros: number | null; lidaEm: string } | null
   encaminhamentos: { id: string; central: string; status: string; protocolo: string | null; confirmadoEm: string | null; tentativas: number; ultimoErro: string | null; estadoNaCentral: string | null }[]
@@ -86,6 +88,10 @@ export function AcompanharSocorro() {
           <p className={`mt-1 text-[15px] ${recebidoServidor ? 'text-areia/90' : ''}`}>
             {servidor ? servidor.statusDescricao : local ? descricaoEstado[local.estado] + (online ? '' : ' Sem internet: enviaremos assim que a conexão voltar.') : ''}
           </p>
+          <p className={`mt-2 text-[14px] font-semibold ${recebidoServidor ? 'text-branco' : ''}`} data-testid="nivel-comprovado">
+            Último nível comprovado: {servidor?.nivelComprovado ? `Nível ${servidor.nivelComprovado} — ${servidor.nivelDescricao}` : 'Nível 1 — salvo neste aparelho'}
+          </p>
+          {servidor?.nivelComprovado === 5 && <p className="text-[12.5px] text-areia/80">Central SIMULADA de demonstração. Nenhum órgão real foi acionado.</p>}
           {local?.ultimoErro && !recebidoServidor && <p className="mt-1 text-[13.5px]">Última tentativa: {local.ultimoErro} ({local.tentativas}x)</p>}
           {!recebidoServidor && local && <Botao className="mt-3" variante="primario" onClick={() => transmitir(id)}>Tentar enviar agora</Botao>}
           {servidor && <p className="mt-2 text-[13px] text-areia/80">Identificador do pedido: <span className="numero-tabular">{servidor.id.slice(0, 8)}</span>{servidor.municipio ? `, ${servidor.municipio.nome}` : ''}</p>}

@@ -1,17 +1,21 @@
 # Testes
 
-Todos os números abaixo vêm de execuções reais em 12/11/2026 (.NET 10, PostgreSQL 16 + PostGIS 3.4 local, Chromium headless).
+Todos os números abaixo vêm de execuções reais em 13/11/2026 (.NET 10, PostgreSQL 16 + PostGIS 3.4 local, Chromium headless).
 
 | Suíte | Ferramenta | Quantidade | Resultado |
 |---|---|---|---|
-| Unitários (domínio) | xUnit | 87 | 87 aprovados |
-| Avaliação da IA | xUnit | 19 | 19 aprovados (*) |
+| Unitários (domínio + protocolo de proximidade) | xUnit | 90 | 90 aprovados |
+| Avaliação da IA (validador, Groq com HTTP controlado: 429, timeout, JSON inválido, indisponível) | xUnit | 24 | 24 aprovados (*) |
 | Arquitetura (dependências entre camadas) | xUnit + reflexão | 7 | 7 aprovados |
-| Integração (API + banco real + centrais via HTTP) | xUnit + WebApplicationFactory | 38 | 38 aprovados |
-| Frontend (fila offline, telas) | Vitest + Testing Library + fake-indexeddb | 8 | 8 aprovados |
-| Ponta a ponta (jornadas) | Playwright | 6 | 6 aprovados |
+| Integração (API + banco real + centrais via HTTP + gateway v2) | xUnit + WebApplicationFactory | 39 | 39 aprovados |
+| Frontend (fila offline, telas, leitura por voz, acessibilidade) | Vitest + Testing Library + fake-indexeddb | 10 | 10 aprovados |
+| Ponta a ponta (jornadas, instalação PWA, axe WCAG 2 A/AA em 5 telas, alto contraste) | Playwright + axe-core | 14 | 14 aprovados |
+| Protocolo Kotlin contra os vetores | kotlinc 2.1 (JVM) | 3 vetores | conferem |
+| Gateway ponta a ponta (`simuladores/nearby-ponta-a-ponta.py`) | script | 1 | passou — SIMULADO |
+| Testes JUnit Android / XCTest iOS / builds nativos | Gradle / Xcode | — | **não executados** (CI bloqueado; sem SDK/Xcode no ambiente) |
+| Testes em aparelhos físicos | — | — | **não executados** — ver MATRIZ_TESTES_DISPOSITIVOS |
 
-(*) Um dos 19 é a avaliação com modelo real. Sem `IA__CHAVEAPI` ele apenas registra "IGNORADO" e retorna; **nenhum modelo real foi avaliado**.
+(*) Um dos 24 é a inferência real (Groq `openai/gpt-oss-20b`). Sem `IA__CHAVEAPI` ele registra "IGNORADO" e retorna — contado como aprovado pelo xUnit, mas **não é inferência real**. No CI, roda no job `ia-groq` quando o secret `GROQ_API_KEY` existe e grava `relatorio-ia-groq.json`. Até esta versão **nenhuma inferência real foi executada** (rede do ambiente bloqueia api.groq.com e o Actions não inicia).
 
 ## Como executar
 ```bash

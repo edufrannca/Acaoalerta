@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { Botao, Cartao, Fonte, Selo, Vazio, classeEntrada } from '../componentes/Base'
+import { LeitorVoz } from '../componentes/LeitorVoz'
 import { ContatosEmergencia } from '../componentes/Contatos'
 import { api, formatarHora, formatarRelativo } from '../lib/api'
 import { useDados, useLocalizacao, type Posicao } from '../lib/hooks'
@@ -104,6 +105,7 @@ export function Inicio() {
                   <p className="mt-1 font-semibold text-petroleo">{a.titulo}</p>
                   {a.instrucoes[0] && <p className="mt-1 text-[14px]">{a.instrucoes[0]}</p>}
                   <Fonte nome={a.fonteNome} oficial={a.oficial} demonstrativa={!a.oficial} />
+                  <LeitorVoz compacto rotulo="Ouvir aviso" texto={`${a.oficial ? 'Aviso oficial' : 'Aviso demonstrativo, não oficial'}. ${a.titulo}. ${a.severidade}. ${a.instrucoes.slice(0, 3).join('. ')}`} />
                 </li>
               ))}
             </ul>
@@ -124,6 +126,11 @@ export function Inicio() {
             ]).slice(0, 6).map((o) => <li key={o}>{o}</li>)}
           </ul>
           <Fonte nome="Orientações preventivas aprovadas, adaptadas de orientações públicas de Defesa Civil" />
+          <LeitorVoz rotulo="Ouvir orientações" compacto texto={(ctx.dados?.orientacoes ?? [
+            'Tenha à mão documentos, remédios de uso contínuo, lanterna e carregador em saco plástico.',
+            'Combine com a família um ponto de encontro seguro e um contato de referência.',
+            'Não atravesse ruas alagadas, a pé ou de carro.',
+          ]).slice(0, 6).join('. ')} />
         </Cartao>
       </div>
     </div>
@@ -179,6 +186,11 @@ function RegiaoAtual({ ctx, doCache, temPosicao }: { ctx: Contexto | null; doCac
             )}
             <p className="mt-3 text-[13px] font-medium text-petroleo">{ctx.aviso}</p>
             {ctx.limitacoes.map((l) => <p key={l} className="mt-1 text-[12.5px] text-tinta-suave">{l}</p>)}
+            <LeitorVoz rotulo="Ouvir situação da região" texto={[
+              ...ctx.estados.map((e) => `${e.titulo}. ${e.detalhe}`),
+              ctx.estacaoMaisProxima ? `Chuva na estação ${ctx.estacaoMaisProxima.nome}: ${ctx.estacaoMaisProxima.mm24h == null ? 'sem leitura' : `${ctx.estacaoMaisProxima.mm24h} milímetros em 24 horas`}${ctx.estacaoMaisProxima.estado !== 'Atual' ? ', leitura antiga' : ''}.` : '',
+              ctx.aviso,
+            ].filter(Boolean).join(' ')} />
           </>
         )}
     </Cartao>
@@ -220,13 +232,17 @@ function PerguntaProativa({ n, aoSocorro, aoResponder }: { n: Notificacao; aoSoc
       <h2 id="pergunta-titulo" className="text-[22px] font-bold">{n.titulo}</h2>
       <p className="mt-1 text-[15px] text-areia/90">{n.mensagem}</p>
       <p className="mt-3 text-[19px] font-semibold">{n.pergunta}</p>
+      <LeitorVoz texto={`${n.titulo}. ${n.mensagem} ${n.pergunta} Responda: Estou seguro, Preciso de socorro ou Ver orientações.`} rotulo="Ouvir aviso" />
       <div className="mt-3 grid gap-2 sm:grid-cols-3">
         <Botao variante="seguro" onClick={async () => { await responder('EstouSeguro'); aoResponder(); navegar(`/seguro?aviso=${n.aviso?.id ?? ''}`) }}>Estou seguro</Botao>
         <Botao variante="perigo" onClick={async () => { await responder('PrecisoDeSocorro'); aoSocorro() }}>Preciso de socorro</Botao>
         <Botao variante="secundario" onClick={async () => { setOrientacoes(true); await responder('VerOrientacoes') }}>Ver orientações</Botao>
       </div>
       {orientacoes && n.aviso && (
-        <ul className="mt-3 list-disc pl-5 text-[14.5px]">{n.aviso.instrucoes.map((i) => <li key={i}>{i}</li>)}</ul>
+        <>
+          <ul className="mt-3 list-disc pl-5 text-[14.5px]">{n.aviso.instrucoes.map((i) => <li key={i}>{i}</li>)}</ul>
+          <LeitorVoz texto={n.aviso.instrucoes.join('. ')} rotulo="Ouvir orientação" compacto />
+        </>
       )}
     </section>
   )

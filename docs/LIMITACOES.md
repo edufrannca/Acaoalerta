@@ -14,11 +14,13 @@ O Alerta em Ação **não substitui** os telefones 193, 199, 192 e 190. Toda tel
 - Fontes podem sair do ar; o sistema mostra a data da última leitura e "informações desatualizadas".
 
 ## Técnicas
-- IA: nenhum modelo real foi avaliado nesta entrega (sem chave). O sistema funciona só com as regras.
-- Nearby: código Android/iOS não compilado nem testado em aparelhos. Sem multissalto. LoRa apenas documentado.
+- IA: provedor Groq implementado; **inferência real ainda não executada** (rede do ambiente e CI bloqueados). O sistema funciona só com as regras.
+- Nearby: apps Android/iOS reescritos com protocolo comum; APK e build iOS **não gerados** nesta entrega (CI da conta não inicia; sem Android SDK/Xcode no ambiente); **nenhum teste físico**. Sem multissalto. LoRa apenas documentado. Não é Cell Broadcast.
 - PWA: sem Background Sync nem localização em segundo plano; envio pendente ocorre com o app aberto. No iOS, push só com o app instalado na tela inicial.
 - Web Push implementado, mas não validado num aparelho real nesta entrega.
 - Exclusão de conta não implementada (exportação sim).
+- Leitura por voz usa a síntese do aparelho; sem voz pt-BR instalada, usa a voz padrão (o app avisa).
+- Ampliação de texto usa zoom do documento (layout em px).
 - Instância única: os trabalhos de fundo rodam no mesmo processo; escalar horizontalmente exige um lock distribuído ou fila.
 - Plano gratuito de hospedagem hiberna e tem banco com prazo de validade.
 - Sem testes de carga, de intrusão ou de acessibilidade com leitor de tela.

@@ -1,31 +1,29 @@
-# Nearby Connections: relatório da prova de conceito
+# Nearby Connections — Android e iOS
 
-## Objetivo
-Transmitir um pedido **fictício** entre dois aparelhos próximos sem internet: A → B (ACK) → B armazena → B encaminha ao backend → painel.
+Especificação do contrato: [PROTOCOLO_PROXIMIDADE.md](PROTOCOLO_PROXIMIDADE.md). Testes físicos: [MATRIZ_TESTES_DISPOSITIVOS.md](MATRIZ_TESTES_DISPOSITIVOS.md).
 
-## O que existe
-| Parte | Situação |
+## O que existe (13/11/2026)
+| Parte | Situação verificada |
 |---|---|
-| Backend `POST /api/gateway/pacotes` (contrato `alerta-em-acao/gateway/v1`, chave HMAC por receptor, limite de saltos, canal `ProximidadeNearby`/`GatewaySimulado`) | **Implementado e testado** (teste de integração `Gateway_simulado_registra_pedido_retransmitido`) |
-| Emissão da chave do receptor (`GET /api/demo/gateway-chave`, administrador) | Implementado |
-| Painel mostrando o canal e quem retransmitiu | Implementado |
-| App Android (Kotlin, `play-services-nearby`, P2P_CLUSTER, ACK, `recebidos.jsonl`, encaminhamento HTTP) | **Código escrito, NÃO compilado** (sem Android SDK no ambiente) |
-| App iOS (Swift, google/nearby `NearbyConnections`) | **Esqueleto, NÃO compilado** (sem Xcode) |
+| Protocolo v2 único (C#, Kotlin, Swift) + vetores gerados por implementação independente em Python | C#: testes xUnit passam; Kotlin: verificado em JVM (kotlinc 2.1); Swift: XCTest no CI (pendente de execução) |
+| Gateway `/api/gateway/v2` com níveis 1–5, integridade, idempotência | Teste de integração passa; script ponta a ponta SIMULADO passa |
+| App Android (descoberta, anúncio, pareamento por código, persistência antes do ACK, reenvio, gateway, aviso a vários receptores, evidências) | Tipos verificados contra `android.jar` 35 + stubs das APIs; **APK não gerado** (Google Maven inacessível no ambiente; CI bloqueado na conta) |
+| App iOS (SwiftUI + google/nearby, mesmas funções) | Escrito; **não compilado** (sem Xcode no ambiente) |
+| Testes físicos | **Nenhum executado** |
 
-## Aparelhos utilizados nos testes
-**Nenhum.** Não houve hardware disponível no ambiente de desenvolvimento. **O recurso não deve ser apresentado como testado fisicamente.**
+O serviceId antigo do esqueleto iOS (`br.alertaemacao.nearby.SOCORRO`) era **diferente** do Android — impediria a interoperação. Corrigido para `br.alertaemacao.nearby` nos dois.
 
-## Como validar (quando houver aparelhos)
-1. `GET /api/demo/gateway-chave?receptor=gateway-poc` (token de administrador).
-2. `./gradlew :app:installDebug -Palerta.url=<url> -Palerta.receptor=gateway-poc -Palerta.chaveGateway=<chave>` em dois Androids.
-3. A: dados/Wi-Fi de internet desligados, Bluetooth ligado → "Modo A". B: com internet → "Modo B".
-4. Esperado: ACK em A; "Backend respondeu HTTP 200" em B; ocorrência no painel com canal `ProximidadeNearby`.
-5. Android ↔ iOS: compilar `apps/ios-nearby` com o pacote google/nearby e repetir.
+## Comportamento esperado por plataforma (a confirmar fisicamente)
+- Android ↔ Android: BLE/Bluetooth/Wi-Fi conforme disponibilidade (`P2P_CLUSTER`).
+- iOS ↔ iOS: BLE, Wi-Fi LAN e AWDL.
+- Android ↔ iOS: depende de BLE e/ou Wi-Fi LAN comum; **interoperabilidade só vale após AI-01 e IA-01 passarem**.
+- Receptor que não usa Nearby e internet ao mesmo tempo: guarda o pedido (nível 2) e encaminha quando a internet volta (Cenário C).
+- Segundo plano/tela bloqueada/app encerrado: não há serviço em segundo plano; registre o que ocorrer (Cenário E).
 
-## Limitações declaradas
-- **Sem multissalto:** o Nearby não faz roteamento em malha automaticamente. Cadeia de retransmissão (store-and-forward, TTL, deduplicação por id, registro de saltos) é trabalho futuro. O contrato já tem `saltos` e o servidor deduplica pelo id.
-- Aceitação automática de conexão na PoC; em produção, confirmar o código de verificação.
-- Mensagens sem cifragem de ponta a ponta além da camada do próprio Nearby.
+## Limitações
+Sem multissalto automático (o contrato tem `numeroTentativas` e deduplicação; cadeia de saltos é trabalho futuro). APK debug e build iOS de
+desenvolvimento, não versões de loja. Não é Cell Broadcast.
 
-## LoRa / Meshtastic (futuro)
-O mesmo contrato compacto pode ser carregado por nós LoRa (ex.: Meshtastic, payload curto) até um gateway comunitário com internet que faça o `POST /api/gateway/pacotes`. Requisitos: autenticação de dispositivo, cifragem (canais PSK do Meshtastic), confirmação, registro de saltos e limite de tamanho (~200 bytes). **Nenhuma rede LoRa foi implantada**; na demonstração, o endpoint do gateway é **simulado**.
+## LoRa / Meshtastic (futuro, só documentado)
+O mesmo envelope v2, compactado, pode trafegar em nós LoRa até um gateway comunitário com internet que faça o `POST /api/gateway/v2/mensagens`.
+Requisitos: autenticação de dispositivo, cifragem (PSK do Meshtastic), confirmação, registro de saltos e limite de ~200 bytes. Nenhuma rede LoRa foi implantada.

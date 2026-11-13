@@ -7,6 +7,12 @@ import { descricaoEstado, observarFila, sincronizar } from '../lib/filaOffline'
 import { useOnline } from '../lib/hooks'
 
 const TIPOS: Record<ItemFila['tipo'], string> = { socorro: 'Pedido de socorro', complemento: 'Informações do pedido', situacao: 'Estou seguro', localizacao: 'Localização', oferta: 'Oferta de ajuda' }
+const NIVEL: Record<ItemFila['estado'], string> = {
+  salvo_no_aparelho: 'Nível 1 — salvo neste aparelho (ainda não transmitido)',
+  transmitindo: 'Nível 1 — salvo neste aparelho; transmissão em andamento',
+  recebido_servidor: 'Nível 4 — recebido pelo servidor do Alerta em Ação',
+  recusado: 'Recusado pelo servidor — corrija e envie novamente',
+}
 const TOM = { salvo_no_aparelho: 'atencao', transmitindo: 'espera', recebido_servidor: 'ok', recusado: 'erro' } as const
 
 export function MeusPedidos() {
@@ -39,6 +45,7 @@ export function MeusPedidos() {
               <p className="numero-tabular mt-1 text-[13px] text-tinta-suave">
                 Criado {formatarHora(i.criadoEm)}{i.recebidoEm ? `, recebido ${formatarHora(i.recebidoEm)}` : ''}{i.tentativas ? `, ${i.tentativas} tentativa(s)` : ''}
               </p>
+              <p className="mt-1 text-[13px] font-medium text-petroleo" data-testid="nivel-comprovado">Último nível comprovado: {NIVEL[i.estado]}</p>
               {i.ultimoErro && i.estado !== 'recebido_servidor' && <p className="text-[13px] text-atencao">{i.ultimoErro}</p>}
               {i.tipo === 'socorro' && <Link className="mt-2 inline-block text-[14px] font-medium text-oceano underline-offset-2 hover:underline" to={`/socorro/${i.id}`}>Acompanhar pedido</Link>}
             </li>

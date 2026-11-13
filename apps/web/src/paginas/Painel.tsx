@@ -33,8 +33,10 @@ interface Detalhe {
     ia: { status: string; modelo: string | null; problemas: string[]; iaConcluidaEm: string | null; resultado: {
       resumo: string; informacoesExtraidas: { descricao: string; evidencia: string }[]; possiveisPerigos: { tipo: string; descricao: string; evidencia: string }[]
       necessidadesAssistencia: string[]; indiciosAgravamento: string[]; informacoesAusentes: string[]; informacoesNaoVerificadas: string[]
-      sinalizacoesParaAvaliacaoHumana: { codigo: string; explicacao: string; evidencia: string }[] } | null }
+      sinalizacoesParaAvaliacaoHumana: { codigo: string; explicacao: string; evidencia: string }[]
+      pessoasIdentificadas?: { idade: number | null; condicoes: string[] | null; evidencia: string }[] | null } | null; duracaoIAMs?: number | null }
   } | null
+  confirmacoes?: { nivel: number; descricao: string; identificadorMensagem: string | null; origem: string; destino: string; horario: string; canal: string; resultado: string; comprovante: string | null }[]
   encaminhamentos: { id: string; tipo: string; central: string; centralNome: string | null; justificativa: string; status: string; tentativas: number; protocolo: string | null
     confirmadoEm: string | null; ultimoErro: string | null; proximaTentativaEm: string; estadoNaCentral: string | null
     historicoTentativas: { numero: number; iniciadaEm: string; duracaoMs: number; httpStatus: number | null; resultado: string; detalhe: string | null }[] }[]
@@ -188,14 +190,31 @@ function DetalheOcorrencia({ id, versao, admin, central }: { id: string; versao:
               <div className="mt-2 grid gap-2 text-[14px]">
                 <p>{d.analise.ia.resultado.resumo}</p>
                 {d.analise.ia.resultado.informacoesExtraidas.length > 0 && <p><span className="font-medium">Extraído:</span> {d.analise.ia.resultado.informacoesExtraidas.map((f) => `${f.descricao} (“${f.evidencia}”)`).join('; ')}</p>}
+                {(d.analise.ia.resultado.pessoasIdentificadas?.length ?? 0) > 0 && <p><span className="font-medium">Pessoas citadas:</span> {d.analise.ia.resultado.pessoasIdentificadas!.map((p) => `${p.idade ?? 'idade não informada'}${p.condicoes?.length ? ` (${p.condicoes.join(', ')})` : ''}`).join('; ')} <span className="text-[12px] text-tinta-suave">— descreve assistência, não define prioridade</span></p>}
+                {d.analise.ia.resultado.possiveisPerigos.length > 0 && <p><span className="font-medium">Possíveis perigos:</span> {d.analise.ia.resultado.possiveisPerigos.map((p) => `${p.descricao} (“${p.evidencia}”)`).join('; ')}</p>}
+                {d.analise.ia.resultado.sinalizacoesParaAvaliacaoHumana.length > 0 && <p><span className="font-medium">Para avaliação humana:</span> {d.analise.ia.resultado.sinalizacoesParaAvaliacaoHumana.map((x) => `${x.codigo}: ${x.explicacao}`).join('; ')}</p>}
                 {d.analise.ia.resultado.informacoesAusentes.length > 0 && <p><span className="font-medium">Ausente:</span> {d.analise.ia.resultado.informacoesAusentes.join('; ')}</p>}
                 {d.analise.ia.resultado.informacoesNaoVerificadas.length > 0 && <p><span className="font-medium">Não verificado:</span> {d.analise.ia.resultado.informacoesNaoVerificadas.join('; ')}</p>}
-                <p className="text-[12.5px] text-tinta-suave">Modelo {d.analise.ia.modelo}, {formatarHora(d.analise.ia.iaConcluidaEm)}. Itens sem evidência literal na entrada são descartados automaticamente.</p>
+                <p className="text-[12.5px] text-tinta-suave">Modelo {d.analise.ia.modelo}, {formatarHora(d.analise.ia.iaConcluidaEm)}{d.analise.ia.duracaoIAMs ? `, ${(d.analise.ia.duracaoIAMs / 1000).toFixed(1)} s` : ''}. A IA não decide resgates. Itens sem evidência literal na entrada são descartados automaticamente.</p>
               </div>
             )}
             {d.analise.ia.problemas.length > 0 && <p className="mt-1 text-[12.5px] text-atencao">{d.analise.ia.problemas.join(' ')}</p>}
           </div>
           {d.analise.fontes.length > 0 && <p className="mt-3 text-[12.5px] text-tinta-suave">Fontes territoriais: {d.analise.fontes.map((f) => `${f.nome}${f.atualizadoEm ? ` (${formatarHora(f.atualizadoEm)})` : ''}`).join('; ')}</p>}
+        </Cartao>
+      )}
+
+      {(d.confirmacoes?.length ?? 0) > 0 && (
+        <Cartao titulo="Níveis de entrega comprovados">
+          <ol className="grid gap-1.5 text-[13.5px]" data-testid="confirmacoes">
+            {d.confirmacoes!.map((c, i) => (
+              <li key={i} className="rounded-controle bg-areia px-3 py-2">
+                <span className="font-semibold text-petroleo">Nível {c.nivel}</span> — {c.descricao}
+                <span className="block text-[12.5px] text-tinta-suave numero-tabular">{formatarHora(c.horario)} · {c.origem} → {c.destino} · canal {c.canal}{c.comprovante ? ` · comprovante ${c.comprovante}` : ''}{c.identificadorMensagem ? ` · mensagem ${c.identificadorMensagem.slice(0, 8)}` : ''}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-2 text-[12.5px] text-tinta-suave">Nível 6 (recebimento por órgão real) não existe neste ambiente: exige integração oficial homologada.</p>
         </Cartao>
       )}
 

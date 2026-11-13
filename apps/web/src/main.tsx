@@ -15,11 +15,14 @@ import { Perfil } from './paginas/Perfil'
 import { Painel } from './paginas/Painel'
 import { CentralSimulada } from './paginas/CentralSimulada'
 import { Demonstracao } from './paginas/Demonstracao'
+import { Instalar } from './paginas/Instalar'
+import { ProvedorAcessibilidade } from './lib/acessibilidade'
 
 iniciarSincronizacaoAutomatica()
 
 createRoot(document.getElementById('raiz')!).render(
   <StrictMode>
+    <ProvedorAcessibilidade>
     <ProvedorSessao>
       <BrowserRouter>
         <Estrutura>
@@ -34,10 +37,12 @@ createRoot(document.getElementById('raiz')!).render(
             <Route path="/painel" element={<Painel />} />
             <Route path="/central/:codigo" element={<CentralSimulada />} />
             <Route path="/demo" element={<Demonstracao />} />
+            <Route path="/instalar" element={<Instalar />} />
             <Route path="*" element={<p className="py-10 text-center">Página não encontrada.</p>} />
           </Routes>
         </Estrutura>
       </BrowserRouter>
     </ProvedorSessao>
+    </ProvedorAcessibilidade>
   </StrictMode>,
 )

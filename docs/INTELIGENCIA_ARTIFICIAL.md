@@ -23,5 +23,16 @@ A IA **resume e organiza** um pedido para um operador humano. Ela **não** decid
 - A aprovação **não depende de outra IA**.
 - Teste com modelo real: roda quando `IA__CHAVEAPI` estiver definida (exige ≥ 9/10 respostas válidas). **Na entrega não havia chave configurada: o teste foi ignorado e nenhum modelo real foi avaliado.**
 
-## Modelo utilizado na demonstração
-Nenhum por padrão. Com a chave, o padrão é `claude-haiku-5-5` (Anthropic) ou `gpt-4o-mini` (compatível com OpenAI), configurável.
+## Provedor do hackathon: Groq
+- `IA__Provedor=groq`, `IA__Modelo=openai/gpt-oss-20b` (padrão), endpoint `https://api.groq.com/openai/v1/chat/completions`, `response_format=json_object`,
+  `reasoning_effort=low`, `temperature=0`. A chave só existe no backend (`IA__ChaveApi`, variável de ambiente / secret); nunca no app, front, testes ou logs.
+- Falhas classificadas (`FalhaProvedorIA`): `limite_requisicoes` (HTTP 429, com Retry-After), `timeout`, `resposta_invalida` (incl. `json_validate_failed`),
+  `indisponivel` (5xx). Espera entre tentativas de 15 s, 30 s, 60 s (máx. 4). A ocorrência segue encaminhada pelas regras em qualquer falha.
+- Cada complemento do pedido gera nova interpretação (o resultado anterior fica visível até ser substituído).
+- Novo campo validado: `pessoasIdentificadas` (idade + condições + evidência). Idade só é aceita se foi informada; condições descrevem assistência, nunca prioridade.
+- Painel: resumo, pessoas citadas, perigos, sinalizações com justificativa, ausências, não verificados, modelo e tempo de resposta.
+
+## Inferência real — estado em 13/11/2026
+**Não executada.** O ambiente de desenvolvimento não alcança `api.groq.com` (proxy de saída) e o GitHub Actions da conta não inicia.
+Executa automaticamente: (a) no Render, quando `IA__ChaveApi` for preenchida; (b) no CI, job `ia-groq`, com o secret `GROQ_API_KEY` — o relatório
+`relatorio-ia-groq.json` traz modelo, tempo, validade do esquema, itens descartados e falhas por caso. Nenhum resultado foi inventado aqui.

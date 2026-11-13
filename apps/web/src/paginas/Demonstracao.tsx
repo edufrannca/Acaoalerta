@@ -117,9 +117,40 @@ export function Demonstracao() {
         </div>
       </Cartao>
 
+      <ChaveGateway />
+
       <Cartao titulo="Roteiro da apresentação">
         <ol className="grid list-decimal gap-1.5 pl-5 text-[14.5px]">{ROTEIRO.map((r) => <li key={r}>{r}</li>)}</ol>
       </Cartao>
     </div>
+  )
+}
+
+/** Chave para os apps nativos de proximidade atuarem como gateway. Mostrada só ao administrador, nunca embutida nos apps. */
+function ChaveGateway() {
+  const [receptor, setReceptor] = useState('gateway-android')
+  const [chave, setChave] = useState<string | null>(null)
+  const [visivel, setVisivel] = useState(false)
+  const gerar = async () => {
+    const r = await api<{ chave: string }>(`/api/demo/gateway-chave?receptor=${encodeURIComponent(receptor)}`)
+    setChave(r.chave); setVisivel(false)
+  }
+  return (
+    <Cartao titulo="Chave do gateway (apps nativos Nearby)">
+      <p className="text-[14px] text-tinta-suave">Digite no app Android/iOS do aparelho que vai encaminhar ao servidor: URL <strong>{window.location.origin}</strong>, o identificador abaixo e a chave. Código do grupo: <strong>ALERTA-DEMO-2026</strong>.</p>
+      <div className="mt-2 flex flex-wrap items-end gap-2">
+        <label className="text-[14px]">Identificador do gateway
+          <input className="mt-1 block min-h-11 rounded-controle border border-linha px-3" value={receptor} onChange={(e) => { setReceptor(e.target.value); setChave(null) }} />
+        </label>
+        <Botao variante="secundario" onClick={gerar}>Gerar chave</Botao>
+      </div>
+      {chave && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <code className="break-all rounded-controle bg-areia px-3 py-2 text-[15px]">{visivel ? chave : '••••••••••••••••'}</code>
+          <Botao variante="secundario" onClick={() => setVisivel(!visivel)}>{visivel ? 'Ocultar' : 'Mostrar'}</Botao>
+          <Botao variante="secundario" onClick={() => navigator.clipboard?.writeText(chave)}>Copiar</Botao>
+        </div>
+      )}
+    </Cartao>
   )
 }

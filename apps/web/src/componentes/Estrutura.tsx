@@ -5,8 +5,9 @@ import type { ItemFila } from '../lib/dispositivo'
 import { useOnline } from '../lib/hooks'
 import { useSessao } from '../lib/sessao'
 import { Marca } from './Base'
+import { BotaoAcessibilidade } from './PainelAcessibilidade'
 
-function Navegacao() {
+function Navegacao({ escuro = false }: { escuro?: boolean }) {
   const { usuario } = useSessao()
   const operador = usuario && ['OperadorCentral', 'Administrador', 'Organizacao'].includes(usuario.papel)
   const itens = [
@@ -22,7 +23,9 @@ function Navegacao() {
         {itens.map((i) => (
           <li key={i.para}>
             <NavLink to={i.para} end={i.para === '/'} className={({ isActive }) =>
-              `flex min-w-16 flex-col items-center gap-0.5 px-2 py-2 text-[12px] font-medium md:flex-row md:gap-2 md:rounded-controle md:px-3 md:text-[14px] ${isActive ? 'text-oceano md:bg-branco md:ring-1 md:ring-linha' : 'text-tinta-suave hover:text-petroleo'}`}>
+              `flex min-w-16 flex-col items-center gap-0.5 px-2 py-2 text-[12px] font-medium md:flex-row md:gap-2 md:rounded-controle md:px-3 md:text-[14px] ${escuro
+                ? (isActive ? 'bg-branco text-petroleo' : 'text-areia hover:bg-petroleo-900 hover:text-branco')
+                : (isActive ? 'text-oceano md:bg-branco md:ring-1 md:ring-linha' : 'text-tinta-suave hover:text-petroleo')}`}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" aria-hidden="true"><path d={i.icone} /></svg>
               {i.rotulo}
             </NavLink>
@@ -50,7 +53,10 @@ export function Estrutura({ children }: { children: ReactNode }) {
               <span className="block text-[12px] text-oceano-claro">Região Metropolitana do Recife</span>
             </span>
           </Link>
-          <div className="hidden md:block"><Navegacao /></div>
+          <div className="flex items-center gap-2">
+            <div className="hidden md:block"><Navegacao escuro /></div>
+            <BotaoAcessibilidade />
+          </div>
           <div role="status" aria-live="polite" className="text-right text-[12.5px] leading-tight md:hidden">
             <span className={`font-semibold ${online ? 'text-oceano-claro' : 'text-[#E3C07A]'}`}>{online ? 'Conectado' : 'Sem internet'}</span>
             {pendentes > 0 && <span className="block text-areia/80">{pendentes} envio(s) no aparelho</span>}
@@ -64,7 +70,8 @@ export function Estrutura({ children }: { children: ReactNode }) {
         </div>
       )}
       <p className="bg-[#EDE9F3] px-4 py-1.5 text-center text-[12.5px] text-[#4A3A6B]">
-        Ambiente de demonstração do hackathon: centrais de atendimento são simuladas e nenhum órgão real é acionado.
+        Ambiente de demonstração do hackathon: centrais de atendimento são simuladas e nenhum órgão real é acionado.{' '}
+        <Link to="/instalar" className="font-semibold underline">Instalar no celular</Link>
       </p>
       <main id="conteudo" className="mx-auto max-w-5xl px-4 pt-4">{children}</main>
       <div className="md:hidden"><Navegacao /></div>

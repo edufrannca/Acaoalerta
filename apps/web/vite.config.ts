@@ -20,10 +20,19 @@ export default defineConfig({
         background_color: '#F8F5EF',
         display: 'standalone',
         start_url: '/',
+        scope: '/',
+        id: '/',
+        orientation: 'portrait',
+        categories: ['utilities', 'weather'],
+        shortcuts: [
+          { name: 'Mapa e riscos', short_name: 'Mapa', url: '/mapa' },
+          { name: 'Meus pedidos', short_name: 'Pedidos', url: '/pedidos' },
+        ],
         icons: [
           { src: '/icone-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icone-512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/icone-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/icone-maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: '/icone-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
@@ -41,7 +50,7 @@ export default defineConfig({
           {
             urlPattern: ({ url }) => url.hostname === 'tile.openstreetmap.org',
             handler: 'CacheFirst',
-            options: { cacheName: 'mapa-base', expiration: { maxEntries: 600, maxAgeSeconds: 14 * 24 * 3600 }, cacheableResponse: { statuses: [0, 200] } },
+            options: { cacheName: 'mapa-base', expiration: { maxEntries: 300, maxAgeSeconds: 7 * 24 * 3600 }, cacheableResponse: { statuses: [0, 200] } },
           },
         ],
       },

@@ -32,7 +32,7 @@ public sealed class Notificacao
         Mensagem = oficial
             ? $"Existe um aviso oficial ({tituloAviso}) aplicável à sua localização monitorada \"{apelidoLocal}\"."
             : $"Aviso DEMONSTRATIVO (não oficial) aplicável à localização monitorada \"{apelidoLocal}\": {tituloAviso}.",
-        Pergunta = "Você e sua família estão bem?",
+        Pergunta = "Há um aviso para sua região. Você e sua família estão bem?",
     };
 
     public void RegistrarEntrega(string canal, string resultado, DateTimeOffset em, string? detalhe = null) =>

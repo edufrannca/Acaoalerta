@@ -73,3 +73,19 @@ body { margin: 0; min-height: 100dvh; }
 .botao-socorro:active { transform: translateY(1px); }
 
 .numero-tabular { font-variant-numeric: tabular-nums; }
+
+/* Alto contraste (preferência do usuário). Texto escuro sobre fundo claro, bordas e links reforçados. */
+html[data-contraste="alto"] {
+  --color-tinta: #000000;
+  --color-tinta-suave: #1A1A1A;
+  --color-linha: #000000;
+  --color-areia: #FFFFFF;
+  --color-areia-escura: #F0F0F0;
+  --color-oceano: #004E52;
+  --color-petroleo: #002830;
+  --color-atencao: #5C3900;
+}
+html[data-contraste="alto"] body { background: #FFFFFF; }
+html[data-contraste="alto"] a { text-decoration: underline; text-underline-offset: 3px; }
+html[data-contraste="alto"] button, html[data-contraste="alto"] input, html[data-contraste="alto"] select, html[data-contraste="alto"] textarea { border-width: 2px; }
+html[data-contraste="alto"] :focus-visible { outline: 4px solid #000000; outline-offset: 3px; }

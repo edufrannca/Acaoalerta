@@ -1,0 +1,33 @@
+import { useState } from 'react'
+import { ESCALAS, useAcessibilidade } from '../lib/acessibilidade'
+
+export function BotaoAcessibilidade() {
+  const { prefs, alterar } = useAcessibilidade()
+  const [aberto, setAberto] = useState(false)
+  const i = ESCALAS.indexOf(prefs.escala)
+  return (
+    <div className="relative">
+      <button type="button" aria-expanded={aberto} aria-controls="painel-acessibilidade" onClick={() => setAberto(!aberto)}
+        className="min-h-11 min-w-11 rounded-controle border border-areia/40 px-2.5 text-[15px] font-bold text-branco hover:bg-petroleo-900">
+        <span aria-hidden="true">Aa</span><span className="sr-only">Acessibilidade: tamanho do texto e contraste</span>
+      </button>
+      {aberto && (
+        <div id="painel-acessibilidade" role="dialog" aria-label="Acessibilidade" className="absolute right-0 z-40 mt-2 w-72 rounded-cartao bg-branco p-4 text-tinta shadow-lg ring-1 ring-linha">
+          <p className="text-[15px] font-bold">Acessibilidade</p>
+          <p className="mt-3 text-[13.5px] text-tinta-suave">Tamanho do texto: {Math.round(prefs.escala * 100)}%</p>
+          <div className="mt-1 flex gap-2">
+            <button type="button" className="min-h-11 flex-1 rounded-controle border border-linha text-[16px] font-bold disabled:opacity-40" disabled={i <= 0}
+              onClick={() => alterar({ escala: ESCALAS[Math.max(0, i - 1)] })} aria-label="Diminuir texto">A−</button>
+            <button type="button" className="min-h-11 flex-1 rounded-controle border border-linha text-[20px] font-bold disabled:opacity-40" disabled={i >= ESCALAS.length - 1}
+              onClick={() => alterar({ escala: ESCALAS[Math.min(ESCALAS.length - 1, i + 1)] })} aria-label="Aumentar texto">A+</button>
+          </div>
+          <label className="mt-4 flex min-h-11 items-center gap-3 text-[15px]">
+            <input type="checkbox" className="h-6 w-6" checked={prefs.altoContraste} onChange={(e) => alterar({ altoContraste: e.target.checked })} />
+            Alto contraste
+          </label>
+          <button type="button" className="mt-3 min-h-11 w-full rounded-controle bg-petroleo text-[15px] font-semibold text-branco" onClick={() => setAberto(false)}>Fechar</button>
+        </div>
+      )}
+    </div>
+  )
+}
