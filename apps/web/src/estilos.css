@@ -23,7 +23,7 @@
   --color-linha: #D8DEDC;
   --color-fundo: #F2F5F4;
   --color-oceano-suave: #E2F0EE;
-  --color-seguro-vivo: #2F8A4E;
+  --color-seguro-vivo: #2B7F47; /* 4,97:1 com texto branco (antes 4,32:1, abaixo do AA) */
 
   --font-sans: "DM Sans Variable", "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 

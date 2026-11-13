@@ -1,21 +1,21 @@
 # Testes
 
-Todos os números abaixo vêm de execuções reais em 13/11/2026 (.NET 10, PostgreSQL 16 + PostGIS 3.4 local, Chromium headless).
+Todos os números abaixo vêm de execuções locais reais em 13/11/2026 (.NET 10, PostgreSQL 16 + PostGIS 3.4 local, Chromium headless).
 
 | Suíte | Ferramenta | Quantidade | Resultado |
 |---|---|---|---|
-| Unitários (domínio, protocolo de proximidade, área aproximada, comparação de GPS, ofertas) | xUnit | 100 | 100 aprovados |
+| Unitários (domínio, protocolo de proximidade, área aproximada, comparação de GPS, ofertas) | xUnit | 114 | 114 aprovados |
 | Avaliação da IA (validador, Groq com HTTP controlado: 429, timeout, JSON inválido, indisponível) | xUnit | 24 | 24 aprovados (*) |
 | Arquitetura (dependências entre camadas) | xUnit + reflexão | 7 | 7 aprovados |
-| Integração (API + banco real + centrais via HTTP + gateway v2 + comunidade + retransmissão QR + locais, vínculos, consentimentos, notificações familiares) | xUnit + WebApplicationFactory | 61 | 61 aprovados |
-| Frontend (fila offline, telas, leitura por voz, acessibilidade, QR de retransmissão, cartão comunitário mínimo) | Vitest + Testing Library + fake-indexeddb | 19 | 19 aprovados |
-| Ponta a ponta (jornadas, offline → QR → aparelho próximo, comunidade e oferta, família avisada, instalação PWA, axe WCAG 2 A/AA em 12 telas, alto contraste) | Playwright + axe-core | 24 | 24 aprovados |
+| Integração (API + banco real + centrais via HTTP + gateway v2 + comunidade + retransmissão QR + locais, vínculos, consentimentos, notificações familiares) | xUnit + WebApplicationFactory | 64 | 64 aprovados |
+| Frontend (fila offline, telas, leitura por voz, acessibilidade, QR de retransmissão, cartão comunitário mínimo) | Vitest + Testing Library + fake-indexeddb | 26 | 26 aprovados |
+| Ponta a ponta (jornadas, offline → QR → aparelho próximo, comunidade e oferta, família avisada, instalação PWA, axe WCAG 2 A/AA em 12 telas, alto contraste) | Playwright + axe-core | 25 | 25 aprovados |
 | Protocolo Kotlin contra os vetores | kotlinc 2.1 (JVM) | 3 vetores | conferem |
 | Gateway ponta a ponta (`simuladores/nearby-ponta-a-ponta.py`) | script | 1 | passou — SIMULADO |
 | Testes JUnit Android / XCTest iOS / builds nativos (inclui importação do pedido da PWA) | Gradle / Xcode | — | **não executados** (CI bloqueado; sem SDK/Xcode no ambiente) — código escrito, não compilado |
 | Testes em aparelhos físicos | — | — | **não executados** — ver MATRIZ_TESTES_DISPOSITIVOS |
 
-(*) Um dos 24 é a inferência real (Groq `openai/gpt-oss-20b`). Sem `IA__CHAVEAPI` ele registra "IGNORADO" e retorna — contado como aprovado pelo xUnit, mas **não é inferência real**. No CI, roda no job `ia-groq` quando o secret `GROQ_API_KEY` existe e grava `relatorio-ia-groq.json`. Até esta versão **nenhuma inferência real foi executada** (rede do ambiente bloqueia api.groq.com e o Actions não inicia).
+(*) Um dos 24 é a inferência real (Groq `openai/gpt-oss-20b`). Sem `IA__CHAVEAPI` ele registra "IGNORADO" e retorna — contado como aprovado pelo xUnit, mas **não é inferência real**. No CI, roda no job `ia-groq` quando o secret `GROQ_API_KEY` existe e grava `relatorio-ia-groq.json`. Esse teste **não foi executado com o modelo real** (rede do ambiente de desenvolvimento bloqueia api.groq.com e o Actions não inicia). Houve **uma inferência real** em produção, feita fora da suíte de testes em 13/11/2026 e registrada em [INTELIGENCIA_ARTIFICIAL.md](INTELIGENCIA_ARTIFICIAL.md), incluindo um erro de número no resumo.
 
 ## Como executar
 ```bash
@@ -26,6 +26,15 @@ cd apps/web && npm ci && npx vitest run
 cd testes-e2e && npm ci && npx playwright install chromium && npx playwright test
 ```
 Ou `./scripts/testar-tudo.sh`. A CI (`.github/workflows/ci.yml`) roda backend e frontend com um serviço PostGIS.
+
+## Situação do CI (GitHub Actions)
+As execuções de 13/11/2026 **não iniciaram**: os jobs são recusados com *"The job was not started because your account is locked due to a billing issue"* (antes disso, aparecia `startup_failure`). É um bloqueio de cobrança da conta no GitHub, não um erro do workflow ou dos testes. **Não há execução verde no CI**; os números desta página são das execuções locais. Para reativar: resolver a cobrança em *Settings → Billing* da conta dona do repositório e rodar o workflow de novo (*Actions → CI → Re-run*).
+
+## Acessibilidade e desempenho
+- **axe-core (WCAG 2.x A/AA)** nos testes ponta a ponta: sem violações nas telas cobertas.
+- **Lighthouse 12** (celular simulado, app local, 13/11/2026). Acessibilidade: Início 96 → **100** após corrigir o contraste do botão "Estou seguro" (4,32:1 → 4,97:1); Perfil, Socorro, Alertas e Abrigos **100**. Boas práticas 96–100.
+- **Desempenho medido baixo** (35–56 no Lighthouse com rede e CPU limitadas; ~1,8 MB transferidos no Início, a maior parte do mapa MapLibre). As informações de segurança (socorro, 193/199) não dependem do mapa, mas o carregamento inicial em 3G é um ponto a melhorar.
+- **Não testado** com VoiceOver/TalkBack em aparelhos físicos.
 
 ## O que é coberto
 - **Domínio:** identificação dos 14 municípios por ponto (incluindo bordas e pontos fora da RMR), regras de urgência ("idade sozinha não é ameaça"), roteamento, retentativa, política de localização, parsers APAC/INMET.
