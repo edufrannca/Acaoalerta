@@ -81,6 +81,58 @@ public class ComunidadeTestes(FabricaApi f)
     }
 
     [Fact]
+    public async Task Pedido_unico_compartilhado_sem_necessidades_aceita_ajuda_sem_expor_familia()
+    {
+        var solicitante = f.ClienteDispositivo(Dispositivo());
+        var id = Guid.NewGuid();
+        const double lat = -8.13123, lon = -34.95678;
+        var complemento = new
+        {
+            quantidadePessoas = 2, aguaSubindo = true,
+            descricao = "Relato confidencial da familia", referenciaLocal = "Endereco privado da familia",
+        };
+        (await solicitante.PostAsJsonAsync("/api/ocorrencias",
+            FluxoSocorroTestes.Pedido(id, lat, lon, complemento))).EnsureSuccessStatusCode();
+
+        var publico = f.CreateClient();
+        var antes = await Pedidos(publico, lat, lon, 0.5);
+        Assert.DoesNotContain(antes.GetProperty("pedidos").EnumerateArray(), p => p.GetProperty("id").GetGuid() == id);
+
+        // Basta UM pedido autorizado; a quantidade mínima de agregados não limita ofertas individuais.
+        (await solicitante.PutAsJsonAsync($"/api/ocorrencias/{id}/compartilhamento",
+            new { autorizado = true, incluirPessoas = false, incluirNecessidades = false })).EnsureSuccessStatusCode();
+
+        var resposta = await publico.GetStringAsync("/api/comunidade/pedidos?lat=-8.13123&lon=-34.95678&raioKm=0.5");
+        var publicoJson = JsonDocument.Parse(resposta).RootElement;
+        var pedido = publicoJson.GetProperty("pedidos").EnumerateArray().Single(p => p.GetProperty("id").GetGuid() == id);
+        Assert.True(pedido.GetProperty("podeOferecerAjuda").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, pedido.GetProperty("pessoas").ValueKind);
+        Assert.Equal(JsonValueKind.Null, pedido.GetProperty("necessidades").ValueKind);
+        Assert.DoesNotContain("Relato confidencial", resposta);
+        Assert.DoesNotContain("Endereco privado", resposta);
+        Assert.DoesNotContain(lat.ToString(System.Globalization.CultureInfo.InvariantCulture), resposta);
+        Assert.DoesNotContain(lon.ToString(System.Globalization.CultureInfo.InvariantCulture), resposta);
+
+        var voluntario = f.ClienteDispositivo(Dispositivo());
+        var oferta = new
+        {
+            id = Guid.NewGuid(), tipo = "ApoioLogisticoSeguro",
+            descricao = "Posso fornecer apoio em ponto seguro", cienteSeguranca = true,
+        };
+        var aceita = await voluntario.PostAsJsonAsync($"/api/comunidade/pedidos/{id}/ofertas", oferta);
+        Assert.Equal(HttpStatusCode.Created, aceita.StatusCode);
+
+        // Revogar autorização deve remover o pedido da comunidade e bloquear novas ofertas.
+        (await solicitante.PutAsJsonAsync($"/api/ocorrencias/{id}/compartilhamento",
+            new { autorizado = false })).EnsureSuccessStatusCode();
+        var revogado = await Pedidos(publico, lat, lon, 0.5);
+        Assert.DoesNotContain(revogado.GetProperty("pedidos").EnumerateArray(), p => p.GetProperty("id").GetGuid() == id);
+        var outroVoluntario = f.ClienteDispositivo(Dispositivo());
+        Assert.Equal(HttpStatusCode.BadRequest, (await outroVoluntario.PostAsJsonAsync(
+            $"/api/comunidade/pedidos/{id}/ofertas", oferta with { id = Guid.NewGuid() })).StatusCode);
+    }
+
+    [Fact]
     public async Task Compartilhamento_parcial_respeita_escolhas_e_conta_ficticia_fica_fora_da_lista_publica()
     {
         var c = f.ClienteDispositivo(Dispositivo());

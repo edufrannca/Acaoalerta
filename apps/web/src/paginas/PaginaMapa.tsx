@@ -4,7 +4,7 @@ import type { Map as MapaML } from 'maplibre-gl'
 import { Mapa, ROTULOS_CAMADAS, type Camada } from '../componentes/Mapa'
 import { LeitorVoz } from '../componentes/LeitorVoz'
 import { Selo } from '../componentes/Base'
-import { CartaoPedido, ResumoRegiao } from '../componentes/PedidosComunidade'
+import { CartaoPedido, FormOferta, ResumoRegiao } from '../componentes/PedidosComunidade'
 import { usePedidosComunitarios, type RespostaComunidade } from '../lib/comunidade'
 import { IcAjudar, IcAbrigo, IcAlerta, IcCamadas, IcChuva, IcLocal, IcMais, IcMenos, IcRecentrar, IcSino, IcVoltar } from '../componentes/Icones'
 import { formatarHora } from '../lib/api'
@@ -125,6 +125,8 @@ export function PaginaMapa() {
 }
 
 function Pedidos({ r, raio, setRaio, temGps, selecionado }: { r: RespostaComunidade | null; raio: number; setRaio: (n: number) => void; temGps: boolean; selecionado: string | null }) {
+  const [ofertando, setOfertando] = useState<string | null>(null)
+  const [mensagem, setMensagem] = useState<string | null>(null)
   return (
     <section aria-labelledby="titulo-pedidos" className="grid gap-2.5">
       <div className="flex flex-wrap items-end justify-between gap-2">
@@ -139,8 +141,14 @@ function Pedidos({ r, raio, setRaio, temGps, selecionado }: { r: RespostaComunid
       </div>
       <p className="text-[13px] text-tinta-suave">{temGps ? 'Busca centrada na sua localização atual (linha azul tracejada).' : 'Ative a localização para buscar a partir de onde você está.'} {r?.areaAproximada}</p>
       {r && <ResumoRegiao r={r} />}
-      {r?.pedidos.map((p) => <CartaoPedido key={p.id} p={p} destaque={p.id === selecionado} compacto />)}
-      {r && r.pedidos.length > 0 && <Link to="/ajudar" className="min-h-11 rounded-controle bg-oceano-suave px-3 py-2.5 text-center text-[15px] font-semibold text-oceano">Ver detalhes e oferecer ajuda</Link>}
+      {r?.pedidos.map((p) => (
+        <div key={p.id} className="grid gap-2">
+          <CartaoPedido p={p} destaque={p.id === selecionado} aoOferecer={() => { setOfertando(p.id); setMensagem(null) }} />
+          {ofertando === p.id && <FormOferta p={p} aoFechar={() => setOfertando(null)} aoEnviar={(texto) => { setMensagem(texto); setOfertando(null) }} />}
+        </div>
+      ))}
+      {mensagem && <p role="status" className="rounded-controle bg-seguro-claro p-3 text-[14px] text-seguro">{mensagem}</p>}
+      {r && r.pedidos.length > 0 && <Link to="/ajudar" className="min-h-11 rounded-controle bg-oceano-suave px-3 py-2.5 text-center text-[15px] font-semibold text-oceano">Ver todos os pedidos e minhas ofertas</Link>}
       {r?.demonstrativos && <p className="text-[12.5px] text-tinta-suave">Área de demonstração: exibindo pedidos FICTÍCIOS.</p>}
     </section>
   )
