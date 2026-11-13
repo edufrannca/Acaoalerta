@@ -57,3 +57,22 @@ Ou `./scripts/testar-tudo.sh`. A CI (`.github/workflows/ci.yml`) roda backend e 
 | IA Groq real (`openai/gpt-oss-20b`) | Concluida em 839 ms, esquema válido; resumo com 1 imprecisão (ver INTELIGENCIA_ARTIFICIAL) |
 | Alerta demonstrativo (área Ibura) | 1 notificação; pergunta "Há um aviso para sua região. Você e sua família estão bem?" |
 | `/instalar`, manifest | 200; 4 ícones (2 maskable) |
+
+## Validação no ambiente publicado (13/11/2026, 04:15, commit b8a1682)
+Feita pelo navegador contra https://alerta-em-acao.onrender.com, só com pedidos marcados como demonstração.
+
+| Verificação | Resultado |
+|---|---|
+| Pedido com resumo comunitário autorizado (conta fictícia) | 201, nível 4; fora da lista pública; na lista demonstrativa com tipo, 4 pessoas, faixas, necessidades, área de 600 m |
+| Vazamentos na resposta comunitária | nome, telefone, coordenadas e id do aparelho **ausentes** |
+| Oferta sem ciência de segurança | 400 |
+| Oferta → aceite → orientação → concluída | AguardandoAvaliacao → AceitaPelaEquipe → Encaminhada → Concluida; voluntário vê só a orientação, sem coordenadas |
+| Central de outro município decide a oferta | 403 |
+| QR adulterado | 422 |
+| QR lido por aparelho próximo | 200 em 405 ms, nível 4, "registrada pelo aparelho da família" |
+| Mesmo QR por um segundo aparelho | `duplicado=true` |
+| Emissor sincroniza depois pelo próprio aparelho | 200, dono reconhecido, canal ProximidadeQr, nível 5 (central simulada) |
+| Aparelho que ajudou tenta abrir o pedido | 403 |
+| Operador | posição do emissor ±18 m; posição do ajudante separada; "Leituras compatíveis: 31 m, margem 48 m" |
+
+Isto **não** é teste físico: as chamadas saíram de um navegador, simulando os dois aparelhos.
