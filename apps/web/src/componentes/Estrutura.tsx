@@ -6,6 +6,7 @@ import { useOnline } from '../lib/hooks'
 import { useSessao } from '../lib/sessao'
 import { instalarParadaAutomatica, parar } from '../lib/fala'
 import { Marca } from './Base'
+import { EVENTO_NOVA_VERSAO } from '../lib/versao'
 import { BotaoAcessibilidade } from './PainelAcessibilidade'
 import { IcAbrigo, IcInicio, IcMapa, IcPessoa, IcSino } from './Icones'
 
@@ -64,6 +65,12 @@ function NavTopo() {
 
 export function Estrutura({ children }: { children: ReactNode }) {
   const online = useOnline()
+  const [novaVersao, setNovaVersao] = useState(false)
+  useEffect(() => {
+    const f = () => setNovaVersao(true)
+    window.addEventListener(EVENTO_NOVA_VERSAO, f)
+    return () => window.removeEventListener(EVENTO_NOVA_VERSAO, f)
+  }, [])
   const { pathname } = useLocation()
   const [pendentes, setPendentes] = useState(0)
   useEffect(() => observarFila((l: ItemFila[]) => setPendentes(l.filter((x) => x.estado === 'salvo_no_aparelho' || x.estado === 'transmitindo').length)), [])
@@ -93,6 +100,12 @@ export function Estrutura({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
+      {novaVersao && (
+        <div role="status" className="flex flex-wrap items-center justify-center gap-2 bg-oceano-suave px-4 py-2 text-[14px] font-medium text-petroleo">
+          Há uma versão nova do app. Seus pedidos continuam salvos neste aparelho.
+          <button type="button" onClick={() => location.reload()} className="min-h-11 rounded-controle bg-petroleo px-3 font-semibold text-branco">Atualizar agora</button>
+        </div>
+      )}
       {!online && (
         <div role="alert" className="bg-atencao-claro px-4 py-2 text-center text-[14px] font-medium text-atencao">
           Sem internet. Pedidos ficam salvos neste aparelho e são enviados quando a conexão voltar. Em emergência, ligue 193.

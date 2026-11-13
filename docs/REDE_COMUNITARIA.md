@@ -24,7 +24,7 @@ Pedidos de contas fictícias (área de demonstração) e retransmissões marcada
 | Quem | O que vê |
 |---|---|
 | Solicitante | o ponto registrado no pedido + **círculo de precisão do GPS** + a área que a comunidade vê (tracejada) |
-| Público | **área aproximada**: centro de uma célula de grade de 0,005° (~550 m) e raio = máx(600 m, 395 m + precisão do GPS), arredondado a 100 m. O círculo **sempre contém** o ponto registrado (teste com 5.000 pontos aleatórios). O centro **não é** a posição da pessoa, e a tela diz isso |
+| Público | **área aproximada**: centro de uma célula de grade de 0,002° (~220 m), a no máximo ~160 m do ponto, e raio = máx(400 m, 160 m + precisão do GPS), arredondado a 100 m. (Até 13/11 04:40 a célula era de ~550 m e o raio mínimo de 600 m; foi reduzida porque o círculo parecia distante da origem.) O círculo **sempre contém** o ponto registrado (teste com 5.000 pontos aleatórios). O centro **não é** a posição da pessoa, e a tela diz isso |
 | Operador autorizado (central para a qual o pedido foi encaminhado) | coordenadas, precisão, trilha, relato; acesso auditado |
 
 A posição verdadeira (latitude, longitude, horário, precisão) continua só no backend.

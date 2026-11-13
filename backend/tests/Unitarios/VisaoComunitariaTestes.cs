@@ -28,8 +28,8 @@ public class VisaoComunitariaTestes
     [Fact]
     public void Pontos_proximos_compartilham_a_mesma_area_e_o_centro_nao_revela_a_posicao()
     {
-        var a = AreaAproximada.De(new PontoGeo(-8.0631, -34.8711), 12);
-        var b = AreaAproximada.De(new PontoGeo(-8.0629, -34.8714), 15);
+        var a = AreaAproximada.De(new PontoGeo(-8.0641, -34.8711), 12);
+        var b = AreaAproximada.De(new PontoGeo(-8.0646, -34.8714), 15);
         Assert.Equal(a.Centro, b.Centro);
     }
 

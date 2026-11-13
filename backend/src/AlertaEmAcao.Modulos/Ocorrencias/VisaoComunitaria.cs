@@ -4,14 +4,14 @@ namespace AlertaEmAcao.Modulos.Ocorrencias;
 
 /// <summary>
 /// Representação pública de um pedido: área aproximada que CONTÉM a posição registrada.
-/// O centro é o centro de uma célula de grade (~550 m) — não é a posição da pessoa e nunca deve ser exibido como tal.
+/// O centro é o centro de uma célula de grade (~220 m) — fica a no máximo ~160 m do ponto, mas não é a posição da pessoa.
 /// </summary>
 public readonly record struct AreaAproximada(double CentroLatitude, double CentroLongitude, int RaioMetros)
 {
-    public const double PassoGraus = 0.005;
+    public const double PassoGraus = 0.002;
     /// <summary>Meia diagonal da célula na RMR (~8° S): a maior distância possível entre o centro e um ponto dentro dela.</summary>
-    public const double MeiaDiagonalMetros = 395;
-    public const int RaioMinimoMetros = 600;
+    public const double MeiaDiagonalMetros = 160;
+    public const int RaioMinimoMetros = 400;
 
     public static AreaAproximada De(PontoGeo real, double? precisaoMetros)
     {

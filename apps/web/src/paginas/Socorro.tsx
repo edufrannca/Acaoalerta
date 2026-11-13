@@ -286,7 +286,7 @@ function CompartilharComunidade({ id, atual }: { id: string; atual: Compartilham
         {caixa('incluirNecessidades', 'Incluir as necessidades (água, alimentos, abrigo…)')}
         {caixa('incluirPessoas', 'Incluir número de pessoas e faixas de crianças, idosos e mobilidade reduzida')}
       </div>
-      <p className="mt-3 rounded-controle bg-fundo p-3 text-[13.5px] text-tinta-suave">A comunidade vê só o tipo de emergência, a área aproximada (um círculo de pelo menos 600 m que contém o seu local, sem marcar o ponto) e o que você marcou acima. Nunca: nome, telefone, relato escrito, dados de saúde ou posição exata. Você pode desligar quando quiser.</p>
+      <p className="mt-3 rounded-controle bg-fundo p-3 text-[13.5px] text-tinta-suave">A comunidade vê só o tipo de emergência, a área aproximada (um círculo de pelo menos 400 m que contém o seu local, sem marcar o ponto exato) e o que você marcou acima. Nunca: nome, telefone, relato escrito, dados de saúde ou posição exata. Você pode desligar quando quiser.</p>
       {salvo && <p role="status" className="mt-2 text-[14px] text-seguro">{salvo}</p>}
     </Cartao>
   )

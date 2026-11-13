@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router'
 import './estilos.css'
 import { Estrutura } from './componentes/Estrutura'
 import { iniciarSincronizacaoAutomatica } from './lib/filaOffline'
+import { acompanharNovaVersao } from './lib/versao'
 import { ProvedorSessao } from './lib/sessao'
 import { Inicio } from './paginas/Inicio'
 import { AcompanharSocorro } from './paginas/Socorro'
@@ -22,6 +23,7 @@ import { Retransmitir } from './paginas/Retransmitir'
 import { ProvedorAcessibilidade } from './lib/acessibilidade'
 
 iniciarSincronizacaoAutomatica()
+acompanharNovaVersao()
 
 createRoot(document.getElementById('raiz')!).render(
   <StrictMode>

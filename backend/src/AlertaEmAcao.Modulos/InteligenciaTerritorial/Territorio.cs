@@ -107,7 +107,7 @@ public static class AvaliadorContextoTerritorial
         var relatadas = occ.Count - verificadas;
         if (relatadas > 0)
             estados.Add(new(TipoEstadoInformativo.OcorrenciaRelatada, "Ocorrência relatada",
-                $"{relatadas} relato(s) de cidadãos a até 1 km nas últimas 6 h, ainda não confirmados.",
+                $"{relatadas} pedido(s) de socorro a até 1 km nas últimas 6 h, ainda não confirmados. Detalhes aparecem em \"Pedidos de ajuda\" só quando o solicitante compartilha.",
                 new ReferenciaFonte("Alerta em Ação — relatos de cidadãos", null, agora, false)));
         if (verificadas > 0)
             estados.Add(new(TipoEstadoInformativo.OcorrenciaVerificada, "Ocorrência verificada",

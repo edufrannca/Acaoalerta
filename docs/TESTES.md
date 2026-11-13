@@ -63,7 +63,7 @@ Feita pelo navegador contra https://alerta-em-acao.onrender.com, só com pedidos
 
 | Verificação | Resultado |
 |---|---|
-| Pedido com resumo comunitário autorizado (conta fictícia) | 201, nível 4; fora da lista pública; na lista demonstrativa com tipo, 4 pessoas, faixas, necessidades, área de 600 m |
+| Pedido com resumo comunitário autorizado (conta fictícia) | 201, nível 4; fora da lista pública; na lista demonstrativa com tipo, 4 pessoas, faixas, necessidades, área de 600 m (antes da redução para 400 m) |
 | Vazamentos na resposta comunitária | nome, telefone, coordenadas e id do aparelho **ausentes** |
 | Oferta sem ciência de segurança | 400 |
 | Oferta → aceite → orientação → concluída | AguardandoAvaliacao → AceitaPelaEquipe → Encaminhada → Concluida; voluntário vê só a orientação, sem coordenadas |
