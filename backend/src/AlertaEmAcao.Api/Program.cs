@@ -79,6 +79,10 @@ builder.Services.AddRateLimiter(o =>
     o.AddPolicy("autenticacao", c => PorIp(c, cfg.GetValue("LimiteRequisicoes:Autenticacao", 30), TimeSpan.FromMinutes(1)));
     // Pedido de socorro: limite generoso (sincronização offline envia vários de uma vez).
     o.AddPolicy("voz", c => PorIp(c, cfg.GetValue("LimiteRequisicoes:Voz", 40), TimeSpan.FromMinutes(1)));
+    // CEP/endereço: consulta explícita (sem autocompletar), protegendo ViaCEP e Nominatim.
+    o.AddPolicy("geocodificacao", c => PorIp(c, cfg.GetValue("LimiteRequisicoes:Geocodificacao", 20), TimeSpan.FromMinutes(1)));
+    // Convites: limita tentativas de adivinhar códigos.
+    o.AddPolicy("convite", c => PorIp(c, cfg.GetValue("LimiteRequisicoes:Convite", 10), TimeSpan.FromMinutes(10)));
     o.AddPolicy("socorro", c => PorIp(c, cfg.GetValue("LimiteRequisicoes:Socorro", 120), TimeSpan.FromMinutes(1)));
 });
 builder.Services.Configure<ForwardedHeadersOptions>(o =>

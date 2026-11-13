@@ -55,15 +55,13 @@ public class ComunidadeTestes(FabricaApi f)
 
         var depois = JsonDocument.Parse(texto).RootElement;
         var item = depois.GetProperty("pedidos").EnumerateArray().Single(p => p.GetProperty("id").GetGuid() == id);
-        Assert.Contains("Alagamento", item.GetProperty("tipos")[0].GetString());
-        Assert.Equal(4, item.GetProperty("pessoas").GetInt32());
-        Assert.Equal("2 a 4", item.GetProperty("criancas").GetString());
-        Assert.Equal("1", item.GetProperty("idosos").GetString());
-        Assert.Equal("1", item.GetProperty("mobilidadeReduzida").GetString());
+        // Só o básico: sem pessoas, crianças, idosos, mobilidade ou tipo detalhado (filtrado no backend).
+        foreach (var campo in new[] { "tipos", "pessoas", "criancas", "idosos", "mobilidadeReduzida", "horarioAproximado" })
+            Assert.False(item.TryGetProperty(campo, out _), campo);
         Assert.Equal(2, item.GetProperty("necessidades").GetArrayLength());
         Assert.True(item.GetProperty("podeOferecerAjuda").GetBoolean());
         Assert.Equal("Não verificado", item.GetProperty("verificacao").GetString());
-        Assert.Equal(0, item.GetProperty("horarioAproximado").GetDateTimeOffset().Minute % 15);
+        Assert.Equal("Recife", item.GetProperty("municipio").GetString());
 
         // A área pública contém o ponto registrado.
         var area = item.GetProperty("area");
@@ -106,7 +104,7 @@ public class ComunidadeTestes(FabricaApi f)
         var publicoJson = JsonDocument.Parse(resposta).RootElement;
         var pedido = publicoJson.GetProperty("pedidos").EnumerateArray().Single(p => p.GetProperty("id").GetGuid() == id);
         Assert.True(pedido.GetProperty("podeOferecerAjuda").GetBoolean());
-        Assert.Equal(JsonValueKind.Null, pedido.GetProperty("pessoas").ValueKind);
+        Assert.False(pedido.TryGetProperty("pessoas", out _));
         Assert.Equal(JsonValueKind.Null, pedido.GetProperty("necessidades").ValueKind);
         Assert.DoesNotContain("Relato confidencial", resposta);
         Assert.DoesNotContain("Endereco privado", resposta);
@@ -141,8 +139,8 @@ public class ComunidadeTestes(FabricaApi f)
             compartilhamento = new { autorizado = true, incluirPessoas = false, incluirNecessidades = true } };
         (await c.PostAsJsonAsync("/api/ocorrencias", corpo)).EnsureSuccessStatusCode();
         var item = (await Pedidos(f.CreateClient(), -8.05, -34.95)).GetProperty("pedidos").EnumerateArray().Single(p => p.GetProperty("id").GetGuid() == id);
-        Assert.Equal(JsonValueKind.Null, item.GetProperty("pessoas").ValueKind);
-        Assert.Equal(JsonValueKind.Null, item.GetProperty("criancas").ValueKind);
+        Assert.False(item.TryGetProperty("pessoas", out _));
+        Assert.False(item.TryGetProperty("criancas", out _));
         Assert.Equal(2, item.GetProperty("necessidades").GetArrayLength());
 
         // Pedido de conta fictícia (área de demonstração): só aparece quando a lista demonstrativa é pedida.

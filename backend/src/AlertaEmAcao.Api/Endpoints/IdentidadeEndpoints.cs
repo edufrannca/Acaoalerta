@@ -11,12 +11,14 @@ using Microsoft.AspNetCore.Authentication.BearerToken;
 
 namespace AlertaEmAcao.Api.Endpoints;
 
-public sealed record RegistroRequest(string Nome, string Email, string? Telefone, string Senha, string? MunicipioCodigo);
+public sealed record ConsentimentosCadastro(bool AlertasPreventivos = false, bool CompartilhamentoOperacional = false, bool CompartilhamentoComunitario = false, bool NotificacaoFamiliares = false);
+public sealed record RegistroRequest(string Nome, string Email, string? Telefone, string Senha, string? MunicipioCodigo, ConsentimentosCadastro? Consentimentos = null);
 public sealed record EntrarRequest(string Email, string Senha);
 public sealed record DemoRequest(string Perfil);
 public sealed record PerfilRequest(string? Nome, string? Telefone, string? MunicipioCodigo, string? EnderecoReferencia, bool ConsenteAlertas, bool ConsenteLocalizacao, bool ReceberPush);
 public sealed record FamiliaRequest(List<IntegranteFamilia> Integrantes, List<ContatoReferencia>? Contatos);
-public sealed record LocalRequest(string Apelido, double Latitude, double Longitude);
+public sealed record LocalRequest(string Apelido, double Latitude, double Longitude, TipoLocal? Tipo = null, OrigemPosicaoLocal? Origem = null,
+    string? Precisao = null, EnderecoLocal? Endereco = null, bool? MoroAqui = null, MoradoresResidencia? Moradores = null);
 public sealed record RespostaNotificacaoRequest(RespostaNotificacao Resposta);
 public sealed record AssinaturaPushRequest(string Endpoint, string P256dh, string Auth);
 
@@ -34,9 +36,17 @@ public static class IdentidadeEndpoints
     {
         var auth = app.MapGroup("/api/auth").WithTags("Identidade").RequireRateLimiting("autenticacao");
 
-        auth.MapPost("/registrar", async (RegistroRequest r, ServicoIdentidade s, CancellationToken ct) =>
+        auth.MapPost("/registrar", async (RegistroRequest r, ServicoIdentidade s, ServicoConsentimentos sc, CancellationToken ct) =>
         {
             var u = await s.RegistrarAsync(r.Nome, r.Email, r.Telefone, r.Senha, r.MunicipioCodigo, ct);
+            // Todos opcionais e desmarcados por padrão: só o que a pessoa marcou é registrado (com data, finalidade e versão do texto).
+            if (r.Consentimentos is { } c)
+            {
+                if (c.AlertasPreventivos) await sc.DefinirAsync(u.Id, FinalidadeConsentimento.AlertasPreventivos, true, "cadastro", ct);
+                if (c.CompartilhamentoOperacional) await sc.DefinirAsync(u.Id, FinalidadeConsentimento.CompartilhamentoOperacional, true, "cadastro", ct);
+                if (c.CompartilhamentoComunitario) await sc.DefinirAsync(u.Id, FinalidadeConsentimento.CompartilhamentoComunitario, true, "cadastro", ct);
+                if (c.NotificacaoFamiliares) await sc.DefinirAsync(u.Id, FinalidadeConsentimento.NotificacaoFamiliares, true, "cadastro", ct);
+            }
             return Results.SignIn(Usuarios.Principal(u), authenticationScheme: BearerTokenDefaults.AuthenticationScheme);
         });
 
@@ -75,10 +85,14 @@ public static class IdentidadeEndpoints
             });
         });
 
-        eu.MapPut("/perfil", async (PerfilRequest r, ClaimsPrincipal p, IUnidadeTrabalho uow, CancellationToken ct) =>
+        eu.MapPut("/perfil", async (PerfilRequest r, ClaimsPrincipal p, IUnidadeTrabalho uow, ServicoConsentimentos sc, CancellationToken ct) =>
         {
             var id = p.Id()!.Value;
             var u = await uow.PrimeiroAsync(uow.Consulta<Usuario>().Where(x => x.Id == id), ct) ?? throw new ErroNaoEncontrado("Usuário não encontrado.");
+            // Mudanças de autorização passam pelo histórico (A = alertas, B = compartilhamento operacional).
+            var atual = await sc.AtualAsync(id, ct);
+            if (atual.AlertasPreventivos != r.ConsenteAlertas) await sc.DefinirAsync(id, FinalidadeConsentimento.AlertasPreventivos, r.ConsenteAlertas, "perfil", ct, salvar: false);
+            if (atual.CompartilhamentoOperacional != r.ConsenteLocalizacao) await sc.DefinirAsync(id, FinalidadeConsentimento.CompartilhamentoOperacional, r.ConsenteLocalizacao, "perfil", ct, salvar: false);
             u.AtualizarPerfil(r.Nome, r.Telefone, r.MunicipioCodigo, r.EnderecoReferencia, r.ConsenteAlertas, r.ConsenteLocalizacao, r.ReceberPush);
             await uow.SalvarAsync(ct);
             return Results.NoContent();
@@ -101,20 +115,31 @@ public static class IdentidadeEndpoints
         {
             var id = p.Id()!.Value;
             var l = await uow.ListarAsync(uow.Consulta<LocalMonitorado>().Where(x => x.UsuarioId == id && x.Ativo).OrderBy(x => x.CriadoEm), ct);
-            return Results.Ok(l.Select(x => new { x.Id, x.Apelido, x.Latitude, x.Longitude, x.MunicipioCodigo, x.CriadoEm }));
+            return Results.Ok(l.Select(ResidenciasEndpoints.VisaoLocal));
         });
 
         eu.MapPost("/locais", async (LocalRequest r, ClaimsPrincipal p, ServicoIdentidade s, CancellationToken ct) =>
         {
-            var l = await s.AdicionarLocalAsync(p.Id()!.Value, r.Apelido, r.Latitude, r.Longitude, ct);
-            return Results.Created($"/api/eu/locais/{l.Id}", new { l.Id, l.Apelido, l.MunicipioCodigo });
+            var l = await s.AdicionarLocalAsync(p.Id()!.Value, r.Dados(), ct);
+            return Results.Created($"/api/eu/locais/{l.Id}", ResidenciasEndpoints.VisaoLocal(l));
         });
 
-        eu.MapDelete("/locais/{id:guid}", async (Guid id, ClaimsPrincipal p, IUnidadeTrabalho uow, CancellationToken ct) =>
+        eu.MapPut("/locais/{id:guid}", async (Guid id, LocalRequest r, ClaimsPrincipal p, ServicoIdentidade s, CancellationToken ct) =>
+            Results.Ok(ResidenciasEndpoints.VisaoLocal(await s.AtualizarLocalAsync(p.Id()!.Value, id, r.Dados(), ct))));
+
+        eu.MapGet("/locais/{id:guid}", async (Guid id, ClaimsPrincipal p, IUnidadeTrabalho uow, CancellationToken ct) =>
+        {
+            var uid = p.Id()!.Value;
+            var l = await uow.PrimeiroAsync(uow.Consulta<LocalMonitorado>().Where(x => x.Id == id && x.UsuarioId == uid && x.Ativo), ct) ?? throw new ErroNaoEncontrado("Local não encontrado.");
+            return Results.Ok(ResidenciasEndpoints.VisaoLocal(l));
+        });
+
+        eu.MapDelete("/locais/{id:guid}", async (Guid id, ClaimsPrincipal p, IUnidadeTrabalho uow, ServicoVinculos sv, CancellationToken ct) =>
         {
             var uid = p.Id()!.Value;
             var l = await uow.PrimeiroAsync(uow.Consulta<LocalMonitorado>().Where(x => x.Id == id && x.UsuarioId == uid), ct) ?? throw new ErroNaoEncontrado("Local não encontrado.");
             l.Desativar();
+            await sv.EncerrarDaResidenciaAsync(l.Id, ct);
             await uow.SalvarAsync(ct);
             return Results.NoContent();
         });

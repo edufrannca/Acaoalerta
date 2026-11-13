@@ -171,6 +171,8 @@ public sealed class ServicoDespacho(IUnidadeTrabalho uow, IClienteCentral client
                 }, enc.InstituicaoCodigo);
             }
             o.RecalcularStatus(principais.Select(x => x.Status).ToList(), agora);
+            // Grava antes de avisar: quem reage ao evento (ex.: notificação a familiares) lê o estado já persistido.
+            await uow.SalvarAsync(ct);
             await tempoReal.OcorrenciaAtualizadaAsync(o.Id, o.MunicipioCodigo, encs.Select(x => x.InstituicaoCodigo).Distinct().ToList(), "encaminhamento");
         }
         else

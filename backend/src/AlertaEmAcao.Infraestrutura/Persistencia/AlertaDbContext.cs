@@ -87,6 +87,53 @@ public sealed class AlertaDbContext(DbContextOptions<AlertaDbContext> opcoes) : 
         {
             e.ToTable("locais_monitorados"); e.HasKey(x => x.Id);
             e.HasIndex(x => x.UsuarioId);
+            e.Property(x => x.Tipo).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Origem).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.DescricaoPrecisao).HasMaxLength(120);
+            // Endereço, moradores (crianças, mobilidade) e contato de referência: cifrados em repouso.
+            e.Property(x => x.Endereco).HasConversion(Cifrado<EnderecoLocal>(), Comparador<EnderecoLocal>()).HasColumnType("text");
+            e.Property(x => x.Moradores).HasConversion(Cifrado<MoradoresResidencia>(), Comparador<MoradoresResidencia>()).HasColumnType("text");
+            e.Ignore(x => x.Ponto);
+        });
+
+        b.Entity<VinculoFamiliar>(e =>
+        {
+            e.ToTable("vinculos_familiares"); e.HasKey(x => x.Id);
+            e.HasIndex(x => x.ResidenciaId);
+            e.HasIndex(x => x.FamiliarId);
+            e.HasIndex(x => x.MoradorId);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.ApelidoParaFamiliar).HasMaxLength(60);
+            e.Property(x => x.RevogadoPor).HasMaxLength(30);
+            e.Property(x => x.Permissoes).HasConversion(JsonConv<PermissoesVinculo>(), Comparador<PermissoesVinculo>()).HasColumnType("jsonb");
+        });
+
+        b.Entity<ConviteVinculo>(e =>
+        {
+            e.ToTable("convites_vinculo"); e.HasKey(x => x.Id);
+            e.HasIndex(x => x.CodigoHash).IsUnique();
+            e.HasIndex(x => x.ResidenciaId);
+            e.Property(x => x.CodigoHash).HasMaxLength(64);
+        });
+
+        b.Entity<RegistroConsentimento>(e =>
+        {
+            e.ToTable("registros_consentimento"); e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.UsuarioId, x.Finalidade, x.Em });
+            e.Property(x => x.Finalidade).HasConversion<string>().HasMaxLength(40);
+            e.Property(x => x.VersaoTexto).HasMaxLength(20);
+            e.Property(x => x.Origem).HasMaxLength(20);
+        });
+
+        b.Entity<NotificacaoFamiliar>(e =>
+        {
+            e.ToTable("notificacoes_familiares"); e.HasKey(x => x.Id);
+            // Deduplicação garantida também pelo banco.
+            e.HasIndex(x => new { x.FamiliarId, x.Chave }).IsUnique();
+            e.HasIndex(x => x.OcorrenciaId);
+            e.Property(x => x.Chave).HasMaxLength(120);
+            e.Property(x => x.Tipo).HasMaxLength(30);
+            e.Property(x => x.Entregas).HasConversion(JsonConv<List<EntregaCanal>>(), Comparador<List<EntregaCanal>>()).HasColumnType("jsonb");
         });
 
         b.Entity<Aviso>(e =>

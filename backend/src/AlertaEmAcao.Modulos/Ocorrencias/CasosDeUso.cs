@@ -23,13 +23,56 @@ public sealed record ComandoRegistrarSocorro(
     string? RetransmitidaPor = null,
     bool Demonstracao = true,
     string? IdentificadorMensagem = null,
-    CompartilhamentoComunitario? Compartilhamento = null);
+    CompartilhamentoComunitario? Compartilhamento = null,
+    bool? AssociarResidencia = null);
 
 public sealed record ResultadoRegistro(Ocorrencia Ocorrencia, bool JaExistia, IReadOnlyList<EncaminhamentoInstitucional> Encaminhamentos);
 
 public sealed class ServicoOcorrencias(IUnidadeTrabalho uow, ICatalogoMunicipios catalogo, ServicoAnalise analise,
-    INotificadorTempoReal tempoReal, IRelogio relogio, ILogger<ServicoOcorrencias> log)
+    INotificadorTempoReal tempoReal, IRelogio relogio, ILogger<ServicoOcorrencias> log, Identidade.ServicoConsentimentos consentimentos)
 {
+    /// <summary>
+    /// Preferências salvas no cadastro (consentimentos C e D) aplicadas a um pedido NOVO de pessoa cadastrada.
+    /// Pedido anônimo nunca passa por aqui; nada é associado por proximidade de GPS.
+    /// </summary>
+    private async Task AplicarPreferenciasAsync(Ocorrencia o, Guid usuarioId, ComandoRegistrarSocorro cmd, DateTimeOffset agora, CancellationToken ct)
+    {
+        var pref = await consentimentos.AtualAsync(usuarioId, ct);
+        if (pref.CompartilhamentoComunitario && cmd.Compartilhamento is null)
+            o.DefinirCompartilhamento(new CompartilhamentoComunitario(true, false, true, null, CompartilhamentoComunitario.OrigemPreferencia), agora);
+        if (pref.NotificacaoFamiliares && cmd.AssociarResidencia != false
+            && await uow.PrimeiroAsync(uow.Consulta<Localizacao.LocalMonitorado>().Where(l => l.UsuarioId == usuarioId && l.Ativo && l.MoroAqui), ct) is { } res)
+            o.AssociarResidencia(res.Id, $"Associado à residência declarada pelo solicitante (\"{res.Apelido}\"), conforme autorização de notificar familiares.", agora);
+    }
+
+    /// <summary>Associação explícita (ou remoção) feita pelo próprio solicitante cadastrado, ex.: SOS feito antes de entrar na conta.</summary>
+    public async Task<Ocorrencia> AssociarResidenciaAsync(Guid id, string dispositivoId, Guid usuarioId, bool associar, CancellationToken ct)
+    {
+        var o = await ObterDoSolicitanteAsync(id, dispositivoId, usuarioId, ct);
+        var agora = relogio.Agora;
+        if (!associar) { o.AssociarResidencia(null, "Solicitante desfez a associação com a residência.", agora); await uow.SalvarAsync(ct); return o; }
+        if (!(await consentimentos.AtualAsync(usuarioId, ct)).NotificacaoFamiliares)
+            throw new ErroDominio("sem_consentimento", "Ative no perfil a autorização para avisar familiares vinculados.");
+        var res = await uow.PrimeiroAsync(uow.Consulta<Localizacao.LocalMonitorado>().Where(l => l.UsuarioId == usuarioId && l.Ativo && l.MoroAqui), ct)
+            ?? throw new ErroDominio("sem_residencia", "Cadastre a residência onde você mora (\"Eu moro aqui\") em Perfil.");
+        o.VincularUsuario(usuarioId);
+        o.AssociarResidencia(res.Id, $"Solicitante associou o pedido à residência \"{res.Apelido}\".", agora);
+        await uow.SalvarAsync(ct);
+        await tempoReal.OcorrenciaAtualizadaAsync(o.Id, o.MunicipioCodigo, [], "residencia_associada");
+        return o;
+    }
+
+    /// <summary>Revogação do consentimento C: retira da comunidade os pedidos ativos que dependiam dele.</summary>
+    public async Task<int> RetirarCompartilhamentoPorPreferenciaAsync(Guid usuarioId, CancellationToken ct)
+    {
+        var agora = relogio.Agora;
+        var os = (await uow.ListarAsync(uow.Consulta<Ocorrencia>().Where(o => o.UsuarioId == usuarioId && o.Status != StatusOcorrencia.Encerrada), ct))
+            .Where(o => o.Compartilhamento.Autorizado && o.Compartilhamento.Origem == CompartilhamentoComunitario.OrigemPreferencia).ToList();
+        foreach (var o in os) o.DefinirCompartilhamento(CompartilhamentoComunitario.Nenhum, agora);
+        await uow.SalvarAsync(ct);
+        return os.Count;
+    }
+
     /// <summary>
     /// Registra o pedido de socorro (idempotente pelo Id gerado no aparelho), aplica regras determinísticas,
     /// determina destinos por município e cria encaminhamentos pendentes — tudo numa única transação.
@@ -61,7 +104,8 @@ public sealed class ServicoOcorrencias(IUnidadeTrabalho uow, ICatalogoMunicipios
 
         var o = Ocorrencia.Registrar(cmd.Id, usuarioId, cmd.DispositivoId, cmd.CriadaNoDispositivoEm, posicao, municipio, complemento,
             cmd.Canal, cmd.RetransmitidaPor, cmd.AvisoId, cmd.Demonstracao, agora);
-        if (cmd.Compartilhamento is { Autorizado: true } comp) o.DefinirCompartilhamento(comp, agora);
+        if (cmd.Compartilhamento is { Autorizado: true } comp) o.DefinirCompartilhamento(comp with { Origem = CompartilhamentoComunitario.OrigemPedido }, agora);
+        if (usuarioId is { } uidPref) await AplicarPreferenciasAsync(o, uidPref, cmd, agora, ct);
         if (posicao is not null && municipio is null)
             o.Registrar(agora, "municipio", "Coordenadas fora dos 14 municípios da RMR. Sem destino configurado.");
         uow.Adicionar(o);
@@ -166,7 +210,7 @@ public sealed class ServicoOcorrencias(IUnidadeTrabalho uow, ICatalogoMunicipios
     public async Task<Ocorrencia> DefinirCompartilhamentoAsync(Guid id, string dispositivoId, Guid? usuarioId, CompartilhamentoComunitario c, CancellationToken ct)
     {
         var o = await ObterDoSolicitanteAsync(id, dispositivoId, usuarioId, ct);
-        o.DefinirCompartilhamento(c, relogio.Agora);
+        o.DefinirCompartilhamento(c with { Origem = CompartilhamentoComunitario.OrigemPedido }, relogio.Agora);
         await uow.SalvarAsync(ct);
         await tempoReal.OcorrenciaAtualizadaAsync(o.Id, o.MunicipioCodigo, [], "compartilhamento");
         return o;

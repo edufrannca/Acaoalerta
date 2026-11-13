@@ -2,6 +2,7 @@ using AlertaEmAcao.Infraestrutura.Adaptadores;
 using AlertaEmAcao.Infraestrutura.Persistencia;
 using AlertaEmAcao.Infraestrutura.Seguranca;
 using AlertaEmAcao.Infraestrutura.Trabalhos;
+using AlertaEmAcao.Modulos.Familias;
 using AlertaEmAcao.Modulos.Abrigos;
 using AlertaEmAcao.Modulos.Alertas;
 using AlertaEmAcao.Modulos.AnaliseSituacional;
@@ -51,6 +52,9 @@ public static class InjecaoDependencias
 
         // Fontes públicas reais
         s.AddHttpClient("nominatim", c => { c.Timeout = TimeSpan.FromSeconds(8); c.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent); });
+        s.AddHttpClient("viacep", c => { c.Timeout = TimeSpan.FromSeconds(8); c.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent); });
+        s.AddMemoryCache();
+        s.TryAddSingleton<Modulos.Localizacao.IGeocodificador, GeocodificadorPublico>();
         s.AddHttpClient(nameof(FonteChuvaApac), c => { c.Timeout = TimeSpan.FromSeconds(15); c.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent); });
         s.AddSingleton<IFonteChuva>(sp => sp.GetRequiredService<FonteChuvaApacSingleton>().Instancia);
         s.AddSingleton<FonteChuvaApacSingleton>();
@@ -76,6 +80,9 @@ public static class InjecaoDependencias
         s.AddScoped<ServicoNotificacoes>();
         s.AddScoped<ServicoApoio>();
         s.AddScoped<ServicoIdentidade>();
+        s.AddScoped<ServicoConsentimentos>();
+        s.AddScoped<ServicoVinculos>();
+        s.AddScoped<ServicoNotificacaoFamiliar>();
         s.AddScoped<ServicoFontesReferencia>();
         s.TryAddSingleton<INotificadorTempoReal, NotificadorNulo>();
 

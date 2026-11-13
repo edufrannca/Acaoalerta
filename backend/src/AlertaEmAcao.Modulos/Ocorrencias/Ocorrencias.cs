@@ -18,9 +18,14 @@ public enum CanalRecebimento
 /// O que o solicitante autorizou mostrar a cidadãos desconhecidos. Padrão: nada.
 /// Nunca inclui nome, telefone, dados médicos individuais, texto livre ou coordenadas precisas.
 /// </summary>
-public sealed record CompartilhamentoComunitario(bool Autorizado = false, bool IncluirPessoas = false, bool IncluirNecessidades = false, DateTimeOffset? AtualizadoEm = null)
+public sealed record CompartilhamentoComunitario(bool Autorizado = false, bool IncluirPessoas = false, bool IncluirNecessidades = false, DateTimeOffset? AtualizadoEm = null,
+    string? Origem = null)
 {
-    public CompartilhamentoComunitario() : this(false, false, false, null) { }
+    /// <summary>Escolha feita na tela do pedido (prevalece sobre a preferência do cadastro).</summary>
+    public const string OrigemPedido = "pedido";
+    /// <summary>Aplicado pela preferência do cadastro (consentimento C); sai da comunidade se a preferência for revogada.</summary>
+    public const string OrigemPreferencia = "preferencia";
+    public CompartilhamentoComunitario() : this(false, false, false, null, null) { }
     public static readonly CompartilhamentoComunitario Nenhum = new();
 }
 
@@ -152,6 +157,8 @@ public sealed class Ocorrencia
     public CompartilhamentoComunitario Compartilhamento { get; private set; } = CompartilhamentoComunitario.Nenhum;
     /// <summary>Posição do aparelho que retransmitiu (gateway). NUNCA substitui a posição do emissor.</summary>
     public List<PosicaoDispositivo> PosicoesRetransmissor { get; private set; } = [];
+    /// <summary>Residência do solicitante cadastrado (só por consentimento e escolha dele; nunca por GPS).</summary>
+    public Guid? ResidenciaId { get; private set; }
     public PosicaoDispositivo? PosicaoRetransmissor => PosicoesRetransmissor.LastOrDefault();
     public DateTimeOffset AtualizadaEm { get; private set; }
     public uint Versao { get; private set; }
@@ -203,12 +210,27 @@ public sealed class Ocorrencia
 
     public void DefinirCompartilhamento(CompartilhamentoComunitario c, DateTimeOffset agora)
     {
-        var novo = c.Autorizado ? c with { AtualizadoEm = agora } : CompartilhamentoComunitario.Nenhum with { AtualizadoEm = agora };
+        var novo = c.Autorizado ? c with { AtualizadoEm = agora } : CompartilhamentoComunitario.Nenhum with { AtualizadoEm = agora, Origem = c.Origem };
+        // A origem conta: uma escolha feita no próprio pedido passa a prevalecer sobre a preferência do cadastro.
         if (novo with { AtualizadoEm = null } == Compartilhamento with { AtualizadoEm = null }) return;
         Compartilhamento = novo;
         Registrar(agora, "compartilhamento", novo.Autorizado
             ? $"Solicitante autorizou resumo comunitário (pessoas: {(novo.IncluirPessoas ? "sim" : "não")}, necessidades: {(novo.IncluirNecessidades ? "sim" : "não")})."
             : "Solicitante não compartilha o pedido com a comunidade.");
+    }
+
+    public void AssociarResidencia(Guid? residenciaId, string descricao, DateTimeOffset agora)
+    {
+        if (ResidenciaId == residenciaId) return;
+        ResidenciaId = residenciaId;
+        Registrar(agora, "residencia", descricao);
+    }
+
+    /// <summary>Pedido feito sem conta neste aparelho, assumido depois pela conta do mesmo aparelho.</summary>
+    public void VincularUsuario(Guid usuarioId)
+    {
+        if (UsuarioId is not null && UsuarioId != usuarioId) throw new ErroAcessoNegado("Pedido de outra conta.");
+        UsuarioId = usuarioId;
     }
 
     public void RegistrarPosicaoRetransmissor(PosicaoDispositivo p, string receptor, DateTimeOffset agora)

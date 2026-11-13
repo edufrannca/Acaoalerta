@@ -22,8 +22,6 @@ public static class VozLocalidadeEndpoints
 {
     private static readonly ConcurrentDictionary<string, byte[]> CacheVoz = new();
     private static readonly ConcurrentDictionary<string, (DateTimeOffset Em, object Resultado)> CacheLocal = new();
-    private static readonly SemaphoreSlim LimiteNominatim = new(1, 1);
-    private static DateTimeOffset _ultimaNominatim = DateTimeOffset.MinValue;
 
     public static string? CaminhoEspeak() =>
         new[] { "/usr/bin/espeak-ng", "/usr/local/bin/espeak-ng", "/opt/homebrew/bin/espeak-ng" }.FirstOrDefault(File.Exists);
@@ -83,12 +81,12 @@ public static class VozLocalidadeEndpoints
             object resultado;
             try
             {
-                await LimiteNominatim.WaitAsync(ct); // política do Nominatim: no máximo 1 requisição por segundo
+                await AlertaEmAcao.Infraestrutura.Adaptadores.LimitadorNominatim.Trava.WaitAsync(ct); // política do Nominatim: no máximo 1 requisição por segundo
                 try
                 {
-                    var espera = TimeSpan.FromSeconds(1.1) - (DateTimeOffset.UtcNow - _ultimaNominatim);
+                    var espera = TimeSpan.FromSeconds(1.1) - (DateTimeOffset.UtcNow - AlertaEmAcao.Infraestrutura.Adaptadores.LimitadorNominatim.Ultima);
                     if (espera > TimeSpan.Zero) await Task.Delay(espera, ct);
-                    _ultimaNominatim = DateTimeOffset.UtcNow;
+                    AlertaEmAcao.Infraestrutura.Adaptadores.LimitadorNominatim.Ultima = DateTimeOffset.UtcNow;
                     var url = $"https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=16&addressdetails=1&accept-language=pt-BR&lat={Math.Round(lat, 3).ToString(CultureInfo.InvariantCulture)}&lon={Math.Round(lon, 3).ToString(CultureInfo.InvariantCulture)}";
                     using var doc = JsonDocument.Parse(await http.CreateClient("nominatim").GetStringAsync(url, ct));
                     var end = doc.RootElement.TryGetProperty("address", out var a) ? a : default;
@@ -102,7 +100,7 @@ public static class VozLocalidadeEndpoints
                         ? Base(bairro, "bairro", "OpenStreetMap (Nominatim) — © colaboradores do OpenStreetMap, ODbL", null)
                         : Base(null, "municipio", null, "Bairro não identificado com segurança; exibindo apenas o município.");
                 }
-                finally { LimiteNominatim.Release(); }
+                finally { AlertaEmAcao.Infraestrutura.Adaptadores.LimitadorNominatim.Trava.Release(); }
             }
             catch (Exception e) when (e is not OperationCanceledException || !ct.IsCancellationRequested)
             {

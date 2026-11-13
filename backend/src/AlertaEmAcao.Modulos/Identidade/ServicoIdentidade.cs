@@ -5,7 +5,7 @@ using AlertaEmAcao.Modulos.Localizacao;
 
 namespace AlertaEmAcao.Modulos.Identidade;
 
-public sealed class ServicoIdentidade(IUnidadeTrabalho uow, IHasherSenha hasher, ICatalogoMunicipios catalogo, IRelogio relogio)
+public sealed class ServicoIdentidade(IUnidadeTrabalho uow, IHasherSenha hasher, ICatalogoMunicipios catalogo, IRelogio relogio, ServicoVinculos vinculos)
 {
     public async Task<Usuario> RegistrarAsync(string nome, string email, string? telefone, string senha, string? municipio, CancellationToken ct)
     {
@@ -40,14 +40,51 @@ public sealed class ServicoIdentidade(IUnidadeTrabalho uow, IHasherSenha hasher,
         return g;
     }
 
-    public async Task<LocalMonitorado> AdicionarLocalAsync(Guid usuarioId, string apelido, double lat, double lon, CancellationToken ct)
+    public sealed record DadosLocal(string Apelido, double Latitude, double Longitude, TipoLocal? Tipo, OrigemPosicaoLocal? Origem, string? Precisao,
+        EnderecoLocal? Endereco, bool? MoroAqui, MoradoresResidencia? Moradores);
+
+    public Task<LocalMonitorado> AdicionarLocalAsync(Guid usuarioId, string apelido, double lat, double lon, CancellationToken ct) =>
+        AdicionarLocalAsync(usuarioId, new DadosLocal(apelido, lat, lon, null, null, null, null, null, null), ct);
+
+    public async Task<LocalMonitorado> AdicionarLocalAsync(Guid usuarioId, DadosLocal d, CancellationToken ct)
     {
         var ativos = await uow.ContarAsync(uow.Consulta<LocalMonitorado>().Where(l => l.UsuarioId == usuarioId && l.Ativo), ct);
-        if (ativos >= 5) throw new ErroDominio("limite_locais", "Máximo de 5 locais monitorados.");
-        var p = new PontoGeo(lat, lon);
-        var l = LocalMonitorado.Criar(usuarioId, apelido, p, catalogo.Identificar(p)?.Codigo, relogio.Agora);
+        if (ativos >= LocalMonitorado.LimitePorUsuario) throw new ErroDominio("limite_locais", "Máximo de 5 locais monitorados. Remova ou edite um local existente.");
+        var p = Ponto(d);
+        var l = LocalMonitorado.Criar(usuarioId, d.Apelido, p, catalogo.Identificar(p)?.Codigo, relogio.Agora, d.Tipo ?? TipoLocal.Outro,
+            d.Origem ?? OrigemPosicaoLocal.GpsAtual, d.Precisao, d.Endereco, d.MoroAqui ?? false);
+        if (d.Moradores is not null && l.Tipo == TipoLocal.Residencia) l.DefinirMoradores(d.Moradores, relogio.Agora);
+        if (l.MoroAqui) await UnicaMoradiaAsync(usuarioId, l.Id, ct);
         uow.Adicionar(l);
         await uow.SalvarAsync(ct);
         return l;
+    }
+
+    public async Task<LocalMonitorado> AtualizarLocalAsync(Guid usuarioId, Guid id, DadosLocal d, CancellationToken ct)
+    {
+        var l = await uow.PrimeiroAsync(uow.Consulta<LocalMonitorado>().Where(x => x.Id == id && x.UsuarioId == usuarioId && x.Ativo), ct)
+            ?? throw new ErroNaoEncontrado("Local não encontrado.");
+        var morava = l.MoroAqui;
+        var p = Ponto(d);
+        l.Definir(d.Apelido, d.Tipo ?? l.Tipo, d.MoroAqui ?? l.MoroAqui, p, catalogo.Identificar(p)?.Codigo, d.Origem ?? l.Origem, d.Precisao, d.Endereco ?? l.Endereco, relogio.Agora);
+        if (d.Moradores is not null) l.DefinirMoradores(d.Moradores, relogio.Agora);
+        if (l.MoroAqui) await UnicaMoradiaAsync(usuarioId, l.Id, ct);
+        // Deixou de ser a moradia: vínculos e convites daquela residência caem.
+        if (morava && !l.MoroAqui) await vinculos.EncerrarDaResidenciaAsync(l.Id, ct);
+        await uow.SalvarAsync(ct);
+        return l;
+    }
+
+    private static PontoGeo Ponto(DadosLocal d) =>
+        PontoGeo.TentarCriar(d.Latitude, d.Longitude, out var p) ? p : throw new ErroDominio("coordenadas_invalidas", "Coordenadas inválidas.");
+
+    /// <summary>Só uma residência "moro aqui" por pessoa; ao trocar, os vínculos da anterior são encerrados.</summary>
+    private async Task UnicaMoradiaAsync(Guid usuarioId, Guid manter, CancellationToken ct)
+    {
+        foreach (var outro in await uow.ListarAsync(uow.Consulta<LocalMonitorado>().Where(x => x.UsuarioId == usuarioId && x.Ativo && x.MoroAqui && x.Id != manter), ct))
+        {
+            outro.DeixarDeMorar(relogio.Agora);
+            await vinculos.EncerrarDaResidenciaAsync(outro.Id, ct);
+        }
     }
 }

@@ -7,6 +7,8 @@ using AlertaEmAcao.Modulos.AnaliseSituacional;
 using AlertaEmAcao.Modulos.Comum;
 using AlertaEmAcao.Modulos.Encaminhamento;
 using AlertaEmAcao.Modulos.Monitoramento;
+using AlertaEmAcao.Modulos.Localizacao;
+using AlertaEmAcao.Modulos.Notificacoes;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -38,6 +40,52 @@ public sealed class ProvedorIAFalso : IProvedorIA
     }
 }
 
+/// <summary>CEP/endereço sem internet: respostas fixas com o formato real das fontes.</summary>
+public sealed class GeocodificadorFalso : IGeocodificador
+{
+    public bool Indisponivel { get; set; }
+
+    public Task<EnderecoCep?> BuscarCepAsync(string cep, CancellationToken ct)
+    {
+        if (Indisponivel) throw new HttpRequestException("indisponível");
+        return Task.FromResult<EnderecoCep?>(cep switch
+        {
+            "50030230" => new EnderecoCep(cep, "Rua do Bom Jesus", "Recife", "Recife", "PE"),        // geocodificável
+            "53130000" => new EnderecoCep(cep, null, null, "Olinda", "PE"),                          // CEP geral do município, sem rua
+            "01310100" => new EnderecoCep(cep, "Avenida Paulista", "Bela Vista", "São Paulo", "SP"),  // fora da RMR
+            _ => null,
+        });
+    }
+
+    public Task<IReadOnlyList<ResultadoGeocodificacao>> BuscarEnderecoAsync(string? logradouro, string? numero, string? bairro, string municipio, string uf, string? cep, CancellationToken ct)
+    {
+        if (Indisponivel) throw new HttpRequestException("Serviço de endereços indisponível agora.");
+        IReadOnlyList<ResultadoGeocodificacao> r = (logradouro ?? "").ToLowerInvariant() switch
+        {
+            var l when l.Contains("bom jesus") => [new(-8.0631, -34.8711, "Rua do Bom Jesus, Recife", "Só a rua: confirme o ponto exato no mapa", true)],
+            var l when l.Contains("rua da aurora") => [new(-8.0600, -34.8800, "Rua da Aurora, Boa Vista, Recife", "Só a rua: confirme o ponto exato no mapa", true),
+                                                      new(-8.0010, -34.8500, "Rua da Aurora, Olinda", "Só a rua: confirme o ponto exato no mapa", true)],
+            _ => [],
+        };
+        return Task.FromResult(r);
+    }
+}
+
+/// <summary>Push configurável: por padrão "não configurado" (como produção sem VAPID); pode simular falha.</summary>
+public sealed class EnviadorPushFalso : IEnviadorPush
+{
+    public bool Configurado { get; set; }
+    public bool Falhar { get; set; }
+    public int Tentativas;
+    public string? ChavePublicaVapid => Configurado ? "chave-de-teste" : null;
+    public Task<(bool Sucesso, bool Expirada, string Detalhe)> EnviarAsync(AssinaturaPush assinatura, ConteudoPush conteudo, CancellationToken ct)
+    {
+        Interlocked.Increment(ref Tentativas);
+        if (Falhar) throw new HttpRequestException("serviço de push fora do ar (simulado)");
+        return Task.FromResult((true, false, "aceito (simulado)"));
+    }
+}
+
 public sealed class FonteChuvaFalsa(IRelogio relogio) : IFonteChuva
 {
     public Task<ResultadoFonteChuva> ObterRmrAsync(CancellationToken ct) => Task.FromResult(new ResultadoFonteChuva(
@@ -61,6 +109,8 @@ public sealed class FabricaApi : WebApplicationFactory<Program>, IAsyncLifetime
     private readonly string _banco = $"alerta_teste_{Guid.NewGuid():N}"[..28];
     public RelogioControlado Relogio { get; } = new();
     public ProvedorIAFalso IA { get; } = new();
+    public GeocodificadorFalso Geo { get; } = new();
+    public EnviadorPushFalso Push { get; } = new();
     public string Conexao => $"{Base};Database={_banco}";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -74,12 +124,16 @@ public sealed class FabricaApi : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("IA:Provedor", "teste");
         builder.UseSetting("LimiteRequisicoes:Autenticacao", "100000");
         builder.UseSetting("LimiteRequisicoes:Socorro", "100000");
+        builder.UseSetting("LimiteRequisicoes:Geocodificacao", "100000");
+        builder.UseSetting("LimiteRequisicoes:Convite", "100000");
         builder.ConfigureTestServices(s =>
         {
             s.AddSingleton<IRelogio>(Relogio);
             s.AddSingleton<IProvedorIA>(IA);
             s.AddSingleton<IFonteChuva, FonteChuvaFalsa>();
             s.AddSingleton<IFonteAvisosOficiais, FonteAvisosFalsa>();
+            s.AddSingleton<IGeocodificador>(Geo);
+            s.AddSingleton<IEnviadorPush>(Push);
             s.AddHttpClient<IClienteCentral, ClienteCentralHttp>().ConfigurePrimaryHttpMessageHandler(() => Server.CreateHandler());
             s.AddHttpClient("retorno-centrais").ConfigurePrimaryHttpMessageHandler(() => Server.CreateHandler());
         });
@@ -112,6 +166,19 @@ public sealed class FabricaApi : WebApplicationFactory<Program>, IAsyncLifetime
         var token = (await r.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString();
         c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return c;
+    }
+
+    /// <summary>Conta real nova (não demonstração), com consentimentos opcionais.</summary>
+    public async Task<(HttpClient Cliente, Guid Id)> NovaContaAsync(string nome, object? consentimentos = null)
+    {
+        var c = CreateClient();
+        var r = await c.PostAsJsonAsync("/api/auth/registrar", new { nome, email = $"{Guid.NewGuid():N}@teste.alerta.br", senha = "senha-segura-123", consentimentos });
+        r.EnsureSuccessStatusCode();
+        var token = (await r.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString();
+        c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        c.DefaultRequestHeaders.Add("X-Dispositivo-Id", "conta-" + Guid.NewGuid().ToString("N"));
+        var eu = await c.GetFromJsonAsync<JsonElement>("/api/eu");
+        return (c, eu.GetProperty("id").GetGuid());
     }
 
     public HttpClient ClienteDispositivo(string dispositivo)

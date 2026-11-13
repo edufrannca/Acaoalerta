@@ -561,6 +561,48 @@ namespace AlertaEmAcao.Infraestrutura.Persistencia.Migracoes
                     b.ToTable("regras_encaminhamento", "alerta");
                 });
 
+            modelBuilder.Entity("AlertaEmAcao.Modulos.Familias.ConviteVinculo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Cancelado")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("CodigoHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset>("CriadoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ExpiraEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("MoradorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ResidenciaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UsadoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UsadoPor")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodigoHash")
+                        .IsUnique();
+
+                    b.HasIndex("ResidenciaId");
+
+                    b.ToTable("convites_vinculo", "alerta");
+                });
+
             modelBuilder.Entity("AlertaEmAcao.Modulos.Familias.GrupoFamiliar", b =>
                 {
                     b.Property<Guid>("UsuarioId")
@@ -581,6 +623,96 @@ namespace AlertaEmAcao.Infraestrutura.Persistencia.Migracoes
                     b.HasKey("UsuarioId");
 
                     b.ToTable("grupos_familiares", "alerta");
+                });
+
+            modelBuilder.Entity("AlertaEmAcao.Modulos.Familias.VinculoFamiliar", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApelidoParaFamiliar")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTimeOffset>("CriadoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DecididoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FamiliarId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MoradorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Permissoes")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("ResidenciaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("RevogadoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RevogadoPor")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FamiliarId");
+
+                    b.HasIndex("MoradorId");
+
+                    b.HasIndex("ResidenciaId");
+
+                    b.ToTable("vinculos_familiares", "alerta");
+                });
+
+            modelBuilder.Entity("AlertaEmAcao.Modulos.Identidade.RegistroConsentimento", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Concedido")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("Em")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Finalidade")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Origem")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VersaoTexto")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId", "Finalidade", "Em");
+
+                    b.ToTable("registros_consentimento", "alerta");
                 });
 
             modelBuilder.Entity("AlertaEmAcao.Modulos.Identidade.Usuario", b =>
@@ -709,8 +841,19 @@ namespace AlertaEmAcao.Infraestrutura.Persistencia.Migracoes
                     b.Property<bool>("Ativo")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTimeOffset>("AtualizadoEm")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTimeOffset>("CriadoEm")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DescricaoPrecisao")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Endereco")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<double>("Latitude")
                         .HasColumnType("double precision");
@@ -718,8 +861,25 @@ namespace AlertaEmAcao.Infraestrutura.Persistencia.Migracoes
                     b.Property<double>("Longitude")
                         .HasColumnType("double precision");
 
+                    b.Property<string>("Moradores")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("MoroAqui")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("MunicipioCodigo")
                         .HasColumnType("text");
+
+                    b.Property<string>("Origem")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<Guid>("UsuarioId")
                         .HasColumnType("uuid");
@@ -859,6 +1019,59 @@ namespace AlertaEmAcao.Infraestrutura.Persistencia.Migracoes
                     b.ToTable("notificacoes", "alerta");
                 });
 
+            modelBuilder.Entity("AlertaEmAcao.Modulos.Notificacoes.NotificacaoFamiliar", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Chave")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTimeOffset>("CriadaEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Entregas")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("FamiliarId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("LidaEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Mensagem")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("OcorrenciaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("VinculoId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OcorrenciaId");
+
+                    b.HasIndex("FamiliarId", "Chave")
+                        .IsUnique();
+
+                    b.ToTable("notificacoes_familiares", "alerta");
+                });
+
             modelBuilder.Entity("AlertaEmAcao.Modulos.Ocorrencias.ConfirmacaoEntrega", b =>
                 {
                     b.Property<Guid>("Id")
@@ -970,6 +1183,9 @@ namespace AlertaEmAcao.Infraestrutura.Persistencia.Migracoes
 
                     b.Property<DateTimeOffset>("RecebidaNoServidorEm")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResidenciaId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("RetransmitidaPor")
                         .HasColumnType("text");

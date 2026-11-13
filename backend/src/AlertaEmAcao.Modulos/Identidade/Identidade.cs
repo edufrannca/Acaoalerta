@@ -77,6 +77,13 @@ public sealed class Usuario
         ConsenteLocalizacao = consenteLocalizacao;
         ReceberPush = receberPush && consenteAlertas;
     }
+
+    /// <summary>Espelho do consentimento A (o histórico fica em RegistroConsentimento).</summary>
+    public void DefinirConsentimentoAlertas(bool concedido)
+    {
+        ConsenteAlertas = concedido;
+        if (!concedido) ReceberPush = false;
+    }
 }
 
 public interface IHasherSenha

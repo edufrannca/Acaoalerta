@@ -1,3 +1,4 @@
+using AlertaEmAcao.Modulos.Notificacoes;
 using System.Security.Claims;
 using AlertaEmAcao.CentraisSimuladas;
 using AlertaEmAcao.Contratos;
@@ -159,10 +160,20 @@ public sealed class HubOperacao(IServiceScopeFactory escopos) : Hub
     public Task AcompanharMapaComunitario() => Groups.AddToGroupAsync(Context.ConnectionId, "comunidade");
 }
 
-public sealed class NotificadorSignalR(IHubContext<HubOperacao> hub) : INotificadorTempoReal
+public sealed class NotificadorSignalR(IHubContext<HubOperacao> hub, IServiceScopeFactory escopos, ILogger<NotificadorSignalR> log) : INotificadorTempoReal
 {
     public async Task OcorrenciaAtualizadaAsync(Guid id, string? municipio, IReadOnlyCollection<string> centrais, string motivo)
     {
+        // Familiares vinculados: avaliado depois de a mudança estar gravada; falha aqui nunca derruba o pedido.
+        if (ServicoNotificacaoFamiliar.MotivosRelevantes.Contains(motivo))
+        {
+            try
+            {
+                await using var escopo = escopos.CreateAsyncScope();
+                await escopo.ServiceProvider.GetRequiredService<ServicoNotificacaoFamiliar>().ProcessarAsync(id, motivo, CancellationToken.None);
+            }
+            catch (Exception e) { log.LogWarning(e, "Falha ao notificar familiares da ocorrência {Id}", id); }
+        }
         var evento = new { id, municipio, motivo, em = DateTimeOffset.UtcNow };
         var grupos = new List<string> { "admin", $"ocorrencia:{id}" };
         grupos.AddRange(centrais.Select(c => $"central:{c}"));

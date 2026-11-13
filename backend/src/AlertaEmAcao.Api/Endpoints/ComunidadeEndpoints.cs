@@ -92,17 +92,13 @@ public static class ComunidadeEndpoints
                 var c = o.Compartilhamento;
                 var cp = o.Complemento;
                 var ofs = ofertas.GetValueOrDefault(o.Id) ?? [];
+                // Somente o básico (filtrado aqui, não na interface): região aproximada, necessidades autorizadas,
+                // verificação, estado mínimo e possibilidade de oferecer ajuda. Sem pessoas, crianças, idosos, saúde, relato ou endereço.
                 return new
                 {
                     id = o.Id,
                     referencia = o.Id.ToString("N")[..6].ToUpperInvariant(),
-                    tipos = ResumoComunitario.TiposEmergencia(cp),
-                    pessoas = c.IncluirPessoas ? cp.QuantidadePessoas ?? cp.Pessoas?.Count : null,
-                    criancas = c.IncluirPessoas ? ResumoComunitario.Faixa(ResumoComunitario.Criancas(cp)) : null,
-                    idosos = c.IncluirPessoas ? ResumoComunitario.Faixa(ResumoComunitario.Idosos(cp)) : null,
-                    mobilidadeReduzida = c.IncluirPessoas ? ResumoComunitario.Faixa(ResumoComunitario.Mobilidade(cp)) : null,
                     necessidades = c.IncluirNecessidades ? (cp.Necessidades ?? []).Select(n => new { codigo = n, rotulo = NecessidadesDeclaradas.Rotulos[n] }) : null,
-                    horarioAproximado = ResumoComunitario.HorarioAproximado(o.CriadaNoDispositivoEm),
                     situacao = ResumoComunitario.Situacao(o.Status),
                     verificacao = ResumoComunitario.Verificacao(o.Verificacao),
                     municipio = MunicipiosRmr.Nome(o.MunicipioCodigo),
@@ -118,15 +114,10 @@ public static class ComunidadeEndpoints
             object? agregados = null;
             if (compartilhadas.Count >= ResumoComunitario.MinimoParaAgregar)
             {
-                var comPessoas = compartilhadas.Where(x => x.o.Compartilhamento.IncluirPessoas).Select(x => x.o.Complemento).ToList();
                 var comNec = compartilhadas.Where(x => x.o.Compartilhamento.IncluirNecessidades).SelectMany(x => x.o.Complemento.Necessidades ?? []).ToList();
                 agregados = new
                 {
                     pedidos = compartilhadas.Count,
-                    pessoasInformadas = comPessoas.Sum(c => c.QuantidadePessoas ?? c.Pessoas?.Count ?? 0),
-                    pedidosComCriancas = comPessoas.Count(c => ResumoComunitario.Criancas(c) > 0),
-                    pedidosComIdosos = comPessoas.Count(c => ResumoComunitario.Idosos(c) > 0),
-                    pedidosComMobilidadeReduzida = comPessoas.Count(c => ResumoComunitario.Mobilidade(c) > 0),
                     necessidades = comNec.GroupBy(n => n).Select(n => new { codigo = n.Key, rotulo = NecessidadesDeclaradas.Rotulos[n.Key], pedidos = n.Count() }).OrderByDescending(n => n.pedidos),
                 };
             }
@@ -144,8 +135,8 @@ public static class ComunidadeEndpoints
                 agregados,
                 agregadosOmitidos = agregados is null && compartilhadas.Count > 0
                     ? $"Totais da região aparecem a partir de {ResumoComunitario.MinimoParaAgregar} pedidos compartilhados, para proteger as famílias." : null,
-                privacidade = "A comunidade vê apenas o que cada solicitante autorizou: tipo de emergência, número de pessoas, faixas de crianças, idosos e mobilidade reduzida, " +
-                              "necessidades e área aproximada. Nomes, telefones, dados de saúde, relatos e posição exata ficam só com a equipe autorizada.",
+                privacidade = "A comunidade vê apenas a região aproximada, as necessidades que o solicitante autorizou e o estado do pedido. " +
+                              "Nomes, telefones, endereço, número de pessoas, crianças e idosos, dados de saúde, relatos e posição exata ficam só com a equipe autorizada.",
                 areaAproximada = "Cada pedido aparece como um círculo que contém o local registrado. O centro do círculo NÃO é a posição da pessoa.",
                 seguranca = OfertaAjuda.AvisoSeguranca,
                 ambiente = "Ambiente de demonstração: centrais simuladas; nenhum órgão real é acionado.",
