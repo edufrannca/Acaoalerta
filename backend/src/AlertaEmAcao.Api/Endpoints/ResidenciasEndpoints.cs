@@ -148,11 +148,19 @@ public static class ResidenciasEndpoints
             var vs = await uow.ListarAsync(uow.Consulta<VinculoFamiliar>().Where(v => v.FamiliarId == uid && v.Status != StatusVinculo.Recusado).OrderByDescending(v => v.CriadoEm), ct);
             var resIds = vs.Select(v => v.ResidenciaId).ToList();
             var res = (await uow.ListarAsync(uow.Consulta<LocalMonitorado>().Where(l => resIds.Contains(l.Id)), ct)).ToDictionary(l => l.Id);
+            var vinIds = vs.Select(v => v.Id).ToList();
+            var ultimos = (await uow.ListarAsync(uow.Consulta<NotificacaoFamiliar>().Where(n => n.FamiliarId == uid && vinIds.Contains(n.VinculoId)).OrderByDescending(n => n.CriadaEm), ct))
+                .GroupBy(n => n.VinculoId).ToDictionary(g => g.Key, g => (object)new { g.First().OcorrenciaId, g.First().Titulo, g.First().CriadaEm });
             return Results.Ok(vs.Select(v => new
             {
                 v.Id, v.ApelidoParaFamiliar, status = v.Status.ToString(), v.Permissoes, v.CriadoEm,
                 // Antes da aprovação, nada da residência é revelado.
                 municipio = v.Ativo && res.TryGetValue(v.ResidenciaId, out var l) ? MunicipiosRmr.Nome(l.MunicipioCodigo) : null,
+                // Vínculo aprovado pelo morador: o familiar vê onde fica a residência e o último pedido de socorro dela.
+                latitude = v.Ativo && res.TryGetValue(v.ResidenciaId, out var l2) ? l2.Latitude : (double?)null,
+                longitude = v.Ativo && res.TryGetValue(v.ResidenciaId, out var l3) ? l3.Longitude : (double?)null,
+                bairro = v.Ativo && res.TryGetValue(v.ResidenciaId, out var l4) ? l4.Endereco.Bairro : null,
+                ultimoPedido = v.Ativo ? ultimos.GetValueOrDefault(v.Id) : null,
             }));
         });
 

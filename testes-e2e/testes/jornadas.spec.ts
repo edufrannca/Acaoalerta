@@ -302,6 +302,9 @@ test('familiar vinculado é avisado quando o morador pede socorro em casa', asyn
   await expect(alarme.getByRole('button', { name: 'Ver detalhes' })).toBeFocused()
   await alarme.getByRole('button', { name: 'Parar alarme' }).click()
   await expect(alarme).toBeHidden()
+  await a.goto('/perfil')
+  await expect(a.getByRole('link', { name: 'Ver a casa no mapa' })).toBeVisible()
+  await expect(a.getByRole('link', { name: /ver pedido e localização/ })).toBeVisible()
 
   // Familiar vê o aviso guardado e abre o pedido com só o permitido.
   await a.reload()

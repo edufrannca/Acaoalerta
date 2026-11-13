@@ -1,3 +1,4 @@
+import { CondicoesAlagamento } from '../componentes/CondicoesAlagamento'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { Botao, Campo, Cartao, Selo, Vazio, classeEntrada } from '../componentes/Base'
@@ -251,7 +252,7 @@ function ConvidarFamiliar() {
   )
 }
 
-interface Acompanhado { id: string; apelidoParaFamiliar: string; status: string; municipio: string | null }
+interface Acompanhado { id: string; apelidoParaFamiliar: string; status: string; municipio: string | null; latitude: number | null; longitude: number | null; bairro: string | null; ultimoPedido: { ocorrenciaId: string; titulo: string; criadaEm: string } | null }
 
 /** Familiar: usa o código recebido do morador. Nada é liberado antes da aprovação dele. */
 function Acompanhar() {
@@ -278,9 +279,21 @@ function Acompanhar() {
       {(dados ?? []).length > 0 && (
         <ul className="mt-3 grid gap-2">
           {dados!.map((v) => (
-            <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 rounded-controle bg-areia px-3 py-2">
-              <span><span className="font-semibold">{v.apelidoParaFamiliar}</span><span className="block text-[13px] text-tinta-suave">{v.status === 'Ativo' ? `Ativo · ${v.municipio ?? ''}` : v.status === 'AguardandoAprovacao' ? 'Aguardando aprovação do morador' : 'Encerrado'}</span></span>
-              {(v.status === 'Ativo' || v.status === 'AguardandoAprovacao') && <Botao variante="fantasma" onClick={() => sairDe(v.id)}>Deixar de acompanhar</Botao>}
+            <li key={v.id} className="rounded-controle bg-areia px-3 py-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span><span className="font-semibold">{v.apelidoParaFamiliar}</span><span className="block text-[13px] text-tinta-suave">{v.status === 'Ativo' ? `Ativo · ${[v.bairro, v.municipio].filter(Boolean).join(', ')}` : v.status === 'AguardandoAprovacao' ? 'Aguardando aprovação do morador' : 'Encerrado'}</span></span>
+                {(v.status === 'Ativo' || v.status === 'AguardandoAprovacao') && <Botao variante="fantasma" onClick={() => sairDe(v.id)}>Deixar de acompanhar</Botao>}
+              </div>
+              {v.status === 'Ativo' && v.latitude != null && v.longitude != null && (
+                <div className="mt-2 grid gap-2">
+                  {v.ultimoPedido
+                    ? <Link to={`/familia/pedidos/${v.ultimoPedido.ocorrenciaId}`} className="block rounded-controle bg-emergencia-claro p-2 text-[14px] font-semibold text-emergencia-escura">{v.ultimoPedido.titulo} · {formatarHora(v.ultimoPedido.criadaEm)} — ver pedido e localização</Link>
+                    : <p className="text-[14px]">Nenhum pedido de socorro desta casa.</p>}
+                  <a className="min-h-11 content-center font-semibold text-oceano underline" target="_blank" rel="noopener noreferrer"
+                    href={`https://www.openstreetmap.org/?mlat=${v.latitude}&mlon=${v.longitude}#map=17/${v.latitude}/${v.longitude}`}>Ver a casa no mapa</a>
+                  <CondicoesAlagamento compacto latitude={v.latitude} longitude={v.longitude} regiao={v.apelidoParaFamiliar} titulo={`Chuva em ${v.apelidoParaFamiliar}`} />
+                </div>
+              )}
             </li>
           ))}
         </ul>
