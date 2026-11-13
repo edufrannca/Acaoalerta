@@ -109,7 +109,7 @@ public static class ComunidadeEndpoints
                     area = new { latitude = area.CentroLatitude, longitude = area.CentroLongitude, raioMetros = area.RaioMetros },
                     distanciaKm = dist is null ? (double?)null : Math.Round(dist.Value * 2, MidpointRounding.AwayFromZero) / 2,
                     ofertasEmAndamento = ofs.Count(f => f.Ativa),
-                    podeOferecerAjuda = c.IncluirNecessidades && (cp.Necessidades?.Count ?? 0) > 0,
+                    podeOferecerAjuda = true, // Todo pedido compartilhado e ativo aceita oferta, mesmo sem necessidades declaradas.
                     demonstrativo = o.Demonstracao,
                 };
             }).ToList();
