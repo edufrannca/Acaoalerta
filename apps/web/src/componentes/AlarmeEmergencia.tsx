@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { useAcessibilidade } from '../lib/acessibilidade'
 import { deveAlarmar, pararAlarme, prepararAlarme, tocarAlarme } from '../lib/alarme'
 import { useEvento } from '../lib/tempoReal'
@@ -11,6 +11,8 @@ interface Disparo { titulo: string; mensagem: string; url: string; familia: bool
 export function AlarmeEmergencia() {
   const { prefs } = useAcessibilidade()
   const [d, setD] = useState<Disparo | null>(null)
+  const [somenteSom, setSomenteSom] = useState(false)
+  const { pathname } = useLocation()
   const navegar = useNavigate()
   const botao = useRef<HTMLButtonElement>(null)
   const recentes = useRef(new Map<string, number>())
@@ -27,6 +29,8 @@ export function AlarmeEmergencia() {
     const chave = `${url}|${titulo}`, agora = Date.now()
     if ((recentes.current.get(chave) ?? 0) > agora - 120_000) return
     recentes.current.set(chave, agora)
+    // Aviso oficial já abre a pergunta "Você e sua família estão bem?": aqui só toca o alarme.
+    if (avisoId && !dados.tipo) { setSomenteSom(true); tocarAlarme({ som: prefs.alarme }); return }
     setD({ titulo, mensagem: ((n.mensagem ?? n.Mensagem) as string) ?? '', url, familia: dados.tipo === 'familia' })
     tocarAlarme({ som: prefs.alarme })
   }
@@ -40,8 +44,12 @@ export function AlarmeEmergencia() {
   }) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (d) botao.current?.focus() }, [d])
   useEffect(() => () => pararAlarme(), [])
+  useEffect(() => { if (somenteSom && pathname !== '/') { pararAlarme(); setSomenteSom(false) } }, [pathname]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!d) return null
+  if (!d) return somenteSom ? (
+    <button className="fixed bottom-24 right-4 z-[70] min-h-14 rounded-full bg-emergencia-escura px-5 text-[17px] font-bold text-branco shadow-xl md:bottom-6"
+      onClick={() => { pararAlarme(); setSomenteSom(false) }}>Parar alarme</button>
+  ) : null
   const fechar = () => { pararAlarme(); setD(null) }
   return (
     <div className="fixed inset-0 z-[60] grid place-items-center bg-emergencia-escura/95 p-4" role="alertdialog" aria-modal="true" aria-labelledby="alarme-titulo" aria-describedby="alarme-texto">
