@@ -7,6 +7,7 @@ import { useSessao } from '../lib/sessao'
 import { instalarParadaAutomatica, parar } from '../lib/fala'
 import { Marca } from './Base'
 import { EVENTO_NOVA_VERSAO } from '../lib/versao'
+import { useEvento } from '../lib/tempoReal'
 import { BotaoAcessibilidade } from './PainelAcessibilidade'
 import { IcAbrigo, IcInicio, IcMapa, IcPessoa, IcSino } from './Icones'
 
@@ -66,6 +67,12 @@ function NavTopo() {
 export function Estrutura({ children }: { children: ReactNode }) {
   const online = useOnline()
   const [novaVersao, setNovaVersao] = useState(false)
+  // Aviso de familiar (SignalR, só com o app aberto e conectado). O registro fica guardado em Perfil.
+  const [avisoFamilia, setAvisoFamilia] = useState<{ titulo: string; mensagem: string; url: string } | null>(null)
+  useEvento('notificacao', (d) => {
+    const n = d as { tipo?: string; titulo?: string; mensagem?: string; url?: string }
+    if (n?.tipo === 'familia' && n.url) setAvisoFamilia({ titulo: n.titulo ?? 'Aviso de familiar', mensagem: n.mensagem ?? '', url: n.url })
+  })
   useEffect(() => {
     const f = () => setNovaVersao(true)
     window.addEventListener(EVENTO_NOVA_VERSAO, f)
@@ -100,6 +107,13 @@ export function Estrutura({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
+      {avisoFamilia && (
+        <div role="alert" className="flex flex-wrap items-center justify-center gap-2 bg-emergencia px-4 py-2 text-[14.5px] text-branco">
+          <span><strong>{avisoFamilia.titulo}.</strong> {avisoFamilia.mensagem}</span>
+          <Link to={avisoFamilia.url} onClick={() => setAvisoFamilia(null)} className="inline-flex min-h-11 items-center rounded-controle bg-branco px-3 font-semibold text-emergencia-escura">Abrir</Link>
+          <button type="button" onClick={() => setAvisoFamilia(null)} className="min-h-11 px-2 underline">Fechar</button>
+        </div>
+      )}
       {novaVersao && (
         <div role="status" className="flex flex-wrap items-center justify-center gap-2 bg-oceano-suave px-4 py-2 text-[14px] font-medium text-petroleo">
           Há uma versão nova do app. Seus pedidos continuam salvos neste aparelho.

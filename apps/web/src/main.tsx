@@ -20,6 +20,9 @@ import { Instalar } from './paginas/Instalar'
 import { Alertas } from './paginas/Alertas'
 import { Abrigos } from './paginas/Abrigos'
 import { Retransmitir } from './paginas/Retransmitir'
+import { EditorLocal } from './paginas/EditorLocal'
+import { LocalDetalhe } from './paginas/LocalDetalhe'
+import { FamiliaPedido } from './paginas/FamiliaPedido'
 import { ProvedorAcessibilidade } from './lib/acessibilidade'
 
 iniciarSincronizacaoAutomatica()
@@ -46,6 +49,10 @@ createRoot(document.getElementById('raiz')!).render(
             <Route path="/alertas" element={<Alertas />} />
             <Route path="/abrigos" element={<Abrigos />} />
             <Route path="/retransmitir" element={<Retransmitir />} />
+            <Route path="/locais/novo" element={<EditorLocal />} />
+            <Route path="/locais/:id" element={<LocalDetalhe />} />
+            <Route path="/locais/:id/editar" element={<EditorLocal />} />
+            <Route path="/familia/pedidos/:id" element={<FamiliaPedido />} />
             <Route path="*" element={<p className="py-10 text-center">Página não encontrada.</p>} />
           </Routes>
         </Estrutura>

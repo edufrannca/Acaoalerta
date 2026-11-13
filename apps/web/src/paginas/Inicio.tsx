@@ -168,7 +168,7 @@ const ORIENTACOES = [
   'Não atravesse ruas alagadas, a pé ou de carro.',
 ]
 
-function ClimaRisco({ ctx, doCache, temPosicao }: { ctx: Contexto | null; doCache: string | null; temPosicao: boolean }) {
+export function ClimaRisco({ ctx, doCache, temPosicao }: { ctx: Contexto | null; doCache: string | null; temPosicao: boolean }) {
   const e = ctx?.estacaoMaisProxima
   const fala = ctx ? [
     ...ctx.estados.map((x) => `${x.titulo}. ${x.detalhe}`),

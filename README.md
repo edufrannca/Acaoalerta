@@ -87,3 +87,6 @@ Ver [docs/TESTES.md](docs/TESTES.md).
 ## Rede comunitária e retransmissão offline
 - [Rede comunitária](docs/REDE_COMUNITARIA.md): o que a comunidade vê (só com autorização), área aproximada, "Quero ajudar" com aceite e orientação da equipe.
 - [Retransmissão por aparelho próximo](docs/RETRANSMISSAO_OFFLINE.md): QR (sem app) e Nearby (app nativo), níveis 1–5, GPS do emissor separado do GPS do gateway, o que funciona só na PWA e o que exige app nativo.
+
+## Monitoramento familiar
+[Monitoramento familiar](docs/MONITORAMENTO_FAMILIAR.md): até 5 locais por CEP, endereço ou mapa; moradores; vínculo com familiares por convite e aprovação; avisos aos familiares quando o morador pede socorro; consentimentos LGPD opcionais com histórico; roteiro de validação com dois aparelhos.

@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { Botao, Campo, Cartao, Selo, Vazio, classeEntrada } from '../componentes/Base'
 import { api, formatarHora } from '../lib/api'
-import { useDados, useLocalizacao } from '../lib/hooks'
+import { useDados } from '../lib/hooks'
 import { MUNICIPIOS, nomeMunicipio } from '../lib/municipios'
 import { useSessao } from '../lib/sessao'
+import { CONSENTIMENTOS, NOTA_SOCORRO, ROTULO_TIPO, type LocalMonitorado } from '../lib/residencias'
+import { useEvento } from '../lib/tempoReal'
 
 
 export function Perfil() {
@@ -17,6 +19,8 @@ function Entrar() {
   const { entrar, registrar } = useSessao()
   const [modo, setModo] = useState<'entrar' | 'registrar'>('entrar')
   const [d, setD] = useState({ nome: '', email: '', senha: '', municipioCodigo: '', telefone: '' })
+  // Todos opcionais e desmarcados: criar conta não exige nenhuma autorização.
+  const [cons, setCons] = useState<Record<string, boolean>>({ alertasPreventivos: false, compartilhamentoOperacional: false, compartilhamentoComunitario: false, notificacaoFamiliares: false })
   const [erro, setErro] = useState<string | null>(null)
   const executar = async (f: () => Promise<void>) => { setErro(null); try { await f() } catch (e) { setErro(e instanceof Error ? e.message : 'Falha') } }
 
@@ -24,7 +28,7 @@ function Entrar() {
     <div className="grid gap-4 md:grid-cols-2">
       <Cartao titulo={modo === 'entrar' ? 'Entrar' : 'Criar conta'}>
         <p className="mb-3 text-[14px] text-tinta-suave">A conta é opcional: qualquer pessoa pode pedir socorro sem cadastro. Com ela você cadastra a família e recebe alertas para locais monitorados.</p>
-        <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); void executar(() => modo === 'entrar' ? entrar(d.email, d.senha) : registrar({ ...d, municipioCodigo: d.municipioCodigo || undefined, telefone: d.telefone || undefined })) }}>
+        <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); void executar(() => modo === 'entrar' ? entrar(d.email, d.senha) : registrar({ ...d, municipioCodigo: d.municipioCodigo || undefined, telefone: d.telefone || undefined, consentimentos: cons })) }}>
           {modo === 'registrar' && <Campo rotulo="Nome"><input required className={classeEntrada} value={d.nome} onChange={(e) => setD({ ...d, nome: e.target.value })} autoComplete="name" /></Campo>}
           <Campo rotulo="E-mail"><input required type="email" className={classeEntrada} value={d.email} onChange={(e) => setD({ ...d, email: e.target.value })} autoComplete="email" /></Campo>
           <Campo rotulo="Senha" dica={modo === 'registrar' ? 'Mínimo de 8 caracteres.' : undefined}><input required type="password" minLength={8} className={classeEntrada} value={d.senha} onChange={(e) => setD({ ...d, senha: e.target.value })} autoComplete={modo === 'entrar' ? 'current-password' : 'new-password'} /></Campo>
@@ -32,6 +36,16 @@ function Entrar() {
             <>
               <Campo rotulo="Telefone (opcional)"><input className={classeEntrada} value={d.telefone} onChange={(e) => setD({ ...d, telefone: e.target.value })} autoComplete="tel" /></Campo>
               <Campo rotulo="Município"><select className={classeEntrada} value={d.municipioCodigo} onChange={(e) => setD({ ...d, municipioCodigo: e.target.value })}><option value="">Prefiro não informar</option>{Object.entries(MUNICIPIOS).map(([c, n]) => <option key={c} value={c}>{n}</option>)}</select></Campo>
+              <fieldset className="grid gap-2 rounded-controle bg-fundo p-3">
+                <legend className="px-1 text-[14px] font-semibold">Autorizações (opcionais)</legend>
+                {CONSENTIMENTOS.map((c) => (
+                  <label key={c.chave} className="flex items-start gap-2 text-[13.5px]">
+                    <input type="checkbox" className="mt-0.5 size-5 shrink-0 accent-oceano" checked={cons[c.chave]} onChange={(e) => setCons({ ...cons, [c.chave]: e.target.checked })} />
+                    <span><strong>{c.titulo}.</strong> {c.texto}</span>
+                  </label>
+                ))}
+                <p className="text-[12.5px] text-tinta-suave">{NOTA_SOCORRO} A permissão de GPS do celular é separada.</p>
+              </fieldset>
               <p className="text-[12.5px] text-tinta-suave">Não pedimos CPF. Seus dados de família são cifrados e usados apenas nos seus pedidos de socorro.</p>
             </>
           )}
@@ -59,7 +73,6 @@ function Entrar() {
 }
 
 interface Integrante { apelido?: string | null; idade: number | null; mobilidadeReduzida: boolean; dependeAssistencia: boolean; usaEquipamentoMedico: boolean; necessidadesEspeciais?: string | null }
-interface Local { id: string; apelido: string; latitude: number; longitude: number; municipioCodigo: string }
 interface Notif { id: string; titulo: string; mensagem: string; criadaEm: string; resposta: string | null; avisoOficial: boolean; entregas: { canal: string; resultado: string; em: string }[] }
 
 function PerfilLogado() {
@@ -70,7 +83,8 @@ function PerfilLogado() {
   const operador = ['OperadorCentral', 'Administrador', 'Organizacao'].includes(u.papel)
 
   const salvar = async () => {
-    try { await api('/api/eu/perfil', { method: 'PUT', json: { nome: u.nome, ...perfil, municipioCodigo: perfil.municipioCodigo || null } }); await recarregar(); setMsg('Preferências salvas.') }
+    // Autorizações são alteradas no cartão próprio (com histórico); aqui seguem os valores atuais.
+    try { await api('/api/eu/perfil', { method: 'PUT', json: { nome: u.nome, ...perfil, consenteAlertas: u.consenteAlertas, consenteLocalizacao: u.consenteLocalizacao, municipioCodigo: perfil.municipioCodigo || null } }); await recarregar(); setMsg('Preferências salvas.') }
     catch (e) { setMsg(e instanceof Error ? e.message : 'Falha') }
   }
 
@@ -89,23 +103,24 @@ function PerfilLogado() {
             </div>
           )}
         </Cartao>
-        <Cartao titulo="Preferências e consentimentos">
+        <Consentimentos />
+        <Cartao titulo="Preferências">
           <div className="grid gap-3">
             <Campo rotulo="Município"><select className={classeEntrada} value={perfil.municipioCodigo} onChange={(e) => setPerfil({ ...perfil, municipioCodigo: e.target.value })}><option value="">Não informado</option>{Object.entries(MUNICIPIOS).map(([c, n]) => <option key={c} value={c}>{n}</option>)}</select></Campo>
             <Campo rotulo="Endereço de referência" dica="Sua residência. Em um pedido de socorro usamos a localização atual, não este endereço."><input className={classeEntrada} value={perfil.enderecoReferencia} onChange={(e) => setPerfil({ ...perfil, enderecoReferencia: e.target.value })} /></Campo>
-            {([['consenteAlertas', 'Quero receber avisos para meus locais monitorados'], ['consenteLocalizacao', 'Autorizo usar minha localização nos pedidos'], ['receberPush', 'Receber notificações push neste aparelho']] as const).map(([k, r]) => (
-              <label key={k} className="flex items-start gap-2 text-[14.5px]"><input type="checkbox" className="mt-1 size-5 accent-oceano" checked={perfil[k]} onChange={(e) => setPerfil({ ...perfil, [k]: e.target.checked })} />{r}</label>
-            ))}
+            <label className="flex items-start gap-2 text-[14.5px]"><input type="checkbox" className="mt-1 size-5 accent-oceano" checked={perfil.receberPush} onChange={(e) => setPerfil({ ...perfil, receberPush: e.target.checked })} />Receber notificações push neste aparelho (exige a autorização de alertas preventivos)</label>
             <Botao onClick={salvar}>Salvar preferências</Botao>
-            <AtivarPush habilitado={perfil.receberPush && perfil.consenteAlertas} />
+            <AtivarPush habilitado={perfil.receberPush && u.consenteAlertas} />
             {msg && <p role="status" className="text-[14px] text-seguro">{msg}</p>}
           </div>
         </Cartao>
+        <NotificacoesFamilia />
         <Notificacoes />
       </div>
       <div className="grid content-start gap-4">
-        <Familia />
         <LocaisMonitorados />
+        <Acompanhar />
+        <Familia />
       </div>
     </div>
   )
@@ -177,33 +192,121 @@ function Familia() {
 }
 
 function LocaisMonitorados() {
-  const { dados, recarregar } = useDados<Local[]>('/api/eu/locais')
-  const { posicao, iniciar } = useLocalizacao()
-  const [apelido, setApelido] = useState('')
-  const [erro, setErro] = useState<string | null>(null)
-  const adicionar = async () => {
-    if (!posicao) { iniciar(); return }
-    try { await api('/api/eu/locais', { method: 'POST', json: { apelido: apelido || 'Local atual', latitude: posicao.latitude, longitude: posicao.longitude } }); setApelido(''); setErro(null); void recarregar() }
-    catch (e) { setErro(e instanceof Error ? e.message : 'Falha') }
-  }
+  const { dados } = useDados<LocalMonitorado[]>('/api/eu/locais')
+  const cheio = (dados?.length ?? 0) >= 5
   return (
-    <Cartao titulo="Locais monitorados">
-      <p className="mb-3 text-[13.5px] text-tinta-suave">Quando houver aviso para um destes locais, perguntamos se você e sua família estão bem.</p>
+    <Cartao titulo="Locais monitorados" acao={<span className="text-[13px] text-tinta-suave">{dados?.length ?? 0} de 5</span>}>
+      <p className="mb-3 text-[13.5px] text-tinta-suave">Sua casa, o trabalho ou a casa de um familiar, mesmo longe de você. Cadastre pelo CEP, pelo endereço ou no mapa.</p>
       {(dados ?? []).length === 0 ? <Vazio>Nenhum local monitorado.</Vazio> : (
         <ul className="grid gap-2">
           {dados!.map((l) => (
-            <li key={l.id} className="flex items-center justify-between rounded-controle bg-areia px-3 py-2">
-              <span><span className="font-semibold">{l.apelido}</span><span className="block text-[13px] text-tinta-suave">{nomeMunicipio(l.municipioCodigo)}</span></span>
-              <Botao variante="fantasma" onClick={async () => { await api(`/api/eu/locais/${l.id}`, { method: 'DELETE' }); void recarregar() }}>Remover</Botao>
+            <li key={l.id}>
+              <Link to={`/locais/${l.id}`} className="flex min-h-12 items-center justify-between rounded-controle bg-areia px-3 py-2">
+                <span><span className="font-semibold">{l.apelido}</span><span className="block text-[13px] text-tinta-suave">{ROTULO_TIPO[l.tipo]}{l.moroAqui ? ' · onde moro' : ''} · {l.municipio ?? nomeMunicipio(l.municipioCodigo)}</span></span>
+                <span aria-hidden="true" className="text-oceano">›</span>
+              </Link>
             </li>
           ))}
         </ul>
       )}
-      <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
-        <input className={classeEntrada} placeholder="Nome do local, ex.: casa da minha mãe" value={apelido} onChange={(e) => setApelido(e.target.value)} />
-        <Botao onClick={adicionar}>{posicao ? 'Adicionar onde estou' : 'Usar localização'}</Botao>
+      {cheio ? <p className="mt-3 text-[13.5px]">Limite de 5 locais atingido. Remova ou edite um local para trocar.</p>
+        : <Link to="/locais/novo" className="mt-3 flex min-h-11 items-center justify-center rounded-controle bg-petroleo px-4 text-[15px] font-semibold text-branco">Adicionar local</Link>}
+    </Cartao>
+  )
+}
+
+interface Acompanhado { id: string; apelidoParaFamiliar: string; status: string; municipio: string | null }
+
+/** Familiar: usa o código recebido do morador. Nada é liberado antes da aprovação dele. */
+function Acompanhar() {
+  const { dados, recarregar } = useDados<Acompanhado[]>('/api/eu/acompanho', { intervaloMs: 60000 })
+  const [codigo, setCodigo] = useState('')
+  const [apelido, setApelido] = useState('')
+  const [msg, setMsg] = useState<{ t: string; erro?: boolean } | null>(null)
+  const usar = async () => {
+    try { const r = await api<{ mensagem: string }>('/api/eu/acompanhar', { method: 'POST', json: { codigo, apelido } }); setMsg({ t: r.mensagem }); setCodigo(''); setApelido(''); void recarregar() }
+    catch (e) { setMsg({ t: e instanceof Error ? e.message : 'Falha', erro: true }) }
+  }
+  const sairDe = async (id: string) => { await api(`/api/eu/vinculos/${id}`, { method: 'DELETE' }); void recarregar() }
+  return (
+    <Cartao titulo="Acompanhar uma residência">
+      <p className="mb-3 text-[13.5px] text-tinta-suave">Para receber avisos quando um familiar pedir socorro em casa. Peça a ele o código de convite (Perfil → local onde mora → Gerar código).</p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Campo rotulo="Código de convite"><input className={`${classeEntrada} uppercase tracking-widest`} value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="ABCDE-FGHJK" autoComplete="off" /></Campo>
+        <Campo rotulo="Como você chama essa casa"><input className={classeEntrada} maxLength={60} value={apelido} onChange={(e) => setApelido(e.target.value)} placeholder="Casa da minha mãe" /></Campo>
       </div>
-      {erro && <p role="alert" className="mt-2 text-[14px] text-emergencia-escura">{erro}</p>}
+      <Botao className="mt-2" onClick={usar} disabled={codigo.replace(/[^a-z0-9]/gi, '').length < 10 || !apelido.trim()}>Enviar pedido de acompanhamento</Botao>
+      {msg && <p role={msg.erro ? 'alert' : 'status'} className={`mt-2 text-[14px] ${msg.erro ? 'text-emergencia-escura' : 'text-seguro'}`}>{msg.t}</p>}
+      {(dados ?? []).length > 0 && (
+        <ul className="mt-3 grid gap-2">
+          {dados!.map((v) => (
+            <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 rounded-controle bg-areia px-3 py-2">
+              <span><span className="font-semibold">{v.apelidoParaFamiliar}</span><span className="block text-[13px] text-tinta-suave">{v.status === 'Ativo' ? `Ativo · ${v.municipio ?? ''}` : v.status === 'AguardandoAprovacao' ? 'Aguardando aprovação do morador' : 'Encerrado'}</span></span>
+              {(v.status === 'Ativo' || v.status === 'AguardandoAprovacao') && <Botao variante="fantasma" onClick={() => sairDe(v.id)}>Deixar de acompanhar</Botao>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Cartao>
+  )
+}
+
+interface NotifFamilia { id: string; titulo: string; mensagem: string; ocorrenciaId: string; criadaEm: string; lidaEm: string | null; entregas: { canal: string; resultado: string }[] }
+
+function NotificacoesFamilia() {
+  const { dados, recarregar } = useDados<NotifFamilia[]>('/api/eu/notificacoes-familia', { intervaloMs: 30000 })
+  useEvento('notificacao', () => { void recarregar() })
+  if (!dados || dados.length === 0) return null
+  return (
+    <Cartao titulo="Avisos de familiares">
+      <ul className="grid gap-2">
+        {dados.slice(0, 10).map((n) => (
+          <li key={n.id}>
+            <Link to={`/familia/pedidos/${n.ocorrenciaId}`} onClick={() => { void api(`/api/eu/notificacoes-familia/${n.id}/lida`, { method: 'POST' }) }}
+              className={`block rounded-controle p-3 text-[14px] ${n.lidaEm ? 'bg-areia' : 'bg-emergencia-claro ring-1 ring-emergencia'}`}>
+              <span className="font-semibold">{n.titulo}</span>
+              <span className="block">{n.mensagem}</span>
+              <span className="mt-1 block text-[12.5px] text-tinta-suave">{formatarHora(n.criadaEm)} · guardado no servidor{n.entregas.some((e) => e.canal === 'web_push' && e.resultado === 'aceito_pelo_servico_push') ? ' · push enviado' : ''}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Cartao>
+  )
+}
+
+interface EstadoConsentimentos { versao: string; finalidades: { finalidade: string; texto: string; concedido: boolean }[]; historico: { finalidade: string; concedido: boolean; versaoTexto: string; origem: string; em: string }[]; nota: string }
+
+function Consentimentos() {
+  const { recarregar: recarregarSessao } = useSessao()
+  const { dados, recarregar } = useDados<EstadoConsentimentos>('/api/eu/consentimentos')
+  const [msg, setMsg] = useState<string | null>(null)
+  const mudar = async (finalidade: string, concedido: boolean) => {
+    try {
+      const r = await api<{ pedidosRetiradosDaComunidade: number }>('/api/eu/consentimentos', { method: 'PUT', json: { finalidade, concedido } })
+      setMsg(concedido ? 'Autorização registrada.' : `Autorização revogada.${r.pedidosRetiradosDaComunidade ? ` ${r.pedidosRetiradosDaComunidade} pedido(s) saíram da lista da comunidade.` : ''}`)
+      void recarregar(); void recarregarSessao()
+    } catch (e) { setMsg(e instanceof Error ? e.message : 'Falha') }
+  }
+  const titulo = (f: string) => CONSENTIMENTOS.find((c) => c.finalidade === f)?.titulo ?? f
+  return (
+    <Cartao titulo="Autorizações (LGPD)">
+      <div className="grid gap-3">
+        {(dados?.finalidades ?? []).map((f) => (
+          <label key={f.finalidade} className="flex items-start gap-2 text-[14px]">
+            <input type="checkbox" className="mt-0.5 size-5 shrink-0 accent-oceano" checked={f.concedido} onChange={(e) => void mudar(f.finalidade, e.target.checked)} />
+            <span><strong>{titulo(f.finalidade)}.</strong> {f.texto}</span>
+          </label>
+        ))}
+      </div>
+      <p className="mt-3 text-[12.5px] text-tinta-suave">{dados?.nota}</p>
+      {msg && <p role="status" className="mt-2 text-[14px] text-seguro">{msg}</p>}
+      {dados && dados.historico.length > 0 && (
+        <details className="mt-2 text-[13px]">
+          <summary className="min-h-11 cursor-pointer font-semibold">Histórico ({dados.historico.length})</summary>
+          <ul className="grid gap-1">{dados.historico.map((h, i) => <li key={i}>{formatarHora(h.em)} · {titulo(h.finalidade)}: {h.concedido ? 'concedida' : 'revogada'} ({h.origem}, texto {h.versaoTexto})</li>)}</ul>
+        </details>
+      )}
     </Cartao>
   )
 }

@@ -35,3 +35,11 @@ PostgreSQL 16 + PostGIS 3.4. Schema `alerta` (sistema) e schema `simulador` (cen
 
 ## Migrações
 `backend/src/AlertaEmAcao.Infraestrutura/Persistencia/Migracoes` e `backend/src/AlertaEmAcao.CentraisSimuladas/Migracoes`, aplicadas na inicialização.
+
+## Tabelas novas (migração ResidenciasVinculosConsentimentos)
+- `locais_monitorados` + `Tipo`, `MoroAqui`, `Origem`, `DescricaoPrecisao`, `Endereco` (cifrado), `Moradores` (cifrado), `AtualizadoEm`.
+- `vinculos_familiares` (ResidenciaId, MoradorId, FamiliarId, ApelidoParaFamiliar, Status, Permissoes jsonb, datas).
+- `convites_vinculo` (CodigoHash único, ExpiraEm, UsadoEm/UsadoPor, Cancelado).
+- `registros_consentimento` (UsuarioId, Finalidade, Concedido, VersaoTexto, Origem, Em) — só inserções.
+- `notificacoes_familiares` (FamiliarId + Chave únicos, OcorrenciaId, VinculoId, Entregas jsonb, LidaEm).
+- `ocorrencias.ResidenciaId`; `Compartilhamento.origem`.

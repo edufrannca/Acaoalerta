@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Botao, Selo, classeEntrada } from './Base'
-import { IcAjudar, IcRelogio, IcLocal, IcPessoa } from './Icones'
-import { formatarHora } from '../lib/api'
+import { IcAjudar, IcLocal } from './Icones'
 import { uuid } from '../lib/dispositivo'
 import { enfileirar } from '../lib/filaOffline'
 import { TIPOS_AJUDA } from '../lib/municipios'
@@ -14,21 +13,16 @@ const SUGESTAO: Record<string, string> = {
 }
 
 export function CartaoPedido({ p, destaque, aoOferecer, compacto }: { p: PedidoComunitario; destaque?: boolean; aoOferecer?: (p: PedidoComunitario) => void; compacto?: boolean }) {
-  const grupos = [
-    p.criancas && `Crianças: ${p.criancas}`,
-    p.idosos && `Idosos: ${p.idosos}`,
-    p.mobilidadeReduzida && `Mobilidade reduzida: ${p.mobilidadeReduzida}`,
-  ].filter(Boolean) as string[]
+  // Só o básico vindo do servidor: região aproximada, necessidades autorizadas, verificação e estado.
   return (
     <article id={`pedido-${p.id}`} aria-label={`Pedido ${p.referencia}`}
       className={`rounded-cartao bg-branco p-3.5 ring-1 ${destaque ? 'ring-2 ring-emergencia' : 'ring-linha'}`}>
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <h3 className="text-[17px] font-bold leading-snug text-petroleo">{p.tipos.join(' · ')}</h3>
+        <h3 className="text-[17px] font-bold leading-snug text-petroleo">Pedido de ajuda · {p.municipio ?? 'região não identificada'}</h3>
         {p.demonstrativo && <Selo tom="demo">Fictício</Selo>}
       </div>
       <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13.5px] text-tinta-suave">
-        <span className="inline-flex items-center gap-1"><IcLocal tamanho={15} />{p.municipio ?? 'Município não identificado'}{p.distanciaKm == null ? '' : p.distanciaKm === 0 ? ', perto de você' : `, a cerca de ${String(p.distanciaKm).replace('.', ',')} km`}</span>
-        <span className="inline-flex items-center gap-1"><IcRelogio tamanho={15} />por volta de {formatarHora(p.horarioAproximado)}</span>
+        <span className="inline-flex items-center gap-1"><IcLocal tamanho={15} />Área de {p.area.raioMetros} m{p.distanciaKm == null ? '' : p.distanciaKm === 0 ? ', perto de você' : `, a cerca de ${String(p.distanciaKm).replace('.', ',')} km`}</span>
         <span>Ref. {p.referencia}</span>
       </p>
       <div className="mt-2 flex flex-wrap gap-1.5">
@@ -37,9 +31,6 @@ export function CartaoPedido({ p, destaque, aoOferecer, compacto }: { p: PedidoC
       </div>
       {!compacto && (
         <dl className="mt-2 grid gap-1 text-[14.5px]">
-          {p.pessoas != null && <div className="flex gap-1.5"><IcPessoa tamanho={18} /><dt className="sr-only">Pessoas</dt><dd>{p.pessoas} {p.pessoas === 1 ? 'pessoa' : 'pessoas'} no local</dd></div>}
-          {grupos.length > 0 && <div><dt className="sr-only">Grupos que precisam de atenção</dt><dd>{grupos.join(' · ')}</dd></div>}
-          {p.pessoas == null && grupos.length === 0 && <div><dd className="text-tinta-suave">Quantidade de pessoas não compartilhada.</dd></div>}
           {p.necessidades && p.necessidades.length > 0 && (
             <div><dt className="font-semibold">Precisa de</dt><dd className="mt-1 flex flex-wrap gap-1.5">{p.necessidades.map((n) => <span key={n.codigo} className="rounded-full bg-seguro-claro px-2.5 py-0.5 text-[13.5px] font-medium text-seguro">{n.rotulo}</span>)}</dd></div>
           )}
@@ -58,8 +49,7 @@ export function ResumoRegiao({ r }: { r: RespostaComunidade }) {
     <div className="rounded-cartao bg-fundo p-3 text-[14px]">
       {a ? (
         <>
-          <p className="font-semibold text-tinta">{a.pedidos} pedidos compartilhados na busca · {a.pessoasInformadas} pessoas informadas</p>
-          <p className="text-tinta-suave">Com crianças: {a.pedidosComCriancas} · com idosos: {a.pedidosComIdosos} · com mobilidade reduzida: {a.pedidosComMobilidadeReduzida}</p>
+          <p className="font-semibold text-tinta">{a.pedidos} pedidos compartilhados na busca</p>
           {a.necessidades.length > 0 && <p className="text-tinta-suave">Necessidades mais citadas: {a.necessidades.slice(0, 4).map((n) => `${n.rotulo} (${n.pedidos})`).join(', ')}</p>}
         </>
       ) : <p className="text-tinta-suave">{r.agregadosOmitidos ?? 'Nenhum pedido compartilhado nesta busca.'}</p>}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import { AvisoSimulado, Botao, Cartao, Selo, classeEntrada } from '../componentes/Base'
 import { ContatosEmergencia } from '../componentes/Contatos'
 import { api, ErroApi, formatarHora } from '../lib/api'
@@ -14,6 +14,7 @@ import { EtapasEntrega, TransmitirProximo } from '../componentes/TransmitirProxi
 import { NECESSIDADES, type Compartilhamento } from '../lib/comunidade'
 import { enfileirar } from '../lib/filaOffline'
 import { uuid } from '../lib/dispositivo'
+import { useSessao } from '../lib/sessao'
 
 interface VisaoServidor {
   id: string
@@ -131,6 +132,7 @@ export function AcompanharSocorro() {
 
         <Complemento id={id} />
         <CompartilharComunidade id={id} atual={servidor?.compartilhamento ?? null} />
+        {recebidoServidor && <ResidenciaDoPedido id={id} />}
       </div>
 
       <div className="grid content-start gap-4">
@@ -288,6 +290,39 @@ function CompartilharComunidade({ id, atual }: { id: string; atual: Compartilham
       </div>
       <p className="mt-3 rounded-controle bg-fundo p-3 text-[13.5px] text-tinta-suave">A comunidade vê só o tipo de emergência, a área aproximada (um círculo de pelo menos 400 m que contém o seu local, sem marcar o ponto exato) e o que você marcou acima. Nunca: nome, telefone, relato escrito, dados de saúde ou posição exata. Você pode desligar quando quiser.</p>
       {salvo && <p role="status" className="mt-2 text-[14px] text-seguro">{salvo}</p>}
+    </Cartao>
+  )
+}
+
+/** Pessoa cadastrada: o pedido pode avisar familiares vinculados à residência onde ela mora. Nunca por proximidade de GPS. */
+function ResidenciaDoPedido({ id }: { id: string }) {
+  const { usuario } = useSessao()
+  const [r, setR] = useState<{ associada: boolean; apelido: string | null; familiaresVinculados: number } | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+  const carregar = useCallback(() => { api<{ associada: boolean; apelido: string | null; familiaresVinculados: number }>(`/api/ocorrencias/${id}/residencia`).then(setR).catch(() => setR(null)) }, [id])
+  useEffect(() => { if (usuario) carregar() }, [usuario, carregar])
+  if (!usuario) return null
+  const mudar = async (associar: boolean) => {
+    setErro(null)
+    try { await api(`/api/ocorrencias/${id}/residencia`, { method: 'POST', json: { associar } }); carregar() } catch (e) { setErro(e instanceof Error ? e.message : 'Falha') }
+  }
+  return (
+    <Cartao titulo="Familiares vinculados">
+      {r?.associada ? (
+        <>
+          <p className="text-[15px]">Pedido associado à sua residência <strong>"{r.apelido}"</strong>. {r.familiaresVinculados > 0 ? `${r.familiaresVinculados} familiar(es) aprovado(s) por você recebem aviso e acompanham o estado.` : 'Nenhum familiar aprovado ainda.'}</p>
+          <Botao className="mt-2" variante="fantasma" onClick={() => mudar(false)}>Não avisar familiares sobre este pedido</Botao>
+        </>
+      ) : (
+        <>
+          <p className="text-[14.5px]">Este pedido não avisa familiares. Para avisar quem você aprovou, é preciso ter a residência onde mora cadastrada e a autorização "Notificação de familiares" ativa.</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Botao variante="secundario" onClick={() => mudar(true)}>Avisar meus familiares vinculados</Botao>
+            <Link to="/perfil" className="inline-flex min-h-11 items-center text-[14.5px] font-semibold text-oceano underline">Configurar no perfil</Link>
+          </div>
+        </>
+      )}
+      {erro && <p role="alert" className="mt-2 text-[14px] text-emergencia-escura">{erro}</p>}
     </Cartao>
   )
 }

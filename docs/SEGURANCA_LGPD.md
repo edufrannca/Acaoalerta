@@ -45,3 +45,11 @@ Relatório de impacto (RIPD), designação de encarregado, acordos de tratamento
 - **Integridade:** QR com hash SHA-256 do texto canônico (detecta corrupção/edição; não autentica); Nearby com HMAC do grupo e chave por gateway; idempotência pelo identificador gerado no emissor.
 - **Limite honesto:** o código de grupo `ALERTA-DEMO-2026` e o código da área de demonstração são compartilhados e servem só para a demonstração. Produção exigiria chaves por aparelho emitidas no cadastro e assinatura do emissor.
 - **Dados fictícios separados:** pedidos de contas fictícias e QR marcados como demonstração ficam fora da lista pública.
+
+## Monitoramento familiar e consentimentos (13/11/2026)
+- **Comunidade recebe:** município, círculo aproximado (≥ 400 m), necessidades autorizadas, verificação, estado mínimo. Nada de pessoas, crianças, idosos, saúde, relato, endereço, horário ou GPS (filtrado no backend).
+- **Familiar autorizado recebe:** apelido que ele deu à residência, município, horário, estado/nível, situação marcada, histórico de eventos; necessidades, número de pessoas/moradores e posição exata só se o morador permitir. Nunca relato livre nem dados de saúde.
+- **Operador da central do pedido:** como antes (posição precisa, relato, trilha), com auditoria.
+- **Revogação:** consentimento D revogado ou vínculo encerrado → o familiar perde acesso imediatamente e não recebe novos avisos; consentimento C revogado → pedidos ativos compartilhados por preferência saem da comunidade; remover a residência encerra vínculos e convites.
+- Convites: hash SHA-256, 24 h, uso único, limite por IP, mensagem de erro única (sem enumeração de contas).
+- Endereço, moradores, contato e observações: cifrados em repouso. CEP/endereço só são consultados por quem tem conta; a fonte externa recebe só o texto do endereço digitado.

@@ -20,7 +20,7 @@ interface Sessao {
   carregando: boolean
   entrar: (email: string, senha: string) => Promise<void>
   entrarDemo: (perfil: string) => Promise<void>
-  registrar: (d: { nome: string; email: string; senha: string; municipioCodigo?: string; telefone?: string }) => Promise<void>
+  registrar: (d: { nome: string; email: string; senha: string; municipioCodigo?: string; telefone?: string; consentimentos?: Record<string, boolean> }) => Promise<void>
   sair: () => void
   recarregar: () => Promise<void>
 }

@@ -16,13 +16,7 @@ export const NECESSIDADES: { codigo: string; rotulo: string }[] = [
 export interface PedidoComunitario {
   id: string
   referencia: string
-  tipos: string[]
-  pessoas: number | null
-  criancas: string | null
-  idosos: string | null
-  mobilidadeReduzida: string | null
   necessidades: { codigo: string; rotulo: string }[] | null
-  horarioAproximado: string
   situacao: string
   verificacao: string
   municipio: string | null
@@ -40,7 +34,7 @@ export interface RespostaComunidade {
   pedidos: PedidoComunitario[]
   naoCompartilhados: number
   agregados: null | {
-    pedidos: number; pessoasInformadas: number; pedidosComCriancas: number; pedidosComIdosos: number; pedidosComMobilidadeReduzida: number
+    pedidos: number
     necessidades: { codigo: string; rotulo: string; pedidos: number }[]
   }
   agregadosOmitidos: string | null

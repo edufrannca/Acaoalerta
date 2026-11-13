@@ -15,3 +15,6 @@
 | Observabilidade | Saber o que falhou | Logs estruturados, `/health` (banco + PostGIS), `/api/estado` (fontes, IA, push), histórico de tentativas HTTP por destino |
 | Portabilidade | Rodar em qualquer lugar | Docker (imagem única), `DATABASE_URL`, porta via `$PORT` |
 | Escalabilidade (futuro) | Extração de serviços | Módulos sem dependências cruzadas de infraestrutura; centrais já separadas por contrato |
+| Fontes públicas | Respeitar ViaCEP e Nominatim | Consulta só por ação explícita, 1 req/s global ao Nominatim, cache (1 dia/7 dias), User-Agent, atribuição, 20 consultas/min por IP e só com conta |
+| Notificações | Não perder aviso de familiar | Registro no servidor antes de qualquer canal; deduplicação por índice único; falha de push registrada sem apagar |
+| Privacidade por padrão | Nada compartilhado sem escolha | Consentimentos desmarcados; vínculo só por convite + aprovação; permissões sensíveis desligadas por padrão |

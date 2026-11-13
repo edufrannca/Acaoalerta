@@ -41,6 +41,12 @@ Contas fictícias (senha `Demo@2026`, domínio `@demo.alerta`): `cidada`, `cidad
 | 23 | Gateway encaminhando ao backend (receptor com internet → níveis 4 e 5) | app receptor + painel | pronto via script (SIMULADO); ⚠ físico |
 | 24 | Painel "Níveis de entrega comprovados" (1 a 5; nunca 6) | painel | pronto |
 
+## Cena extra — família avisada (≈ 2 min)
+Preparar antes: conta da "moradora" com a autorização de notificar familiares, residência "Minha casa" (moro aqui) e vínculo aprovado com a conta da "filha" (código de convite). Ver `MONITORAMENTO_FAMILIAR.md`.
+1. Celular da moradora: Preciso de socorro (pedido fictício) → "Pedido associado à sua residência".
+2. Celular/desktop da filha: aviso "Pedido de socorro na residência monitorada" (faixa vermelha com o app aberto, push se ativado, ou Perfil → Avisos de familiares) → abrir → estado e nível; dizer que a central é SIMULADA.
+3. Mostrar que a comunidade vê só necessidades e área aproximada, e que um SOS anônimo perto da casa não avisa ninguém.
+
 ## Encerramento
 "Tudo passou por HTTP, banco e protocolo de verdade; só o destinatário é simulado. O nível 6 — recebimento por um órgão real — exige homologação: é o próximo passo."
 

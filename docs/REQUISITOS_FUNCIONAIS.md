@@ -30,3 +30,13 @@ Estado: **I** = implementado e testado · **P** = implementado sem teste automat
 | RF24 | Modo demonstração: contas fictícias, avisos demonstrativos, modos de falha das centrais | I | `/demo`, `/api/demo` |
 | RF25 | Auditoria de acesso a dados detalhados | I | `RegistroAuditoria` |
 | RF26 | Integração institucional homologada | F | `CanalIntegracao.HttpInstitucionalHomologado` (reservado) |
+
+| RF27 | Locais monitorados (até 5) por CEP (ViaCEP), endereço (Nominatim), mapa (marcador arrastável) ou GPS; confirmação antes de salvar; editar, substituir, remover | I | `EditorLocal.tsx`, `/api/geo/*`, `/api/eu/locais` |
+| RF28 | Moradores agregados por residência (sem nomes), cifrados | I | `MoradoresResidencia` |
+| RF29 | Tela do local: chuva/estação, avisos, situação, orientações e pedidos compartilhados no ponto do local; atualização a cada 5 min e por SignalR | I | `LocalDetalhe.tsx` |
+| RF30 | Vínculo familiar por convite temporário de uso único + aprovação do morador; permissões; revogação por ambos | I | `ServicoVinculos` |
+| RF31 | Notificação a familiares autorizados quando o morador pede socorro, com atualizações, sem duplicar; guardada no servidor; SignalR e Web Push | I | `ServicoNotificacaoFamiliar` |
+| RF32 | Visão do pedido pelo familiar limitada às permissões do vínculo | I | `/api/eu/familia/pedidos/{id}` |
+| RF33 | Consentimentos A–D opcionais, desmarcados, com histórico (finalidade, versão, origem, data) e revogação no perfil | I | `ServicoConsentimentos` |
+| RF34 | Preferência comunitária aplicada a pedidos novos; revogação retira os que dependiam dela | I | `AplicarPreferenciasAsync` |
+| RF35 | Comunidade só com região aproximada, necessidades, verificação, estado e Oferecer ajuda (em todo pedido compartilhado, inclusive único e sem necessidades) | I | `ComunidadeEndpoints`, PR #1 |

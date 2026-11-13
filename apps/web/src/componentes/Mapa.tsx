@@ -62,7 +62,7 @@ interface Abrigos { abrigos: { id: string; nome: string; endereco: string | null
 interface Areas { areas: { latitude: number; longitude: number; descricao: string; bairro: string | null; localidade: string | null; fonte: string }[]; fonte?: { ultimoSucessoEm?: string } | null }
 interface Aviso { id: string; titulo: string; oficial: boolean; severidade: string; fimEm: string; municipios: string[]; poligono: GeoJSON.Geometry | null; fonteNome: string }
 
-const estilo: maplibregl.StyleSpecification = {
+export const estilo: maplibregl.StyleSpecification = {
   version: 8,
   sources: {
     osm: { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, maxzoom: 19, attribution: '© colaboradores do OpenStreetMap' },
@@ -127,7 +127,7 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
       popup('chuva', (p) => `<strong>Estação ${esc(p.rede ?? '')} «${esc(p.nomeEstacao)}»</strong><br>${esc(p.municipio)}<br>${p.mm1h == null ? 'Sem leitura na última hora' : `${esc(p.mm1h)} mm na última hora`} · ${p.mm == null ? 'sem leitura em 24 h' : `${esc(p.mm)} mm em 24 h`}<br><small>${p.estado === 'Atual' ? 'Leitura' : 'Leitura antiga'}: ${esc(p.em)} — APAC/SIRH. Nome técnico da estação; não indica bairro.</small>`)
       popup('abrigos', (p) => `<strong>${esc(p.nome)}</strong><br>${esc(p.endereco ?? '')}<br>${esc(p.disponibilidade)}<br><small>Status publicado: ${esc(p.status ?? 'não informado')} · Acessibilidade: ${esc(p.acessibilidade)}<br>Fonte: ${esc(p.fonte)}${p.atualizado ? `, atualizado ${esc(p.atualizado)}` : ''}</small>`)
       popup('areasRisco', (p) => `<strong>${esc(p.descricao)}</strong><br>${esc(p.local)}<br><small>Fonte: ${esc(p.fonte)}</small>`)
-      popup('pedidos', (p) => `<strong>Pedido ${esc(p.referencia)}: ${esc(p.tipo)}</strong><br>${esc(p.situacao)} · ${esc(p.verificacao)}<br><small>O pedido foi registrado dentro deste círculo (raio ${esc(p.raio)} m). O centro não é a posição da pessoa.</small>`)
+      popup('pedidos', (p) => `<strong>Pedido ${esc(p.referencia)}</strong><br>Precisa de: ${esc(p.tipo)}<br>${esc(p.situacao)} · ${esc(p.verificacao)}<br><small>O pedido foi registrado dentro deste círculo (raio ${esc(p.raio)} m). O centro não é a posição da pessoa.</small>`)
       popup('avisos-preenchimento', (p) => `<strong>${esc(p.titulo)}</strong><br>${esc(p.severidade)} — até ${esc(p.fim)}<br><small>${p.oficial ? 'Aviso oficial' : 'AVISO DEMONSTRATIVO (não oficial)'} · ${esc(p.fonte)}</small>`)
       popup('operador', () => '')
       setPronto(true)
@@ -167,7 +167,7 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
   useEffect(() => { if (pronto) set('areasRisco', { type: 'FeatureCollection', features: (areas.dados?.areas ?? []).map((a) => pt(a.longitude, a.latitude, { descricao: a.descricao, local: [a.localidade, a.bairro].filter(Boolean).join(', '), fonte: a.fonte })) }) }, [pronto, areas.dados])
   useEffect(() => { if (pronto) set('chuva', { type: 'FeatureCollection', features: filtrar(chuva.dados?.estacoes ?? []).map((e) => pt(e.longitude, e.latitude, { nome: e.nome, nomeEstacao: e.nomeEstacao ?? e.nome, rede: e.rede ?? '', municipio: e.municipio, mm: e.mm24h, mm1h: e.mm1h, estado: e.estado, em: formatarHora(e.ultimaLeituraEm) })) }) }, [pronto, chuva.dados, municipio]) // eslint-disable-line
   useEffect(() => { if (pronto) set('abrigos', { type: 'FeatureCollection', features: filtrar(abrigos.dados?.abrigos ?? []).map((a) => pt(a.longitude, a.latitude, { nome: a.nome, endereco: a.endereco, ficticio: a.ficticio, disponibilidade: a.disponibilidade, fonte: a.fonte, acessibilidade: a.acessibilidade, status: a.statusFonte, atualizado: a.atualizadoNaFonteEm ? formatarHora(a.atualizadoNaFonteEm) : '' })) }) }, [pronto, abrigos.dados, municipio]) // eslint-disable-line
-  useEffect(() => { if (pronto) set('pedidos', { type: 'FeatureCollection', features: (pedidos ?? []).map((x) => poli(x.area.latitude, x.area.longitude, x.area.raioMetros, { id: x.id, referencia: x.referencia, tipo: x.tipos.join(', '), situacao: x.situacao, verificacao: x.verificacao, raio: x.area.raioMetros })) }) }, [pronto, pedidos])
+  useEffect(() => { if (pronto) set('pedidos', { type: 'FeatureCollection', features: (pedidos ?? []).map((x) => poli(x.area.latitude, x.area.longitude, x.area.raioMetros, { id: x.id, referencia: x.referencia, tipo: (x.necessidades ?? []).map((n) => n.rotulo).join(', ') || 'necessidades não informadas', situacao: x.situacao, verificacao: x.verificacao, raio: x.area.raioMetros })) }) }, [pronto, pedidos])
   useEffect(() => { if (pronto) set('areaPublica', areaPublica ? { type: 'FeatureCollection', features: [poli(areaPublica.latitude, areaPublica.longitude, areaPublica.raioMetros, {})] } : vazio) }, [pronto, areaPublica])
   useEffect(() => {
     if (!pronto) return

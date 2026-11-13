@@ -73,3 +73,22 @@ test('layout mobile: três ações com socorro em destaque e navegação inferio
   const nav = page.getByRole('navigation', { name: 'Navegação principal' }).last()
   for (const r of ['Início', 'Mapa', 'Alertas', 'Abrigos', 'Perfil']) await expect(nav.getByRole('link', { name: r })).toBeVisible()
 })
+
+test('acessibilidade (axe) no cadastro com autorizações, perfil e cadastro de local', async ({ page }) => {
+  await page.goto('/perfil')
+  await page.getByRole('button', { name: 'Criar uma conta' }).click()
+  const analisar = async () => {
+    const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).exclude('.maplibregl-canvas').analyze()
+    expect(r.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([])
+  }
+  await analisar()
+  await page.getByLabel('Nome').fill('Pessoa Acessível')
+  await page.getByLabel('E-mail').fill(`a11y-${crypto.randomUUID().slice(0, 8)}@teste.alerta.br`)
+  await page.getByLabel('Senha').fill('senha-segura-123')
+  await page.getByRole('button', { name: 'Criar conta' }).click()
+  await expect(page.getByRole('heading', { name: 'Autorizações (LGPD)' })).toBeVisible()
+  await analisar()
+  await page.goto('/locais/novo')
+  await expect(page.getByRole('heading', { name: 'Novo local monitorado' })).toBeVisible()
+  await analisar()
+})

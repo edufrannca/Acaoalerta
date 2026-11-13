@@ -24,3 +24,9 @@ O Alerta em Ação **não substitui** os telefones 193, 199, 192 e 190. Toda tel
 - Instância única: os trabalhos de fundo rodam no mesmo processo; escalar horizontalmente exige um lock distribuído ou fila.
 - Plano gratuito de hospedagem hiberna e tem banco com prazo de validade.
 - Sem testes de carga, de intrusão ou de acessibilidade com leitor de tela.
+
+## Monitoramento familiar
+- Notificação "em tempo real" só com o app aberto e conectado (SignalR) ou por Web Push quando o navegador suporta e o servidor tem chaves VAPID. Com o app fechado no iPhone, só push (iOS 16.4+, app instalado). Nada garante entrega instantânea.
+- OpenStreetMap tem poucos números de casa na RMR: a maioria dos endereços localiza só a rua, e a pessoa confirma o ponto no mapa.
+- ViaCEP e Nominatim são serviços públicos gratuitos sem garantia de disponibilidade; fora do ar, o cadastro segue pelo mapa.
+- Vínculo exige que o morador tenha conta. Pedido anônimo não avisa familiares (por desenho).

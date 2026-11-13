@@ -200,9 +200,11 @@ test('comunidade vê resumo autorizado, sem dados pessoais, e oferece ajuda coor
   await page.getByRole('button', { name: 'Buscar perto de mim' }).click({ timeout: 3000 }).catch(() => {})
   const cartao = page.getByRole('article', { name: `Pedido ${ref}` })
   await expect(cartao).toBeVisible({ timeout: 20_000 })
-  await expect(cartao).toContainText('5 pessoas no local')
-  await expect(cartao).toContainText('Crianças: 2 a 4')
+  // Comunidade vê só o básico: necessidades, região aproximada, verificação e estado.
   await expect(cartao).toContainText('Água potável')
+  await expect(cartao).toContainText('Não verificado')
+  await expect(cartao).not.toContainText('pessoas no local')
+  await expect(cartao).not.toContainText('Crianças')
   await expect(page.locator('body')).not.toContainText('Joana')
   await expect(page.locator('body')).not.toContainText('97777')
   await cartao.getByRole('button', { name: 'Oferecer ajuda' }).click()
@@ -225,4 +227,75 @@ test('comunidade vê resumo autorizado, sem dados pessoais, e oferece ajuda coor
   await page.getByRole('button', { name: 'Informar entrega concluída' }).click()
   await expect(page.getByText('Concluída').first()).toBeVisible()
   void browser
+})
+
+test('familiar vinculado é avisado quando o morador pede socorro em casa', async ({ browser }) => {
+  test.setTimeout(150_000)
+  const sufixo = crypto.randomUUID().slice(0, 8)
+  // Aparelho B — morador: cria conta autorizando notificar familiares.
+  const ctxB = await browser.newContext({ geolocation: { latitude: -8.0631, longitude: -34.8711, accuracy: 15 }, permissions: ['geolocation'] })
+  const b = await ctxB.newPage()
+  await b.goto('/perfil')
+  await b.getByRole('button', { name: 'Criar uma conta' }).click()
+  await b.getByLabel('Nome').fill('Maria Moradora')
+  await b.getByLabel('E-mail').fill(`maria-${sufixo}@teste.alerta.br`)
+  await b.getByLabel('Senha').fill('senha-segura-123')
+  // Todas as autorizações começam desmarcadas.
+  for (const cb of await b.getByRole('checkbox').all()) await expect(cb).not.toBeChecked()
+  await b.getByLabel(/Notificação de familiares vinculados/).check()
+  await b.getByRole('button', { name: 'Criar conta' }).click()
+  await expect(b.getByRole('heading', { name: 'Maria Moradora' })).toBeVisible()
+
+  // Cadastra a residência escolhendo o ponto no mapa (funciona sem CEP/geocodificação).
+  await b.getByRole('link', { name: 'Adicionar local' }).click()
+  await b.getByRole('tab', { name: 'No mapa' }).click()
+  const mapa = b.getByRole('application', { name: /Mapa para escolher o local/ })
+  await mapa.click({ position: { x: 200, y: 160 } })
+  await expect(b.getByText(/Marcador:/)).toBeVisible()
+  await b.getByLabel('Confirmo que o marcador está no lugar certo').check()
+  await b.getByLabel('Nome do local').fill('Minha casa')
+  await b.getByLabel(/Eu moro aqui/).check()
+  await b.getByLabel('Moradores', { exact: true }).fill('3')
+  await b.getByLabel('Crianças').fill('1')
+  await b.getByRole('button', { name: 'Salvar local' }).click()
+  await expect(b.getByRole('heading', { name: 'Minha casa' })).toBeVisible()
+  await b.getByRole('button', { name: 'Gerar código de convite' }).click()
+  const codigo = (await b.locator('.select-all').textContent())!.trim()
+  expect(codigo).toMatch(/^[A-Z2-9]{5}-[A-Z2-9]{5}$/)
+
+  // Aparelho A — familiar: conta, usa o código.
+  const ctxA = await browser.newContext()
+  const a = await ctxA.newPage()
+  await a.goto('/perfil')
+  await a.getByRole('button', { name: 'Criar uma conta' }).click()
+  await a.getByLabel('Nome').fill('Ana Filha')
+  await a.getByLabel('E-mail').fill(`ana-${sufixo}@teste.alerta.br`)
+  await a.getByLabel('Senha').fill('senha-segura-123')
+  await a.getByRole('button', { name: 'Criar conta' }).click()
+  await a.getByLabel('Código de convite').fill(codigo)
+  await a.getByLabel('Como você chama essa casa').fill('Casa da minha mãe')
+  await a.getByRole('button', { name: 'Enviar pedido de acompanhamento' }).click()
+  await expect(a.getByText('Aguardando aprovação do morador')).toBeVisible()
+
+  // Morador aprova.
+  await b.reload()
+  await b.getByRole('button', { name: 'Aprovar' }).click()
+  await expect(b.getByText('Receber avisos dos meus pedidos de socorro')).toBeVisible()
+
+  // Morador pede socorro (um toque, como sempre).
+  await b.goto('/')
+  await b.getByRole('button', { name: /Preciso de socorro/ }).first().click()
+  await expect(b.getByRole('heading', { name: 'Pedido recebido pelo servidor' })).toBeVisible({ timeout: 20_000 })
+  await expect(b.getByText(/Pedido associado à sua residência/)).toBeVisible({ timeout: 15_000 })
+
+  // Familiar vê o aviso guardado e abre o pedido com só o permitido.
+  await a.reload()
+  const aviso = a.getByRole('link', { name: /Pedido de socorro na residência monitorada/ })
+  await expect(aviso).toBeVisible({ timeout: 15_000 })
+  await expect(aviso).toContainText('"Casa da minha mãe"')
+  await aviso.click()
+  await expect(a.getByRole('heading', { name: /Pedido de socorro na residência "Casa da minha mãe"/ })).toBeVisible()
+  await expect(a.getByText('Posição exata: o morador não compartilhou.')).toBeVisible()
+  await expect(a.getByText(/nenhum órgão real/i).first()).toBeVisible()
+  await ctxA.close(); await ctxB.close()
 })

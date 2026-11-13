@@ -6,13 +6,7 @@ import type { PedidoComunitario } from '../lib/comunidade'
 const pedido: PedidoComunitario = {
   id: 'pedido-um',
   referencia: 'ABC123',
-  tipos: ['Alagamento ou pessoas ilhadas'],
-  pessoas: null,
-  criancas: null,
-  idosos: null,
-  mobilidadeReduzida: null,
   necessidades: null,
-  horarioAproximado: '2026-11-13T08:00:00Z',
   situacao: 'Recebido pelo servidor, aguardando confirmação',
   verificacao: 'Não verificado',
   municipio: 'Recife',
@@ -33,6 +27,14 @@ describe('Pedido compartilhado e ofertas comunitárias', () => {
     expect(screen.getByText(/Necessidades não informadas ou não compartilhadas/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /Oferecer ajuda/i }))
     expect(aoOferecer).toHaveBeenCalledWith(pedido)
+  })
+
+  it('mostra só o básico: região aproximada, necessidades, verificação e estado', () => {
+    render(<CartaoPedido p={{ ...pedido, necessidades: [{ codigo: 'agua', rotulo: 'Água potável' }] }} />)
+    expect(screen.getByText(/Área de 400 m/)).toBeTruthy()
+    expect(screen.getByText('Água potável')).toBeTruthy()
+    expect(screen.getByText('Não verificado')).toBeTruthy()
+    expect(screen.queryByText(/pessoas no local|Crianças|Idosos/i)).toBeNull()
   })
 
   it('não exibe uma ação de oferta num cartão sem callback de autorização', () => {

@@ -54,3 +54,11 @@
 | Bearer token do ASP.NET + chaves do Data Protection no banco | Sem pacote JWT externo; tokens sobrevivem a reinícios |
 | Cifragem AES-256-GCM de campos sensíveis | Família, relato, trilha de localização, resultado da IA e contato do voluntário |
 | Web Push implementado sem biblioteca | Sem dependência adicional; validado com o vetor oficial do RFC 8291 |
+
+## Monitoramento familiar (13/11/2026)
+- **Localizacao**: `LocalMonitorado` ampliado (tipo, moro aqui, endereço e moradores cifrados, origem/precisão) e a porta `IGeocodificador`; o adaptador `GeocodificadorPublico` (Infraestrutura) fala com ViaCEP e Nominatim, com `LimitadorNominatim` compartilhado.
+- **Familias**: `VinculoFamiliar`, `ConviteVinculo`, `ServicoVinculos`.
+- **Identidade**: `RegistroConsentimento` (append-only) e `ServicoConsentimentos`.
+- **Notificacoes**: `NotificacaoFamiliar` e `ServicoNotificacaoFamiliar`, acionado pelo `NotificadorSignalR` depois que cada mudança da ocorrência é gravada (falha nunca derruba o pedido).
+- **Ocorrencias**: `ResidenciaId` (só por consentimento D e escolha do solicitante) e origem do compartilhamento (`pedido`/`preferencia`).
+- Endpoints em `ResidenciasEndpoints.cs`. Migração `ResidenciasVinculosConsentimentos` (colunas novas com padrão seguro; dados antigos preservados).

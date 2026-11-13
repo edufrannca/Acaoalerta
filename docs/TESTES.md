@@ -7,9 +7,9 @@ Todos os números abaixo vêm de execuções reais em 13/11/2026 (.NET 10, Postg
 | Unitários (domínio, protocolo de proximidade, área aproximada, comparação de GPS, ofertas) | xUnit | 100 | 100 aprovados |
 | Avaliação da IA (validador, Groq com HTTP controlado: 429, timeout, JSON inválido, indisponível) | xUnit | 24 | 24 aprovados (*) |
 | Arquitetura (dependências entre camadas) | xUnit + reflexão | 7 | 7 aprovados |
-| Integração (API + banco real + centrais via HTTP + gateway v2 + comunidade + retransmissão QR) | xUnit + WebApplicationFactory | 52 | 52 aprovados |
-| Frontend (fila offline, telas, leitura por voz, acessibilidade, QR de retransmissão) | Vitest + Testing Library + fake-indexeddb | 16 | 16 aprovados |
-| Ponta a ponta (jornadas, offline → QR → aparelho próximo, comunidade e oferta, instalação PWA, axe WCAG 2 A/AA em 9 telas, alto contraste) | Playwright + axe-core | 22 | 22 aprovados |
+| Integração (API + banco real + centrais via HTTP + gateway v2 + comunidade + retransmissão QR + locais, vínculos, consentimentos, notificações familiares) | xUnit + WebApplicationFactory | 60 | 60 aprovados |
+| Frontend (fila offline, telas, leitura por voz, acessibilidade, QR de retransmissão, cartão comunitário mínimo) | Vitest + Testing Library + fake-indexeddb | 19 | 19 aprovados |
+| Ponta a ponta (jornadas, offline → QR → aparelho próximo, comunidade e oferta, família avisada, instalação PWA, axe WCAG 2 A/AA em 12 telas, alto contraste) | Playwright + axe-core | 24 | 24 aprovados |
 | Protocolo Kotlin contra os vetores | kotlinc 2.1 (JVM) | 3 vetores | conferem |
 | Gateway ponta a ponta (`simuladores/nearby-ponta-a-ponta.py`) | script | 1 | passou — SIMULADO |
 | Testes JUnit Android / XCTest iOS / builds nativos (inclui importação do pedido da PWA) | Gradle / Xcode | — | **não executados** (CI bloqueado; sem SDK/Xcode no ambiente) — código escrito, não compilado |
@@ -76,3 +76,11 @@ Feita pelo navegador contra https://alerta-em-acao.onrender.com, só com pedidos
 | Operador | posição do emissor ±18 m; posição do ajudante separada; "Leituras compatíveis: 31 m, margem 48 m" |
 
 Isto **não** é teste físico: as chamadas saíram de um navegador, simulando os dois aparelhos.
+
+## Monitoramento familiar (13/11/2026)
+Cobertos por `ResidenciasTestes.cs` (7 cenários de integração) e pelo E2E "familiar vinculado é avisado…":
+CEP válido, inexistente, inválido, sem rua (sem coordenadas → mapa), fora da RMR; busca textual; endereço ambíguo; ponto no mapa com município oficial; fonte fora do ar (503); cadastro por GPS e por mapa; edição; moradores (validação de totais); dados cifrados no banco; limite de 5; remoção; acesso de outra conta negado; contexto para endereço distante;
+convite (formato, uso único, código errado com mensagem genérica, próprio código recusado, expirado em 24 h), aprovação só pelo morador, município oculto antes da aprovação, revogação; duas famílias no mesmo endereço sem vínculo;
+SOS do morador → aviso só ao familiar aprovado; estranho e vizinho não recebem; reenvio sem duplicar; visão do familiar com permissões (posição e moradores só quando liberados); complemento e confirmação da central simulada geram avisos; marcação de lida; revogação corta o acesso; SOS anônimo perto da casa não é associado; falha de push registrada sem perder o aviso; sem consentimento D nada é associado; associação explícita;
+cadastro sem consentimentos (nada registrado), consentimentos independentes, histórico com versão e origem, preferência C só para pedidos novos, revogação de C retira só os pedidos dependentes; cadastro com consentimentos marcados registra origem "cadastro".
+Validação em aparelhos físicos: **pendente** (roteiro em `MONITORAMENTO_FAMILIAR.md`).
