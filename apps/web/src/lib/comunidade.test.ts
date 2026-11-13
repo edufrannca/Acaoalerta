@@ -18,7 +18,10 @@ describe('QR de retransmissão', () => {
     expect(h).toHaveLength(32)
     expect(await hashQr({ ...base, pessoas: 9 })).not.toBe(h)
     const p = { ...base, h }
-    expect(decodificarQr('#p=' + codificarQr(p))).toEqual(p)
+    const volta = decodificarQr('#p=' + codificarQr(p))!
+    expect(await hashQr(volta)).toBe(h)
+    expect(volta.m).toEqual({ ilhado: true, acessoBloqueado: true })
+    expect(codificarQr(p).length).toBeLessThan(codificarQr({ ...p, m: { ...p.m, x: false, y: false } }).length + 1)
     expect(decodificarQr('#p=lixo')).toBeNull()
   })
 

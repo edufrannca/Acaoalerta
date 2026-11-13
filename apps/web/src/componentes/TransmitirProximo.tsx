@@ -33,7 +33,7 @@ export function TransmitirProximo({ ocorrenciaId, aoExibir }: { ocorrenciaId: st
         <h3 className="text-[17px] font-bold text-petroleo">Mostre este código para alguém por perto</h3>
         <p className="text-[14.5px]">A pessoa aponta a câmera do celular dela (com internet) e toca no link. O pedido vai para o servidor pela internet dela. Não precisa instalar nada.</p>
       </div>
-      {svg ? <div role="img" aria-label="Código QR com o pedido de socorro" data-url={p ? urlRetransmissao(p) : undefined} className="mx-auto w-full max-w-[300px] rounded-cartao bg-branco p-2 ring-1 ring-linha" dangerouslySetInnerHTML={{ __html: svg }} /> : <p>Gerando código…</p>}
+      {svg ? <div role="img" aria-label="Código QR com o pedido de socorro" data-url={p ? urlRetransmissao(p) : undefined} className="mx-auto w-full max-w-[360px] rounded-cartao bg-branco p-1 ring-1 ring-linha" dangerouslySetInnerHTML={{ __html: svg }} /> : <p>Gerando código…</p>}
       <ul className="grid gap-1 text-[13.5px] text-tinta-suave">
         <li>O código leva: identificador do pedido, horário, {p?.lat != null ? `sua posição (±${p.prec ?? '?'} m)` : 'nenhuma posição (localização não informada)'}, situações marcadas, número de pessoas e necessidades.</li>
         <li>Não leva nome, telefone, relato escrito nem o identificador deste aparelho.</li>

@@ -98,7 +98,7 @@ export function AcompanharSocorro() {
             {!local && !servidor ? 'Pedido não encontrado neste aparelho' : recebidoServidor ? 'Pedido recebido pelo servidor' : 'Seu pedido está salvo neste aparelho.'}
           </h1>
           <p className={`mt-1 text-[15px] ${recebidoServidor ? 'text-areia/90' : ''}`}>
-            {servidor ? servidor.statusDescricao : local ? descricaoEstado[local.estado] + (online ? '' : ' Sem internet: enviaremos assim que a conexão voltar.') : ''}
+            {servidor ? servidor.statusDescricao : local ? (local.estado === 'salvo_no_aparelho' ? 'Ainda não transmitido ao servidor.' : descricaoEstado[local.estado]) + (online ? '' : ' Sem internet: enviaremos assim que a conexão voltar.') : ''}
           </p>
           <p className={`mt-2 text-[14px] font-semibold ${recebidoServidor ? 'text-branco' : ''}`} data-testid="nivel-comprovado">
             Último nível comprovado: {servidor?.nivelComprovado ? `Nível ${servidor.nivelComprovado} — ${servidor.nivelDescricao}` : 'Nível 1 — salvo neste aparelho'}

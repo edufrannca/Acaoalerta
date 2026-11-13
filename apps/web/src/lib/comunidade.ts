@@ -140,16 +140,27 @@ export async function montarPedidoQr(ocorrenciaId: string): Promise<PedidoQr | n
   return { ...base, h: await hashQr(base) }
 }
 
+/** Remove campos vazios para o QR ficar menor (mais fácil de ler pela câmera). O texto canônico não muda. */
 export function codificarQr(p: PedidoQr): string {
-  return b64url(new TextEncoder().encode(JSON.stringify(p)))
+  const c: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(p)) {
+    if (v == null || v === false) continue
+    if (k === 'm') { const m = Object.fromEntries(Object.entries(v as Record<string, boolean>).filter(([, x]) => x)); if (Object.keys(m).length) c.m = m; continue }
+    if (Array.isArray(v) && v.length === 0) continue
+    if (k === 'comp' && !(v as Compartilhamento).autorizado) continue
+    c[k] = v
+  }
+  return b64url(new TextEncoder().encode(JSON.stringify(c)))
 }
 
 export function decodificarQr(fragmento: string): PedidoQr | null {
   try {
     const t = fragmento.replace(/^#?p=/, '').replace(/-/g, '+').replace(/_/g, '/')
     const bin = atob(t + '='.repeat((4 - (t.length % 4)) % 4))
-    const p = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (ch) => ch.charCodeAt(0)))) as PedidoQr
-    return p.v === VERSAO_QR && typeof p.id === 'string' ? p : null
+    const b = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (ch) => ch.charCodeAt(0)))) as Partial<PedidoQr>
+    if (b.v !== VERSAO_QR || typeof b.id !== 'string' || typeof b.em !== 'string' || typeof b.h !== 'string' || typeof b.criado !== 'string') return null
+    return { v: b.v, id: b.id, em: b.em, criado: b.criado, lat: b.lat ?? null, lon: b.lon ?? null, prec: b.prec ?? null, lido: b.lido ?? null,
+      m: b.m ?? {}, pessoas: b.pessoas ?? null, nec: b.nec ?? [], comp: b.comp ?? null, h: b.h, ...(b.d ? { d: true } : {}) }
   } catch { return null }
 }
 
