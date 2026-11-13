@@ -19,10 +19,17 @@
         android:label="Alerta em Ação — Proximidade (demo)"
         android:theme="@style/Theme.AppCompat.Light.DarkActionBar"
         android:usesCleartextTraffic="true">
-        <activity android:name=".MainActivity" android:exported="true" android:configChanges="orientation|screenSize|keyboardHidden">
+        <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop" android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Pedido criado na PWA deste mesmo aparelho: alertaemacao://importar#p=… (mesmo identificador; não duplica). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="alertaemacao" android:host="importar" />
             </intent-filter>
         </activity>
     </application>

@@ -253,3 +253,18 @@ public class ComunidadeTestes(FabricaApi f)
         Assert.Contains(o.Historico, h => h.Tipo == "localizacao");
     }
 }
+
+public class ParidadeQrTestes
+{
+    [Fact]
+    public void Texto_canonico_do_QR_e_identico_ao_da_PWA()
+    {
+        // Mesmo vetor de apps/web/src/lib/comunidade.test.ts.
+        var p = new AlertaEmAcao.Api.Endpoints.PedidoQrV1("aea-qr/1", Guid.Parse("0193A5B0-1111-7222-8333-444455556666"), "p:abc",
+            DateTimeOffset.Parse("2026-11-13T12:34:56.789Z"), -8.0402, -34.9301, 18, null,
+            new() { ["ilhado"] = true, ["aguaSubindo"] = false, ["acessoBloqueado"] = true }, 3, ["transporte_assistido", "agua"],
+            new CompartilhamentoComunitario(true, false, true), "");
+        Assert.Equal("aea-qr/1|0193a5b0-1111-7222-8333-444455556666|p:abc|2026-11-13T12:34:56Z|-8.0402|-34.9301|18|acessoBloqueado,ilhado|3|agua,transporte_assistido|101|",
+            AlertaEmAcao.Api.Endpoints.ComunidadeEndpoints.CanonicoQr(p));
+    }
+}

@@ -8,12 +8,14 @@ struct Gateway {
 
     struct Resposta { let status: Int; let corpo: [String: Any]?; let erro: String? }
 
-    func entregar(_ m: [String: Any], receptorPseudonimo: String, recebidoEm: String, modelo: String,
+    func entregar(_ m: [String: Any], receptorPseudonimo: String, recebidoEm: String, modelo: String, posicaoReceptor: [String: Any]? = nil,
                   concluir: @escaping (Resposta) -> Void) {
-        let corpo: [String: Any] = [
+        var corpo: [String: Any] = [
             "mensagem": m, "receptorPseudonimizado": receptorPseudonimo, "recebidoLocalmenteEm": recebidoEm,
             "canal": "nearby", "modeloAparelhoReceptor": modelo, "plataformaReceptor": "ios",
         ]
+        // GPS do gateway: campo próprio; o servidor nunca o usa como posição da família.
+        if let p = posicaoReceptor { corpo["posicaoReceptor"] = p }
         chamar("POST", "/api/gateway/v2/mensagens", corpo, concluir)
     }
 

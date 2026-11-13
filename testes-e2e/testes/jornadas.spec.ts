@@ -81,7 +81,7 @@ test('offline: pedido fica salvo no aparelho e sincroniza sem duplicar ao voltar
   await expect(page.getByText('Conectado').or(page.getByRole('link', { name: 'Início' })).first()).toBeVisible()
   await context.setOffline(true)
   await page.getByRole('button', { name: /Preciso de socorro/ }).first().click()
-  await expect(page.getByRole('heading', { name: 'Pedido salvo neste aparelho. Ainda não transmitido.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Seu pedido está salvo neste aparelho.' })).toBeVisible()
   const id = page.url().split('/socorro/')[1]
 
   await page.locator('a[href="/pedidos"]:visible').first().click()
@@ -144,4 +144,85 @@ test('mapa interativo e abrigos com disponibilidade não verificada', async ({ p
   expect(publico.abrigos.some((a: { ficticio: boolean }) => a.ficticio)).toBeFalsy()
   await page.goto('/abrigos')
   await expect(page.getByText(/Nenhum abrigo ativo publicado|Disponibilidade não confirmada/).first()).toBeVisible()
+})
+
+test('sem internet: pedido salvo → código QR → aparelho próximo encaminha → solicitante sincroniza sem duplicar', async ({ page, context, browser }) => {
+  await page.goto('/')
+  await page.waitForFunction(() => navigator.serviceWorker?.controller != null, null, { timeout: 15_000 }).catch(() => {})
+  await context.setOffline(true)
+  await page.getByRole('button', { name: /Preciso de socorro/ }).first().click()
+  await expect(page).toHaveURL(/\/socorro\//)
+  const id = page.url().split('/socorro/')[1]
+  await expect(page.getByRole('heading', { name: 'Seu pedido está salvo neste aparelho.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Água potável' }).click()
+  await page.getByRole('button', { name: 'Estou ilhado' }).click()
+  await page.getByRole('button', { name: 'Enviar informações' }).click()
+  await page.getByLabel('Mostrar um resumo do meu pedido para a comunidade').check()
+  await page.getByRole('button', { name: 'Procurar aparelhos próximos para transmitir' }).click()
+  const qr = page.getByRole('img', { name: 'Código QR com o pedido de socorro' })
+  await expect(qr).toBeVisible()
+  await expect(page.getByText('Código exibido para um aparelho próximo')).toBeVisible()
+  const url = await qr.getAttribute('data-url')
+  expect(url).toContain('/retransmitir#p=')
+
+  // Outro aparelho, com internet, abre o link lido pela câmera.
+  const ajudante = await browser.newContext({ geolocation: { latitude: -8.1263, longitude: -34.9479, accuracy: 20 }, permissions: ['geolocation'] })
+  const pa = await ajudante.newPage()
+  await pa.goto(new URL(url!).pathname + new URL(url!).hash)
+  await expect(pa.getByRole('heading', { name: 'Alguém por perto pediu socorro' })).toBeVisible()
+  await expect(pa.getByText('Pessoas ilhadas')).toBeVisible()
+  await expect(pa.getByText('Precisa de: Água potável')).toBeVisible()
+  await pa.getByLabel(/Enviar também a posição aproximada deste aparelho/).check()
+  await pa.getByRole('button', { name: 'Encaminhar pedido' }).click()
+  await expect(pa.getByRole('heading', { name: /Recebido pelo servidor|Central simulada confirmou/ })).toBeVisible({ timeout: 20_000 })
+  await ajudante.close()
+
+  // O solicitante volta a ter internet: o mesmo pedido sincroniza sem duplicar.
+  await context.setOffline(false)
+  await expect(page.getByRole('heading', { name: 'Pedido recebido pelo servidor' })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(/Níveis 2–3 · lido por QR/)).toBeVisible({ timeout: 15_000 })
+  expect(id).toMatch(/[0-9a-f-]{36}/)
+})
+
+test('comunidade vê resumo autorizado, sem dados pessoais, e oferece ajuda coordenada pela equipe', async ({ page, request, browser }) => {
+  // Pedido de outra família, compartilhado com necessidades.
+  const id = crypto.randomUUID()
+  const disp = 'e2e-' + crypto.randomUUID()
+  const r = await request.post('/api/ocorrencias', { headers: { 'X-Dispositivo-Id': disp }, data: {
+    id, criadaEm: new Date().toISOString(), latitude: -8.1270, longitude: -34.9490, precisaoMetros: 15,
+    complemento: { quantidadePessoas: 5, criancas: 2, idosos: 1, aguaSubindo: true, necessidades: ['agua', 'alimentos'], descricao: 'Joana, fone 81 97777-1234' },
+    compartilhamento: { autorizado: true, incluirPessoas: true, incluirNecessidades: true },
+  } })
+  expect(r.ok()).toBeTruthy()
+  const ref = id.replace(/-/g, '').slice(0, 6).toUpperCase()
+
+  await page.goto('/ajudar')
+  await page.getByRole('button', { name: 'Buscar perto de mim' }).click({ timeout: 3000 }).catch(() => {})
+  const cartao = page.getByRole('article', { name: `Pedido ${ref}` })
+  await expect(cartao).toBeVisible({ timeout: 20_000 })
+  await expect(cartao).toContainText('5 pessoas no local')
+  await expect(cartao).toContainText('Crianças: 2 a 4')
+  await expect(cartao).toContainText('Água potável')
+  await expect(page.locator('body')).not.toContainText('Joana')
+  await expect(page.locator('body')).not.toContainText('97777')
+  await cartao.getByRole('button', { name: 'Oferecer ajuda' }).click()
+  const form = page.getByRole('region', { name: `Oferecer ajuda ao pedido ${ref}` })
+  await expect(form).toContainText('Ajuda comunitária não é resgate.')
+  await form.getByLabel('O que você oferece').fill('Fardo de água mineral')
+  await expect(form.getByRole('button', { name: 'Enviar oferta' })).toBeDisabled()
+  await form.getByLabel('Li as orientações e não vou entrar em áreas perigosas').check()
+  await form.getByRole('button', { name: 'Enviar oferta' }).click()
+  await expect(page.getByText('Oferta enviada · aguardando a equipe')).toBeVisible({ timeout: 20_000 })
+
+  // Equipe autorizada aceita e orienta.
+  const tk = (await (await request.post('/api/auth/demo', { data: { perfil: 'defesa-civil-recife' } })).json()).accessToken as string
+  const lista = await (await request.get('/api/painel/ofertas-comunitarias', { headers: { Authorization: `Bearer ${tk}` } })).json() as { id: string; ocorrenciaId: string }[]
+  const oferta = lista.find((o) => o.ocorrenciaId === id)!
+  expect((await request.post(`/api/painel/ofertas/${oferta.id}/decisao`, { data: { aceita: true }, headers: { Authorization: `Bearer ${tk}` } })).ok()).toBeTruthy()
+  expect((await request.post(`/api/painel/ofertas/${oferta.id}/encaminhamento`, { data: { instrucao: 'Entregar na escola municipal, portão 2 (ponto seguro).' }, headers: { Authorization: `Bearer ${tk}` } })).ok()).toBeTruthy()
+  await page.reload()
+  await expect(page.getByText(/Orientação da equipe:.*escola municipal/)).toBeVisible({ timeout: 20_000 })
+  await page.getByRole('button', { name: 'Informar entrega concluída' }).click()
+  await expect(page.getByText('Concluída').first()).toBeVisible()
+  void browser
 })

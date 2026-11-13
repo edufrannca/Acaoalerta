@@ -1,6 +1,6 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 
-export type TipoItemFila = 'socorro' | 'complemento' | 'situacao' | 'localizacao' | 'oferta'
+export type TipoItemFila = 'socorro' | 'complemento' | 'situacao' | 'localizacao' | 'oferta' | 'oferta_pedido' | 'compartilhamento' | 'retransmissao'
 
 /** Estado de transmissão verificável de cada item salvo no aparelho. */
 export type EstadoTransmissao =
@@ -13,7 +13,7 @@ export interface ItemFila {
   id: string              // mesmo id usado no servidor (idempotência)
   tipo: TipoItemFila
   caminho: string
-  metodo: 'POST' | 'PATCH'
+  metodo: 'POST' | 'PATCH' | 'PUT'
   corpo: unknown
   criadoEm: string
   estado: EstadoTransmissao

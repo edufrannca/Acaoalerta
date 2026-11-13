@@ -181,13 +181,13 @@ enum Protocolo {
     /// Monta e assina. Coordenadas arredondadas a 6 casas antes da assinatura.
     static func montar(tipo: String, ocorrencia: String, remetente: String, chave: Data, dados: [String: Any]?,
                        municipio: String? = nil, latitude: Double? = nil, longitude: Double? = nil, precisao: Double? = nil,
-                       correlacao: String? = nil, estado: String = Estado.salvo) -> [String: Any] {
+                       correlacao: String? = nil, estado: String = Estado.salvo, criadoEm: String? = nil) -> [String: Any] {
         var m: [String: Any] = [
             "versaoProtocolo": versao,
             "identificadorMensagem": UUID().uuidString.lowercased(),
             "identificadorOcorrencia": ocorrencia,
             "tipoMensagem": tipo,
-            "horarioCriacao": agoraISO(),
+            "horarioCriacao": criadoEm ?? agoraISO(),
             "horarioUltimaAtualizacao": agoraISO(),
             "remetentePseudonimizado": remetente,
             "numeroTentativas": 0,

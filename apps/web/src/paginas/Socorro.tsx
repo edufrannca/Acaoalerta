@@ -9,6 +9,11 @@ import { useLocalizacao, useOnline } from '../lib/hooks'
 import { STATUS_ENCAMINHAMENTO } from '../lib/municipios'
 import { anexarPosicaoSePendente, complementar } from '../lib/socorro'
 import { useEvento } from '../lib/tempoReal'
+import { Mapa } from '../componentes/Mapa'
+import { EtapasEntrega, TransmitirProximo } from '../componentes/TransmitirProximo'
+import { NECESSIDADES, type Compartilhamento } from '../lib/comunidade'
+import { enfileirar } from '../lib/filaOffline'
+import { uuid } from '../lib/dispositivo'
 
 interface VisaoServidor {
   id: string
@@ -21,6 +26,10 @@ interface VisaoServidor {
   encaminhamentos: { id: string; central: string; status: string; protocolo: string | null; confirmadoEm: string | null; tentativas: number; ultimoErro: string | null; estadoNaCentral: string | null }[]
   historico: { em: string; tipo: string; descricao: string }[]
   aviso: string
+  canal?: string
+  compartilhamento?: Compartilhamento & { atualizadoEm: string | null }
+  necessidades?: string[]
+  areaPublica?: { centroLatitude: number; centroLongitude: number; raioMetros: number } | null
 }
 
 const SITUACOES: { chave: string; rotulo: string }[] = [
@@ -74,6 +83,9 @@ export function AcompanharSocorro() {
     })()
   }, [posicao, id, local?.estado])
 
+  const [proximo, setProximo] = useState(false)
+  const [codigoExibido, setCodigoExibido] = useState(false)
+  const marcarExibido = useCallback(() => setCodigoExibido(true), [])
   const estadoLocal = local?.estado
   const recebidoServidor = estadoLocal === 'recebido_servidor' || !!servidor
   const confirmadas = servidor?.encaminhamentos.filter((e) => e.status === 'Recebido').length ?? 0
@@ -83,7 +95,7 @@ export function AcompanharSocorro() {
       <div className="grid content-start gap-4">
         <section aria-live="polite" className={`rounded-cartao p-5 ${recebidoServidor ? 'bg-petroleo text-branco' : 'bg-[#FBF1DC] text-tinta'}`}>
           <h1 className="text-[24px] font-bold leading-tight">
-            {!local && !servidor ? 'Pedido não encontrado neste aparelho' : recebidoServidor ? 'Pedido recebido pelo servidor' : 'Pedido salvo neste aparelho. Ainda não transmitido.'}
+            {!local && !servidor ? 'Pedido não encontrado neste aparelho' : recebidoServidor ? 'Pedido recebido pelo servidor' : 'Seu pedido está salvo neste aparelho.'}
           </h1>
           <p className={`mt-1 text-[15px] ${recebidoServidor ? 'text-areia/90' : ''}`}>
             {servidor ? servidor.statusDescricao : local ? descricaoEstado[local.estado] + (online ? '' : ' Sem internet: enviaremos assim que a conexão voltar.') : ''}
@@ -93,9 +105,24 @@ export function AcompanharSocorro() {
           </p>
           {servidor?.nivelComprovado === 5 && <p className="text-[12.5px] text-areia/80">Central SIMULADA de demonstração. Nenhum órgão real foi acionado.</p>}
           {local?.ultimoErro && !recebidoServidor && <p className="mt-1 text-[13.5px]">Última tentativa: {local.ultimoErro} ({local.tentativas}x)</p>}
-          {!recebidoServidor && local && <Botao className="mt-3" variante="primario" onClick={() => transmitir(id)}>Tentar enviar agora</Botao>}
+          {!recebidoServidor && local && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Botao variante="primario" onClick={() => transmitir(id)}>Tentar enviar agora</Botao>
+              <Botao variante="secundario" onClick={() => setProximo(!proximo)} aria-expanded={proximo}>Procurar aparelhos próximos para transmitir</Botao>
+            </div>
+          )}
           {servidor && <p className="mt-2 text-[13px] text-areia/80">Identificador do pedido: <span className="numero-tabular">{servidor.id.slice(0, 8)}</span>{servidor.municipio ? `, ${servidor.municipio.nome}` : ''}</p>}
         </section>
+
+        {proximo && !recebidoServidor && local && (
+          <Cartao titulo="Transmitir por um aparelho próximo">
+            <TransmitirProximo ocorrenciaId={id} aoExibir={marcarExibido} />
+          </Cartao>
+        )}
+
+        <Cartao titulo="Etapas de entrega">
+          <EtapasEntrega salvoAqui={!!local} codigoExibido={codigoExibido} canal={servidor?.canal ?? null} nivel={servidor?.nivelComprovado ?? null} />
+        </Cartao>
 
         <Cartao titulo="Ligue também">
           <p className="mb-2 text-[14.5px]">Se houver risco imediato, ligue agora. O envio digital não substitui a ligação.</p>
@@ -103,6 +130,7 @@ export function AcompanharSocorro() {
         </Cartao>
 
         <Complemento id={id} />
+        <CompartilharComunidade id={id} atual={servidor?.compartilhamento ?? null} />
       </div>
 
       <div className="grid content-start gap-4">
@@ -135,7 +163,20 @@ export function AcompanharSocorro() {
           ) : (
             <p className="text-[14.5px]">{gps === 'negado' ? 'Localização negada. Descreva uma referência no campo ao lado.' : 'Obtendo localização…'}</p>
           )}
-          {servidor?.localizacao && <p className="mt-1 text-[13px] text-tinta-suave">No servidor: {servidor.localizacao.latitude.toFixed(5)}, {servidor.localizacao.longitude.toFixed(5)} ({formatarHora(servidor.localizacao.lidaEm)})</p>}
+          {servidor?.localizacao && <p className="mt-1 text-[13px] text-tinta-suave">Registrada no pedido: {servidor.localizacao.latitude.toFixed(5)}, {servidor.localizacao.longitude.toFixed(5)}, ±{servidor.localizacao.precisaoMetros ?? '?'} m ({formatarHora(servidor.localizacao.lidaEm)})</p>}
+          {(() => {
+            const l = servidor?.localizacao
+            const pos = l ? { latitude: l.latitude, longitude: l.longitude, precisao: l.precisaoMetros, lidaEm: l.lidaEm } : posicao
+            if (!pos) return null
+            const a = servidor?.areaPublica
+            return (
+              <>
+                <Mapa camadas={[]} posicao={pos} zoomPosicao={15} altura="h-[220px]" mostrarLegenda={false}
+                  areaPublica={a ? { latitude: a.centroLatitude, longitude: a.centroLongitude, raioMetros: a.raioMetros } : null} classeExterna="mt-2" />
+                <p className="mt-1 text-[12.5px] text-tinta-suave">Ponto azul: {l ? 'local registrado no pedido' : 'sua posição agora'}. Círculo azul claro: margem de precisão do GPS.{a ? ' Linha tracejada vermelha: área aproximada que a comunidade vê.' : ''}</p>
+              </>
+            )
+          })()}
         </Cartao>
 
         {servidor && (
@@ -157,11 +198,12 @@ function Complemento({ id }: { id: string }) {
   const [pessoas, setPessoas] = useState({ quantidadePessoas: '', criancas: '', idosos: '', pessoasFeridas: '', idadeSolicitante: '' })
   const [descricao, setDescricao] = useState('')
   const [referencia, setReferencia] = useState('')
+  const [necessidades, setNecessidades] = useState<string[]>([])
   const [enviado, setEnviado] = useState<string | null>(null)
 
   const enviar = async () => {
     const num = (v: string) => (v === '' ? undefined : Number(v))
-    const corpo: Record<string, unknown> = { ...Object.fromEntries(Object.entries(marcados).filter(([, v]) => v)), descricao: descricao || undefined, referenciaLocal: referencia || undefined }
+    const corpo: Record<string, unknown> = { ...Object.fromEntries(Object.entries(marcados).filter(([, v]) => v)), descricao: descricao || undefined, referenciaLocal: referencia || undefined, necessidades: necessidades.length ? necessidades : undefined }
     for (const [k, v] of Object.entries(pessoas)) if (num(v) !== undefined) corpo[k] = num(v)
     await complementar(id, corpo)
     setEnviado(new Date().toISOString())
@@ -189,6 +231,18 @@ function Complemento({ id }: { id: string }) {
           ))}
         </div>
       </fieldset>
+      <fieldset className="mt-4">
+        <legend className="mb-2 text-[14px] font-medium">Do que vocês precisam?</legend>
+        <div className="flex flex-wrap gap-2">
+          {NECESSIDADES.map((n) => {
+            const ativo = necessidades.includes(n.codigo)
+            return (
+              <button key={n.codigo} type="button" aria-pressed={ativo} onClick={() => setNecessidades(ativo ? necessidades.filter((x) => x !== n.codigo) : [...necessidades, n.codigo])}
+                className={`min-h-11 rounded-full px-4 text-[14.5px] font-medium ring-1 ${ativo ? 'bg-seguro text-branco ring-seguro' : 'bg-branco text-tinta ring-linha'}`}>{n.rotulo}</button>
+            )
+          })}
+        </div>
+      </fieldset>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {contador('quantidadePessoas', 'Pessoas no local')}
         {contador('criancas', 'Crianças')}
@@ -206,6 +260,34 @@ function Complemento({ id }: { id: string }) {
       </label>
       <Botao className="mt-4 w-full" variante="perigo" onClick={enviar}>Enviar informações</Botao>
       {enviado && <p role="status" className="mt-2 text-[14px] text-seguro">Informações salvas no aparelho e na fila de envio ({formatarHora(enviado)}). Acompanhe o estado em Meus pedidos.</p>}
+    </Cartao>
+  )
+}
+
+/** O solicitante escolhe o que a comunidade vê. Nada é publicado sem esta autorização. */
+function CompartilharComunidade({ id, atual }: { id: string; atual: Compartilhamento | null }) {
+  const [c, setC] = useState<Compartilhamento>({ autorizado: false, incluirPessoas: true, incluirNecessidades: true })
+  const [salvo, setSalvo] = useState<string | null>(null)
+  useEffect(() => { if (atual) setC({ autorizado: atual.autorizado, incluirPessoas: atual.autorizado ? atual.incluirPessoas : true, incluirNecessidades: atual.autorizado ? atual.incluirNecessidades : true }) }, [atual?.autorizado, atual?.incluirPessoas, atual?.incluirNecessidades]) // eslint-disable-line
+  const salvar = async (novo: Compartilhamento) => {
+    setC(novo)
+    const corpo = novo.autorizado ? novo : { autorizado: false, incluirPessoas: false, incluirNecessidades: false }
+    await enfileirar({ id: uuid(), tipo: 'compartilhamento', caminho: `/api/ocorrencias/${id}/compartilhamento`, metodo: 'PUT', corpo, referenciaId: id })
+    setSalvo(novo.autorizado ? 'Autorização salva. Ela vale assim que chegar ao servidor.' : 'Seu pedido não aparece para a comunidade.')
+  }
+  const caixa = (chave: 'incluirPessoas' | 'incluirNecessidades', texto: string) => (
+    <label className="flex items-start gap-2 text-[14.5px]"><input type="checkbox" className="mt-1 size-5 accent-oceano" disabled={!c.autorizado} checked={c[chave]} onChange={(e) => void salvar({ ...c, [chave]: e.target.checked })} />{texto}</label>
+  )
+  return (
+    <Cartao titulo="Pedir apoio da comunidade">
+      <p className="text-[14.5px]">Vizinhos e voluntários podem oferecer água, alimentos ou transporte assistido, sempre por meio da equipe responsável. Isso não substitui o resgate.</p>
+      <label className="mt-3 flex items-start gap-2 text-[15px] font-semibold"><input type="checkbox" className="mt-1 size-5 accent-oceano" checked={c.autorizado} onChange={(e) => void salvar({ ...c, autorizado: e.target.checked })} />Mostrar um resumo do meu pedido para a comunidade</label>
+      <div className="mt-2 grid gap-2 pl-7">
+        {caixa('incluirNecessidades', 'Incluir as necessidades (água, alimentos, abrigo…)')}
+        {caixa('incluirPessoas', 'Incluir número de pessoas e faixas de crianças, idosos e mobilidade reduzida')}
+      </div>
+      <p className="mt-3 rounded-controle bg-fundo p-3 text-[13.5px] text-tinta-suave">A comunidade vê só o tipo de emergência, a área aproximada (um círculo de pelo menos 600 m que contém o seu local, sem marcar o ponto) e o que você marcou acima. Nunca: nome, telefone, relato escrito, dados de saúde ou posição exata. Você pode desligar quando quiser.</p>
+      {salvo && <p role="status" className="mt-2 text-[14px] text-seguro">{salvo}</p>}
     </Cartao>
   )
 }

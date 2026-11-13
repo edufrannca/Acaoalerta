@@ -74,6 +74,8 @@ public static class ApoioEndpoints
         o.Id, o.MunicipioCodigo, o.RegiaoDisponibilidade, tipo = o.Tipo.ToString(), o.Descricao, o.Disponibilidade, o.NecessidadeId,
         status = o.Status.ToString(), o.ProtocoloOrganizacao, o.Historico, o.CriadaEm,
         contatoAutorizado = incluirContato ? o.ContatoAutorizado : null,
+        pedido = o.OcorrenciaId is null ? null : o.OcorrenciaId.Value.ToString("N")[..6].ToUpperInvariant(),
+        instrucaoEquipe = o.Status is StatusOferta.Encaminhada or StatusOferta.Concluida ? o.InstrucaoEquipe : null,
         encaminhamento = e is null ? null : new { e.Id, organizacao = e.InstituicaoCodigo, status = e.Status.ToString(), e.Protocolo, e.ConfirmadoEm, e.Tentativas, e.UltimoErro },
     };
 }
@@ -138,7 +140,7 @@ public static class IntegracoesEndpoints
                 var c = m.CoordenadasAutorizadas;
                 var res = await s.RegistrarSocorroAsync(new ComandoRegistrarSocorro(ocorrenciaId, m.RemetentePseudonimizado, criadoEm,
                     c?.Latitude, c?.Longitude, c?.PrecisaoMetros, criadoEm, complemento, null, false, CanalRecebimento.ProximidadeNearby,
-                    $"{receptor} (Nearby)", true, m.IdentificadorMensagem), null, ct);
+                    $"{receptor} (Nearby)", true, m.IdentificadorMensagem, ConversorProximidade.Compartilhamento(m.DadosEstruturados)), null, ct);
                 duplicado = res.JaExistia;
                 // GPS do gateway é guardado à parte; a posição do pedido continua sendo a do emissor (ou "não informada").
                 if (entrega.PosicaoReceptor is { } pr && PontoGeo.TentarCriar(pr.Latitude, pr.Longitude, out _)
@@ -234,6 +236,21 @@ public static class ConversorProximidade
             AcessoBloqueado = B("acessoBloqueado"),
             ReferenciaLocal = S("referenciaLocal", 200),
             Descricao = S("descricao", 2000),
+            EquipamentoMedicoEssencial = B("equipamentoMedicoEssencial"),
+            Sozinho = B("sozinho"),
+            RiscoSegurancaPublica = B("riscoSegurancaPublica"),
+            Necessidades = d.TryGetProperty("necessidades", out var ns) && ns.ValueKind == System.Text.Json.JsonValueKind.Array
+                ? ns.EnumerateArray().Where(x => x.ValueKind == System.Text.Json.JsonValueKind.String).Select(x => x.GetString()!)
+                    .Where(NecessidadesDeclaradas.Rotulos.ContainsKey).Distinct().Take(10).ToList() is { Count: > 0 } l ? l : null
+                : null,
         };
+    }
+
+    /// <summary>Escolha do EMISSOR sobre o resumo comunitário, levada dentro da mensagem (nunca decidida pelo gateway).</summary>
+    public static CompartilhamentoComunitario? Compartilhamento(System.Text.Json.JsonElement? dados)
+    {
+        if (dados is not { ValueKind: System.Text.Json.JsonValueKind.Object } d || !d.TryGetProperty("compartilhamento", out var c) || c.ValueKind != System.Text.Json.JsonValueKind.Object) return null;
+        bool B(string k) => c.TryGetProperty(k, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.True;
+        return B("autorizado") ? new CompartilhamentoComunitario(true, B("incluirPessoas"), B("incluirNecessidades")) : null;
     }
 }

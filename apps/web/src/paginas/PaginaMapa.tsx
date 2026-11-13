@@ -4,15 +4,18 @@ import type { Map as MapaML } from 'maplibre-gl'
 import { Mapa, ROTULOS_CAMADAS, type Camada } from '../componentes/Mapa'
 import { LeitorVoz } from '../componentes/LeitorVoz'
 import { Selo } from '../componentes/Base'
-import { IcAbrigo, IcAlerta, IcCamadas, IcChuva, IcLocal, IcMais, IcMenos, IcRecentrar, IcSino, IcVoltar } from '../componentes/Icones'
+import { CartaoPedido, ResumoRegiao } from '../componentes/PedidosComunidade'
+import { usePedidosComunitarios, type RespostaComunidade } from '../lib/comunidade'
+import { IcAjudar, IcAbrigo, IcAlerta, IcCamadas, IcChuva, IcLocal, IcMais, IcMenos, IcRecentrar, IcSino, IcVoltar } from '../componentes/Icones'
 import { formatarHora } from '../lib/api'
 import { useDados } from '../lib/hooks'
 import { MUNICIPIOS } from '../lib/municipios'
 import { abrigosProximos, descreverEstacao, formatarKm, rotuloLocal, useRegiao, type Contexto, type RespostaAbrigos } from '../lib/regiao'
 
-type Filtro = 'tudo' | 'areasRisco' | 'chuva' | 'avisos' | 'abrigos'
+type Filtro = 'tudo' | 'pedidos' | 'areasRisco' | 'chuva' | 'avisos' | 'abrigos'
 const CAMADAS: Record<Filtro, Camada[]> = {
-  tudo: ['limites', 'avisos', 'chuva', 'areasRisco', 'abrigos', 'relatos'],
+  tudo: ['limites', 'avisos', 'chuva', 'areasRisco', 'abrigos', 'pedidos'],
+  pedidos: ['limites', 'pedidos'],
   areasRisco: ['limites', 'areasRisco'],
   chuva: ['limites', 'chuva'],
   avisos: ['limites', 'avisos'],
@@ -20,12 +23,13 @@ const CAMADAS: Record<Filtro, Camada[]> = {
 }
 const FILTROS: { id: Filtro; rotulo: string; Icone: (p: { tamanho?: number }) => React.ReactElement }[] = [
   { id: 'tudo', rotulo: 'Tudo', Icone: IcCamadas },
+  { id: 'pedidos', rotulo: 'Pedidos de ajuda', Icone: IcAjudar },
   { id: 'areasRisco', rotulo: 'Áreas de risco', Icone: IcAlerta },
   { id: 'chuva', rotulo: 'Estações de chuva', Icone: IcChuva },
   { id: 'avisos', rotulo: 'Avisos', Icone: IcSino },
   { id: 'abrigos', rotulo: 'Abrigos', Icone: IcAbrigo },
 ]
-const CORES: Record<Camada, string> = { limites: '#193B44', avisos: '#A83232', areasRisco: '#B87A16', chuva: '#0F686D', abrigos: '#2E7257', relatos: '#6E5A95' }
+const CORES: Record<Camada, string> = { limites: '#193B44', avisos: '#A83232', areasRisco: '#B87A16', chuva: '#0F686D', abrigos: '#2E7257', pedidos: '#B4472F' }
 
 export function PaginaMapa() {
   const navegar = useNavigate()
@@ -35,6 +39,9 @@ export function PaginaMapa() {
   const [expandido, setExpandido] = useState(false)
   const mapa = useRef<MapaML | null>(null)
   const abrigos = useDados<RespostaAbrigos>('/api/abrigos', { cache: true })
+  const [raio, setRaio] = useState(5)
+  const [selecionado, setSelecionado] = useState<string | null>(null)
+  const comunidade = usePedidosComunitarios(posicao, raio, municipio || null)
   const rotulo = posicao ? rotuloLocal(local.dados, ctx.dados) ?? 'Identificando…' : null
 
   const recentrar = () => {
@@ -44,7 +51,19 @@ export function PaginaMapa() {
   const zoom = (d: number) => mapa.current?.easeTo({ zoom: (mapa.current.getZoom() ?? 10) + d, duration: 250 })
   const btnMapa = 'grid size-12 place-items-center rounded-full bg-branco text-petroleo shadow-md ring-1 ring-linha hover:bg-fundo'
 
-  const painel = <PainelInfo ctx={ctx.dados} doCache={ctx.doCache} abrigos={abrigos.dados} posicao={posicao} municipio={municipio || ctx.dados?.municipio?.codigo || null} filtro={filtro} gps={gps} iniciar={iniciar} />
+  const selecionar = (id: string) => {
+    setSelecionado(id); setExpandido(true)
+    setTimeout(() => document.querySelectorAll(`#pedido-${id}`).forEach((el) => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })), 120)
+  }
+  const pedidos = filtro === 'tudo' || filtro === 'pedidos'
+    ? <Pedidos r={comunidade.dados} raio={raio} setRaio={setRaio} temGps={!!posicao} selecionado={selecionado} /> : null
+  const painel = (
+    <div className="grid gap-3">
+      {filtro === 'pedidos' && pedidos}
+      <PainelInfo ctx={ctx.dados} doCache={ctx.doCache} abrigos={abrigos.dados} posicao={posicao} municipio={municipio || ctx.dados?.municipio?.codigo || null} filtro={filtro} gps={gps} iniciar={iniciar} />
+      {filtro === 'tudo' && pedidos}
+    </div>
+  )
 
   return (
     <div className="relative h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] md:mx-auto md:grid md:h-[calc(100dvh-5.5rem)] md:max-w-6xl md:grid-cols-[1fr_380px] md:gap-4 md:px-4 md:py-4">
@@ -68,7 +87,8 @@ export function PaginaMapa() {
       {/* Mapa */}
       <div className="absolute inset-0 md:relative md:inset-auto">
         <Mapa camadas={CAMADAS[filtro]} municipio={municipio || null} posicao={posicao} mostrarLegenda={false} controlesNativos={false}
-          altura="h-full" classeExterna="h-full" classeContorno="md:rounded-cartao md:ring-1 md:ring-linha" aoPronto={(m) => { mapa.current = m }} />
+          altura="h-full" classeExterna="h-full" classeContorno="md:rounded-cartao md:ring-1 md:ring-linha" aoPronto={(m) => { mapa.current = m }}
+          pedidos={comunidade.dados?.pedidos} aoSelecionarPedido={selecionar} raioBuscaKm={filtro === 'tudo' || filtro === 'pedidos' ? raio : null} />
         {/* Filtros de camadas */}
         <div className="absolute inset-x-0 top-[8.6rem] z-10 flex gap-2 overflow-x-auto px-3 pb-1 md:top-3" role="radiogroup" aria-label="Camadas do mapa">
           {FILTROS.map(({ id, rotulo: r, Icone }) => (
@@ -101,6 +121,28 @@ export function PaginaMapa() {
       {/* Painel lateral (desktop) */}
       <aside className="hidden overflow-y-auto md:block" aria-label="Informações da região">{painel}</aside>
     </div>
+  )
+}
+
+function Pedidos({ r, raio, setRaio, temGps, selecionado }: { r: RespostaComunidade | null; raio: number; setRaio: (n: number) => void; temGps: boolean; selecionado: string | null }) {
+  return (
+    <section aria-labelledby="titulo-pedidos" className="grid gap-2.5">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <h2 id="titulo-pedidos" className="text-[18px] font-bold text-petroleo">Pedidos de ajuda {temGps ? 'perto de você' : 'na região'}</h2>
+        {temGps && (
+          <label className="text-[13.5px] font-medium">Raio de busca{' '}
+            <select value={raio} onChange={(e) => setRaio(Number(e.target.value))} className="min-h-10 rounded-controle border border-linha bg-branco px-2">
+              {[2, 5, 10, 20].map((k) => <option key={k} value={k}>{k} km</option>)}
+            </select>
+          </label>
+        )}
+      </div>
+      <p className="text-[13px] text-tinta-suave">{temGps ? 'Busca centrada na sua localização atual (linha azul tracejada).' : 'Ative a localização para buscar a partir de onde você está.'} {r?.areaAproximada}</p>
+      {r && <ResumoRegiao r={r} />}
+      {r?.pedidos.map((p) => <CartaoPedido key={p.id} p={p} destaque={p.id === selecionado} compacto />)}
+      {r && r.pedidos.length > 0 && <Link to="/ajudar" className="min-h-11 rounded-controle bg-oceano-suave px-3 py-2.5 text-center text-[15px] font-semibold text-oceano">Ver detalhes e oferecer ajuda</Link>}
+      {r?.demonstrativos && <p className="text-[12.5px] text-tinta-suave">Área de demonstração: exibindo pedidos FICTÍCIOS.</p>}
+    </section>
   )
 }
 

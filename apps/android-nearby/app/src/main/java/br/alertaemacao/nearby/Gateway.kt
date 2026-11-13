@@ -8,7 +8,7 @@ import java.net.URL
 class Gateway(private val urlBase: String, private val receptor: String, private val chave: String) {
     data class Resposta(val status: Int, val corpo: JSONObject?, val erro: String?)
 
-    fun entregar(mensagem: JSONObject, receptorPseudonimo: String, recebidoEm: String, canal: String, modelo: String): Resposta {
+    fun entregar(mensagem: JSONObject, receptorPseudonimo: String, recebidoEm: String, canal: String, modelo: String, posicaoReceptor: JSONObject? = null): Resposta {
         val corpo = JSONObject()
             .put("mensagem", mensagem)
             .put("receptorPseudonimizado", receptorPseudonimo)
@@ -16,6 +16,8 @@ class Gateway(private val urlBase: String, private val receptor: String, private
             .put("canal", canal)
             .put("modeloAparelhoReceptor", modelo)
             .put("plataformaReceptor", "android")
+        // GPS do gateway: campo próprio; o servidor nunca o usa como posição da família.
+        if (posicaoReceptor != null) corpo.put("posicaoReceptor", posicaoReceptor)
         return chamar("POST", "/api/gateway/v2/mensagens", corpo)
     }
 

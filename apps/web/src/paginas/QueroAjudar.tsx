@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { CartaoPedido, FormOferta, ResumoRegiao } from '../componentes/PedidosComunidade'
+import { usePedidosComunitarios, type PedidoComunitario } from '../lib/comunidade'
+import { useLocalizacao } from '../lib/hooks'
 import { Botao, Campo, Cartao, Fonte, Selo, Vazio, classeEntrada } from '../componentes/Base'
 import { api, formatarHora } from '../lib/api'
 import { uuid } from '../lib/dispositivo'
@@ -8,7 +11,7 @@ import { MUNICIPIOS, nomeMunicipio, TIPOS_AJUDA } from '../lib/municipios'
 import { useEvento } from '../lib/tempoReal'
 
 interface Necessidade { id: string; organizacaoNome: string; municipioCodigo: string; tipo: string; titulo: string; descricao: string; pontoEntregaVerificado: string; ficticia: boolean }
-interface Oferta { id: string; tipo: string; descricao: string; status: string; protocoloOrganizacao: string | null; necessidadeId: string | null; municipioCodigo: string; historico: { em: string; descricao: string }[]; encaminhamento: { status: string; protocolo: string | null; ultimoErro: string | null } | null }
+interface Oferta { id: string; tipo: string; descricao: string; status: string; protocoloOrganizacao?: string | null; necessidadeId?: string | null; municipioCodigo?: string; historico: { em: string; descricao: string }[]; encaminhamento?: { status: string; protocolo: string | null; ultimoErro: string | null } | null; pedido?: string | null; instrucaoEquipe?: string | null }
 
 const STATUS_OFERTA: Record<string, { rotulo: string; tom: 'ok' | 'espera' | 'erro' | 'neutro' }> = {
   Registrada: { rotulo: 'Registrada', tom: 'neutro' },
@@ -17,6 +20,11 @@ const STATUS_OFERTA: Record<string, { rotulo: string; tom: 'ok' | 'espera' | 'er
   ConfirmadaPelaOrganizacao: { rotulo: 'Participação confirmada', tom: 'ok' },
   RecusadaPelaOrganizacao: { rotulo: 'Recusada pela organização', tom: 'erro' },
   Concluida: { rotulo: 'Concluída', tom: 'ok' },
+  Cancelada: { rotulo: 'Cancelada', tom: 'neutro' },
+  AguardandoAvaliacao: { rotulo: 'Oferta enviada · aguardando a equipe', tom: 'espera' },
+  AceitaPelaEquipe: { rotulo: 'Aceita · aguardando orientações', tom: 'espera' },
+  RecusadaPelaEquipe: { rotulo: 'Não foi necessária', tom: 'neutro' },
+  Encaminhada: { rotulo: 'Orientações recebidas', tom: 'ok' },
 }
 
 export function QueroAjudar() {
@@ -46,14 +54,43 @@ export function QueroAjudar() {
     void minhas.recarregar()
   }
 
+  const { posicao, estado: gps, iniciar } = useLocalizacao(30000)
+  const [raio, setRaio] = useState(5)
+  const comunidade = usePedidosComunitarios(posicao, raio, posicao ? null : municipio)
+  const [ofertando, setOfertando] = useState<PedidoComunitario | null>(null)
+  const acompanhar = async (id: string, acao: 'concluida' | 'cancelada') => {
+    try { await api(`/api/apoio/ofertas/${id}/acompanhamento`, { method: 'POST', json: { acao } }) } catch (e) { setMsg(e instanceof Error ? e.message : 'Falha ao atualizar') }
+    void minhas.recarregar()
+  }
+
   const livres = (minhas.dados ?? []).filter((o) => o.status === 'Registrada' || o.status === 'RecusadaPelaOrganizacao')
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <div className="grid content-start gap-4">
         <h1 className="text-[26px] font-bold text-petroleo">Quero ajudar</h1>
-        <p className="text-[14.5px]">Ajude por meio de organizações verificadas. Nunca vá a áreas alagadas ou de deslizamento por conta própria.</p>
-        <Cartao titulo="Necessidades publicadas">
+        <p role="note" className="rounded-cartao bg-atencao-claro p-3 text-[14.5px]"><strong>Ajuda comunitária não é resgate.</strong> Nunca vá a áreas alagadas, de correnteza ou de deslizamento. Ofertas passam pela equipe responsável, que indica um ponto seguro.</p>
+        <Cartao titulo={posicao ? 'Pedidos de ajuda perto de você' : 'Pedidos de ajuda compartilhados'}>
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-[14px]">
+            {posicao ? (
+              <label className="font-medium">Raio a partir da sua localização{' '}
+                <select value={raio} onChange={(e) => setRaio(Number(e.target.value))} className="min-h-10 rounded-controle border border-linha bg-branco px-2">
+                  {[2, 5, 10, 20].map((k) => <option key={k} value={k}>{k} km</option>)}
+                </select>
+              </label>
+            ) : gps !== 'negado' ? <Botao variante="secundario" onClick={iniciar}>Buscar perto de mim</Botao> : <span className="text-tinta-suave">Localização negada: mostrando {nomeMunicipio(municipio)}.</span>}
+          </div>
+          {comunidade.dados && <ResumoRegiao r={comunidade.dados} />}
+          {ofertando && <div className="mt-3"><FormOferta p={ofertando} aoFechar={() => setOfertando(null)} aoEnviar={(m) => { setMsg(m); setTimeout(() => void minhas.recarregar(), 800) }} /></div>}
+          <div className="mt-3 grid gap-3">
+            {(comunidade.dados?.pedidos ?? []).length === 0
+              ? <Vazio>Nenhum pedido compartilhado {posicao ? `a até ${raio} km` : `em ${nomeMunicipio(municipio)}`} nas últimas 24 horas.</Vazio>
+              : comunidade.dados!.pedidos.map((p) => <CartaoPedido key={p.id} p={p} aoOferecer={(x) => { setOfertando(x); setTimeout(() => document.getElementById('titulo-oferta')?.scrollIntoView({ behavior: 'smooth' }), 50) }} />)}
+          </div>
+          <p className="mt-3 text-[12.5px] text-tinta-suave">{comunidade.dados?.privacidade} {comunidade.dados?.areaAproximada}</p>
+          {comunidade.dados?.demonstrativos && <p className="mt-1 text-[12.5px] font-semibold text-tinta-suave">Área de demonstração: exibindo pedidos FICTÍCIOS.</p>}
+        </Cartao>
+        <Cartao titulo="Necessidades publicadas por organizações">
           <label className="mb-3 block">
             <span className="text-[14px] font-medium">Município</span>
             <select className={classeEntrada} value={municipio} onChange={(e) => setMunicipio(e.target.value)}>
@@ -110,7 +147,15 @@ export function QueroAjudar() {
                 return (
                   <li key={o.id} className="rounded-controle bg-areia p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2"><span className="font-semibold">{o.descricao}</span><Selo tom={s.tom}>{s.rotulo}</Selo></div>
+                    {o.pedido && <p className="text-[13px] text-tinta-suave">Para o pedido {o.pedido}</p>}
+                    {o.instrucaoEquipe && <p className="mt-1 rounded-controle bg-seguro-claro p-2 text-[14px]"><strong>Orientação da equipe:</strong> {o.instrucaoEquipe}</p>}
                     {o.protocoloOrganizacao && <p className="numero-tabular text-[13px]">Protocolo da organização simulada: {o.protocoloOrganizacao}</p>}
+                    {o.pedido && ['AguardandoAvaliacao', 'AceitaPelaEquipe', 'Encaminhada'].includes(o.status) && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {o.status === 'Encaminhada' && <Botao variante="primario" onClick={() => acompanhar(o.id, 'concluida')}>Informar entrega concluída</Botao>}
+                        <Botao variante="secundario" onClick={() => acompanhar(o.id, 'cancelada')}>Cancelar oferta</Botao>
+                      </div>
+                    )}
                     <ol className="mt-1 text-[12.5px] text-tinta-suave">{o.historico.slice(-3).map((h, i) => <li key={i}>{formatarHora(h.em)}: {h.descricao}</li>)}</ol>
                   </li>
                 )

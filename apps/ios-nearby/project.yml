@@ -40,7 +40,10 @@ targets:
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         NSBluetoothAlwaysUsageDescription: "O Alerta em Ação usa o Bluetooth para enviar e receber pedidos de socorro de demonstração com aparelhos próximos, mesmo sem internet."
         NSLocalNetworkUsageDescription: "O Alerta em Ação usa a rede local para se comunicar com aparelhos próximos e trocar pedidos de socorro de demonstração."
-        NSLocationWhenInUseUsageDescription: "A localização é exigida pelo iOS para conexões Wi-Fi diretas com aparelhos próximos. O app de demonstração envia apenas coordenadas fictícias."
+        NSLocationWhenInUseUsageDescription: "A localização é exigida pelo iOS para conexões Wi-Fi diretas com aparelhos próximos. Quando este iPhone encaminha o pedido de outra pessoa, a posição aproximada dele é enviada separada e nunca substitui a posição de quem pediu ajuda."
+        CFBundleURLTypes:
+          - CFBundleURLName: br.alertaemacao.importar
+            CFBundleURLSchemes: [alertaemacao]
         # Primeiros 6 bytes do SHA-256 de "br.alertaemacao.nearby", em hexadecimal maiúsculo (mesma regra do SDK).
         NSBonjourServices: ["_6D2B796E03F0._tcp"]
         NSAppTransportSecurity:

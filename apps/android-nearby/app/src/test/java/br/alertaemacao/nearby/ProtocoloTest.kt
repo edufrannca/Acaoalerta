@@ -59,3 +59,28 @@ class ProtocoloTest {
         assertTrue(Protocolo.verificar(c, chave))
     }
 }
+
+class ImportacaoPwaTest {
+    @org.junit.Test
+    fun pedidoDaPwaPreservaIdentificadorHorarioEPosicaoDoEmissor() {
+        val p = org.json.JSONObject("""{"v":"aea-qr/1","id":"0193A5B0-1111-7222-8333-444455556666","em":"p:abc","criado":"2026-11-13T12:34:56Z",
+            "lat":-8.0402,"lon":-34.9301,"prec":18,"lido":null,"m":{"ilhado":true,"barreiraComSinaisInstabilidade":true,"aguaSubindo":false},
+            "pessoas":3,"nec":["agua"],"comp":{"autorizado":true,"incluirPessoas":false,"incluirNecessidades":true},"h":"x"}""")
+        val r = ImportacaoPwa.converter(p)!!
+        org.junit.Assert.assertEquals("0193a5b0-1111-7222-8333-444455556666", r.ocorrencia)
+        org.junit.Assert.assertEquals("p:abc", r.remetente)
+        org.junit.Assert.assertEquals("2026-11-13T12:34:56Z", r.criadoEm)
+        org.junit.Assert.assertEquals(-8.0402, r.lat!!, 1e-9)
+        org.junit.Assert.assertTrue(r.dados.getBoolean("barreiraInstavel"))
+        org.junit.Assert.assertFalse(r.dados.has("aguaSubindo"))
+        org.junit.Assert.assertEquals(3, r.dados.getInt("quantidadePessoas"))
+        org.junit.Assert.assertTrue(r.dados.getJSONObject("compartilhamento").getBoolean("autorizado"))
+    }
+
+    @org.junit.Test
+    fun semCoordenadasFicaSemLocalizacaoEVersaoDesconhecidaERecusada() {
+        val p = org.json.JSONObject("""{"v":"aea-qr/1","id":"0193a5b0-1111-7222-8333-444455556666","em":"p:abc","criado":"2026-11-13T12:34:56Z","lat":null,"lon":null,"prec":null,"m":{},"pessoas":null,"nec":[],"comp":null,"h":"x"}""")
+        org.junit.Assert.assertNull(ImportacaoPwa.converter(p)!!.lat)
+        org.junit.Assert.assertNull(ImportacaoPwa.converter(p.put("v", "outra/9")))
+    }
+}

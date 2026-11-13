@@ -125,6 +125,26 @@ final class ServicoProximidade: NSObject, ObservableObject {
         atualizar()
     }
 
+    /// Pedido vindo da PWA deste aparelho. Mantém id, horário e GPS do emissor; não cria um segundo pedido.
+    func importarDaPwa(_ url: URL) {
+        guard let p = ImportacaoPwa.decodificar(url) else { alerta = "O link não contém um pedido válido da PWA Alerta em Ação."; return }
+        if repo.todos().contains(where: { $0.ocorrencia == p.ocorrencia && $0.direcao == "enviada" }) {
+            alerta = "Este pedido já foi importado. Conecte-se a um aparelho próximo para transmitir."; return
+        }
+        let m = Protocolo.montar(tipo: Protocolo.Tipo.pedido, ocorrencia: p.ocorrencia, remetente: p.remetente, chave: chave, dados: p.dados,
+                                 latitude: p.lat, longitude: p.lon, precisao: p.precisao, criadoEm: p.criadoEm)
+        var r = Repositorio.Registro(mensagem: m, direcao: "enviada", nivel: 1, pendenteGateway: false, ultimoErro: nil, eventos: [], protocolos: nil, origem: nil)
+        do { try repo.salvar(r) } catch { alerta = "Falha ao salvar no aparelho: \(error.localizedDescription)"; return }
+        let local = p.lat == nil ? "localização não informada" : "posição do emissor ±\(Int(p.precisao ?? 0)) m"
+        repo.evento(&r, "Nível 1 — pedido da PWA importado neste aparelho (mesmo identificador; \(local))")
+        if conectados.isEmpty { repo.evento(&r, "procurando aparelho — toque em Procurar aparelhos próximos") }
+        else { conectados.keys.forEach { enviar(r, para: $0) } }
+        atualizar()
+    }
+
+    /// Última posição conhecida DESTE aparelho (gateway), se o usuário autorizou. Vai separada da do emissor.
+    var posicaoDesteAparelho: (() -> [String: Any]?)?
+
     func enviarAvisoDemonstrativo() {
         guard !conectados.isEmpty else { alerta = "Conecte ao menos um aparelho antes de distribuir o aviso."; return }
         let dados: [String: Any] = ["ficticio": true, "titulo": "[DEMONSTRAÇÃO] Aviso fictício de chuva intensa",
@@ -241,7 +261,7 @@ final class ServicoProximidade: NSObject, ObservableObject {
         guard internet else { repo.evento(&r, "sem internet — aguardando conexão para encaminhar (o servidor ainda NÃO recebeu)"); atualizar(); return }
         let recebidoEm = r.eventos.first(where: { ($0["texto"] ?? "").hasPrefix("recebida de") })?["em"] ?? Protocolo.agoraISO()
         let inicio = Date()
-        g.entregar(r.mensagem, receptorPseudonimo: remetente, recebidoEm: recebidoEm, modelo: UIDevice.current.model) { [weak self] resp in
+        g.entregar(r.mensagem, receptorPseudonimo: remetente, recebidoEm: recebidoEm, modelo: UIDevice.current.model, posicaoReceptor: posicaoDesteAparelho?()) { [weak self] resp in
             guard let self = self, var atual = self.repo.obter(r.id) else { return }
             let ms = Int(Date().timeIntervalSince(inicio) * 1000)
             if resp.status == 200, let corpo = resp.corpo {

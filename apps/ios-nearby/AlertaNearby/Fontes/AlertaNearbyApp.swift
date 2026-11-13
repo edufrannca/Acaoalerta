@@ -11,7 +11,17 @@ struct AlertaNearbyApp: App {
             ContentView()
                 .environmentObject(servico)
                 // iOS 13+: sem autorização de localização, o iOS rejeita conexões rápidas por Wi-Fi Hotspot (orientação do SDK).
-                .onAppear { localizacao.requestWhenInUseAuthorization() }
+                .onAppear {
+                    localizacao.requestWhenInUseAuthorization()
+                    let gerente = localizacao
+                    servico.posicaoDesteAparelho = {
+                        guard let l = gerente.location, l.horizontalAccuracy >= 0, Date().timeIntervalSince(l.timestamp) < 600 else { return nil }
+                        return ["latitude": (l.coordinate.latitude * 1e5).rounded() / 1e5, "longitude": (l.coordinate.longitude * 1e5).rounded() / 1e5,
+                                "precisaoMetros": l.horizontalAccuracy.rounded()]
+                    }
+                }
+                // Pedido criado na PWA deste iPhone: alertaemacao://importar#p=…
+                .onOpenURL { servico.importarDaPwa($0) }
         }
     }
 }

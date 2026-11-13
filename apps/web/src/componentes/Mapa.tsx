@@ -8,8 +8,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { formatarHora } from '../lib/api'
 import { useDados, type Posicao } from '../lib/hooks'
 import { MUNICIPIOS } from '../lib/municipios'
+import { circulo, type PedidoComunitario } from '../lib/comunidade'
 
-export type Camada = 'limites' | 'avisos' | 'areasRisco' | 'chuva' | 'abrigos' | 'relatos'
+export type Camada = 'limites' | 'avisos' | 'areasRisco' | 'chuva' | 'abrigos' | 'pedidos'
 
 export const ROTULOS_CAMADAS: Record<Camada, string> = {
   limites: 'Limites municipais',
@@ -17,11 +18,11 @@ export const ROTULOS_CAMADAS: Record<Camada, string> = {
   areasRisco: 'Áreas de risco documentadas',
   chuva: 'Chuva acumulada (24 h)',
   abrigos: 'Abrigos e pontos de apoio',
-  relatos: 'Relatos da comunidade (aproximados)',
+  pedidos: 'Pedidos de ajuda compartilhados (área aproximada)',
 }
 
 const CORES: Record<Camada, string> = {
-  limites: '#193B44', avisos: '#A83232', areasRisco: '#B87A16', chuva: '#0F686D', abrigos: '#2E7257', relatos: '#6E5A95',
+  limites: '#193B44', avisos: '#A83232', areasRisco: '#B87A16', chuva: '#0F686D', abrigos: '#2E7257', pedidos: '#B4472F',
 }
 
 export interface PontoOperador { id: string; latitude: number; longitude: number; nivel?: string | null; rotulo: string }
@@ -39,16 +40,26 @@ interface Props {
   aoPronto?: (m: MapaML) => void
   classeContorno?: string
   classeExterna?: string
+  /** Pedidos que os solicitantes autorizaram mostrar (área aproximada, nunca o ponto). */
+  pedidos?: PedidoComunitario[]
+  aoSelecionarPedido?: (id: string) => void
+  /** Raio de busca, sempre centrado no GPS de quem consulta. */
+  raioBuscaKm?: number | null
+  /** Exibe o círculo de precisão do GPS em volta da posição. */
+  mostrarPrecisao?: boolean
+  /** Área que a comunidade vê para o pedido do próprio solicitante. */
+  areaPublica?: { latitude: number; longitude: number; raioMetros: number } | null
+  zoomPosicao?: number
 }
 
 type FC = GeoJSON.FeatureCollection
 const vazio: FC = { type: 'FeatureCollection', features: [] }
+const poli = (lat: number, lon: number, raioM: number, props: Record<string, unknown>): GeoJSON.Feature => ({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [circulo(lat, lon, raioM)] }, properties: props })
 const pt = (lon: number, lat: number, props: Record<string, unknown>): GeoJSON.Feature => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: props })
 
 interface Chuva { disponivel: boolean; consultadoEm: string; fonte: string; estacoes: { nome: string; nomeEstacao?: string; rede?: string | null; latitude: number; longitude: number; mm1h: number | null; mm24h: number | null; ultimaLeituraEm: string | null; estado: string; municipio: string }[] }
 interface Abrigos { abrigos: { id: string; nome: string; endereco: string | null; latitude: number; longitude: number; ficticio: boolean; disponibilidade: string; fonte: string; municipioCodigo: string; acessibilidade: string; obtidoEm: string; statusFonte: string | null; atualizadoNaFonteEm: string | null }[] }
 interface Areas { areas: { latitude: number; longitude: number; descricao: string; bairro: string | null; localidade: string | null; fonte: string }[]; fonte?: { ultimoSucessoEm?: string } | null }
-interface Relatos { celulas: { latitude: number; longitude: number; relatos: number; verificadas: number; municipio: string }[]; atualizadoEm: string }
 interface Aviso { id: string; titulo: string; oficial: boolean; severidade: string; fimEm: string; municipios: string[]; poligono: GeoJSON.Geometry | null; fonteNome: string }
 
 const estilo: maplibregl.StyleSpecification = {
@@ -62,7 +73,7 @@ const estilo: maplibregl.StyleSpecification = {
   ],
 }
 
-export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionarPonto, altura = 'h-[360px]', mostrarLegenda = true, controlesNativos = true, aoPronto, classeContorno = 'rounded-cartao ring-1 ring-linha', classeExterna = '' }: Props) {
+export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionarPonto, altura = 'h-[360px]', mostrarLegenda = true, controlesNativos = true, aoPronto, classeContorno = 'rounded-cartao ring-1 ring-linha', classeExterna = '', pedidos, aoSelecionarPedido, raioBuscaKm, mostrarPrecisao = true, areaPublica, zoomPosicao = 13.5 }: Props) {
   const div = useRef<HTMLDivElement>(null)
   const mapa = useRef<MapaML | null>(null)
   const [pronto, setPronto] = useState(false)
@@ -74,7 +85,6 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
   const areas = useDados<Areas>(tem('areasRisco') ? '/api/territorio/areas-risco' : null, { cache: true })
   const chuva = useDados<Chuva>(tem('chuva') ? '/api/monitoramento/chuva' : null, { cache: true, intervaloMs: 300000 })
   const abrigos = useDados<Abrigos>(tem('abrigos') ? '/api/abrigos' : null, { cache: true })
-  const relatos = useDados<Relatos>(tem('relatos') ? '/api/ocorrencias/comunitarias' : null, { intervaloMs: 30000 })
 
   useEffect(() => {
     if (!div.current) return
@@ -82,7 +92,7 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
     if (controlesNativos) m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
     m.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left')
     m.on('load', () => {
-      const fontes = ['limites', 'avisos', 'areasRisco', 'chuva', 'abrigos', 'relatos', 'posicao', 'operador'] as const
+      const fontes = ['limites', 'avisos', 'areasRisco', 'chuva', 'abrigos', 'pedidos', 'busca', 'precisao', 'areaPublica', 'posicao', 'operador'] as const
       fontes.forEach((f) => m.addSource(f, { type: 'geojson', data: vazio }))
       m.addLayer({ id: 'limites-preenchimento', type: 'fill', source: 'limites', paint: { 'fill-color': ['case', ['boolean', ['get', 'selecionado'], false], '#0F686D', '#193B44'], 'fill-opacity': ['case', ['boolean', ['get', 'selecionado'], false], 0.1, 0.03] } })
       m.addLayer({ id: 'limites-linha', type: 'line', source: 'limites', paint: { 'line-color': '#193B44', 'line-width': ['case', ['boolean', ['get', 'selecionado'], false], 2.4, 1.1], 'line-opacity': 0.7 } })
@@ -93,9 +103,13 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
         'circle-radius': ['interpolate', ['linear'], ['coalesce', ['get', 'mm'], 0], 0, 5, 20, 9, 60, 15, 120, 20],
         'circle-color': ['case', ['==', ['get', 'estado'], 'Atual'], CORES.chuva, '#9AA7A9'], 'circle-opacity': 0.55, 'circle-stroke-width': 1.5, 'circle-stroke-color': ['case', ['==', ['get', 'estado'], 'Atual'], CORES.chuva, '#7C8A8C'] } })
       m.addLayer({ id: 'abrigos', type: 'circle', source: 'abrigos', paint: { 'circle-radius': 7, 'circle-color': ['case', ['get', 'ficticio'], '#ffffff', CORES.abrigos], 'circle-stroke-width': 2.5, 'circle-stroke-color': CORES.abrigos } })
-      m.addLayer({ id: 'relatos', type: 'circle', source: 'relatos', paint: { 'circle-radius': ['interpolate', ['linear'], ['get', 'relatos'], 1, 10, 10, 22], 'circle-color': CORES.relatos, 'circle-opacity': 0.28, 'circle-stroke-width': 1.5, 'circle-stroke-color': CORES.relatos } })
+      m.addLayer({ id: 'busca', type: 'line', source: 'busca', paint: { 'line-color': '#2F6FD6', 'line-width': 1.6, 'line-dasharray': [3, 2], 'line-opacity': 0.8 } })
+      m.addLayer({ id: 'pedidos', type: 'fill', source: 'pedidos', paint: { 'fill-color': CORES.pedidos, 'fill-opacity': 0.16 } })
+      m.addLayer({ id: 'pedidos-linha', type: 'line', source: 'pedidos', paint: { 'line-color': CORES.pedidos, 'line-width': 1.8 } })
+      m.addLayer({ id: 'areaPublica', type: 'line', source: 'areaPublica', paint: { 'line-color': CORES.pedidos, 'line-width': 2, 'line-dasharray': [2, 2] } })
+      m.addLayer({ id: 'precisao', type: 'fill', source: 'precisao', paint: { 'fill-color': '#2F6FD6', 'fill-opacity': 0.14 } })
+      m.addLayer({ id: 'precisao-linha', type: 'line', source: 'precisao', paint: { 'line-color': '#2F6FD6', 'line-width': 1, 'line-opacity': 0.6 } })
       m.addLayer({ id: 'operador', type: 'circle', source: 'operador', paint: { 'circle-radius': 9, 'circle-color': ['match', ['get', 'nivel'], 'IndicioAmeacaImediata', '#A83232', 'Atencao', '#B87A16', '#0F686D'], 'circle-stroke-width': 3, 'circle-stroke-color': '#fff' } })
-      m.addLayer({ id: 'posicao-halo', type: 'circle', source: 'posicao', paint: { 'circle-radius': 16, 'circle-color': '#2F6FD6', 'circle-opacity': 0.18 } })
       m.addLayer({ id: 'posicao', type: 'circle', source: 'posicao', paint: { 'circle-radius': 7, 'circle-color': '#2F6FD6', 'circle-stroke-width': 3, 'circle-stroke-color': '#fff' } })
 
       const popup = (camada: string, html: (p: Record<string, unknown>) => string) => {
@@ -103,6 +117,7 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
           const f = e.features?.[0]
           if (!f) return
           if (camada === 'operador' && aoSelecionarPonto) { aoSelecionarPonto(String(f.properties?.id)); return }
+          if (camada === 'pedidos' && aoSelecionarPedidoRef.current) { aoSelecionarPedidoRef.current(String(f.properties?.id)); return }
           new maplibregl.Popup({ maxWidth: '280px' }).setLngLat(e.lngLat).setHTML(html(f.properties ?? {})).addTo(m)
         })
         m.on('mouseenter', camada, () => { m.getCanvas().style.cursor = 'pointer' })
@@ -112,7 +127,7 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
       popup('chuva', (p) => `<strong>Estação ${esc(p.rede ?? '')} «${esc(p.nomeEstacao)}»</strong><br>${esc(p.municipio)}<br>${p.mm1h == null ? 'Sem leitura na última hora' : `${esc(p.mm1h)} mm na última hora`} · ${p.mm == null ? 'sem leitura em 24 h' : `${esc(p.mm)} mm em 24 h`}<br><small>${p.estado === 'Atual' ? 'Leitura' : 'Leitura antiga'}: ${esc(p.em)} — APAC/SIRH. Nome técnico da estação; não indica bairro.</small>`)
       popup('abrigos', (p) => `<strong>${esc(p.nome)}</strong><br>${esc(p.endereco ?? '')}<br>${esc(p.disponibilidade)}<br><small>Status publicado: ${esc(p.status ?? 'não informado')} · Acessibilidade: ${esc(p.acessibilidade)}<br>Fonte: ${esc(p.fonte)}${p.atualizado ? `, atualizado ${esc(p.atualizado)}` : ''}</small>`)
       popup('areasRisco', (p) => `<strong>${esc(p.descricao)}</strong><br>${esc(p.local)}<br><small>Fonte: ${esc(p.fonte)}</small>`)
-      popup('relatos', (p) => `<strong>${esc(p.relatos)} relato(s) na área</strong><br>${esc(p.verificadas)} verificado(s)<br><small>Localização aproximada (~1 km). Relatos não verificados podem conter erros.</small>`)
+      popup('pedidos', (p) => `<strong>Pedido ${esc(p.referencia)}: ${esc(p.tipo)}</strong><br>${esc(p.situacao)} · ${esc(p.verificacao)}<br><small>O pedido foi registrado dentro deste círculo (raio ${esc(p.raio)} m). O centro não é a posição da pessoa.</small>`)
       popup('avisos-preenchimento', (p) => `<strong>${esc(p.titulo)}</strong><br>${esc(p.severidade)} — até ${esc(p.fim)}<br><small>${p.oficial ? 'Aviso oficial' : 'AVISO DEMONSTRATIVO (não oficial)'} · ${esc(p.fonte)}</small>`)
       popup('operador', () => '')
       setPronto(true)
@@ -123,6 +138,8 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const aoSelecionarPedidoRef = useRef(aoSelecionarPedido)
+  aoSelecionarPedidoRef.current = aoSelecionarPedido
   const set = (fonte: string, dados: FC) => (mapa.current?.getSource(fonte) as GeoJSONSource | undefined)?.setData(dados)
 
   useEffect(() => {
@@ -150,7 +167,13 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
   useEffect(() => { if (pronto) set('areasRisco', { type: 'FeatureCollection', features: (areas.dados?.areas ?? []).map((a) => pt(a.longitude, a.latitude, { descricao: a.descricao, local: [a.localidade, a.bairro].filter(Boolean).join(', '), fonte: a.fonte })) }) }, [pronto, areas.dados])
   useEffect(() => { if (pronto) set('chuva', { type: 'FeatureCollection', features: filtrar(chuva.dados?.estacoes ?? []).map((e) => pt(e.longitude, e.latitude, { nome: e.nome, nomeEstacao: e.nomeEstacao ?? e.nome, rede: e.rede ?? '', municipio: e.municipio, mm: e.mm24h, mm1h: e.mm1h, estado: e.estado, em: formatarHora(e.ultimaLeituraEm) })) }) }, [pronto, chuva.dados, municipio]) // eslint-disable-line
   useEffect(() => { if (pronto) set('abrigos', { type: 'FeatureCollection', features: filtrar(abrigos.dados?.abrigos ?? []).map((a) => pt(a.longitude, a.latitude, { nome: a.nome, endereco: a.endereco, ficticio: a.ficticio, disponibilidade: a.disponibilidade, fonte: a.fonte, acessibilidade: a.acessibilidade, status: a.statusFonte, atualizado: a.atualizadoNaFonteEm ? formatarHora(a.atualizadoNaFonteEm) : '' })) }) }, [pronto, abrigos.dados, municipio]) // eslint-disable-line
-  useEffect(() => { if (pronto) set('relatos', { type: 'FeatureCollection', features: filtrar(relatos.dados?.celulas ?? []).map((c) => pt(c.longitude, c.latitude, { relatos: c.relatos, verificadas: c.verificadas })) }) }, [pronto, relatos.dados, municipio]) // eslint-disable-line
+  useEffect(() => { if (pronto) set('pedidos', { type: 'FeatureCollection', features: (pedidos ?? []).map((x) => poli(x.area.latitude, x.area.longitude, x.area.raioMetros, { id: x.id, referencia: x.referencia, tipo: x.tipos.join(', '), situacao: x.situacao, verificacao: x.verificacao, raio: x.area.raioMetros })) }) }, [pronto, pedidos])
+  useEffect(() => { if (pronto) set('areaPublica', areaPublica ? { type: 'FeatureCollection', features: [poli(areaPublica.latitude, areaPublica.longitude, areaPublica.raioMetros, {})] } : vazio) }, [pronto, areaPublica])
+  useEffect(() => {
+    if (!pronto) return
+    set('busca', posicao && raioBuscaKm ? { type: 'FeatureCollection', features: [poli(posicao.latitude, posicao.longitude, raioBuscaKm * 1000, {})] } : vazio)
+    set('precisao', posicao && mostrarPrecisao && posicao.precisao ? { type: 'FeatureCollection', features: [poli(posicao.latitude, posicao.longitude, posicao.precisao, {})] } : vazio)
+  }, [pronto, posicao, raioBuscaKm, mostrarPrecisao])
   const enquadrou = useRef(false)
   useEffect(() => {
     if (!pronto) return
@@ -169,7 +192,7 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
     set('posicao', posicao ? { type: 'FeatureCollection', features: [pt(posicao.longitude, posicao.latitude, {})] } : vazio)
     if (posicao && !centralizou.current) {
       centralizou.current = true
-      mapa.current?.flyTo({ center: [posicao.longitude, posicao.latitude], zoom: 13.5, duration: 800 })
+      mapa.current?.flyTo({ center: [posicao.longitude, posicao.latitude], zoom: zoomPosicao, duration: 800 })
     }
   }, [pronto, posicao])
 
@@ -178,7 +201,7 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
     const vis = (id: string, c: Camada) => mapa.current!.getLayer(id) && mapa.current!.setLayoutProperty(id, 'visibility', tem(c) ? 'visible' : 'none')
     vis('limites-preenchimento', 'limites'); vis('limites-linha', 'limites')
     vis('avisos-preenchimento', 'avisos'); vis('avisos-linha', 'avisos')
-    vis('areasRisco', 'areasRisco'); vis('chuva', 'chuva'); vis('abrigos', 'abrigos'); vis('relatos', 'relatos')
+    vis('areasRisco', 'areasRisco'); vis('chuva', 'chuva'); vis('abrigos', 'abrigos'); vis('pedidos', 'pedidos'); vis('pedidos-linha', 'pedidos'); vis('busca', 'pedidos')
   }, [pronto, camadas]) // eslint-disable-line
 
   const legenda = useMemo(() => {
@@ -186,11 +209,11 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
     if (tem('chuva')) itens.push({ c: 'chuva', texto: chuva.dados ? `APAC/SIRH, consultado ${formatarHora(chuva.dados.consultadoEm)}${chuva.dados.disponivel ? '' : ' (fonte indisponível agora)'}${chuva.doCache ? ' (cópia salva no aparelho)' : ''}` : chuva.erro ?? 'carregando' })
     if (tem('areasRisco')) itens.push({ c: 'areasRisco', texto: `Defesa Civil do Recife (Regional Sul), ${areas.dados?.areas.length ?? 0} pontos` })
     if (tem('abrigos')) itens.push({ c: 'abrigos', texto: `COP Recife, somente abrigos ativos publicados (${abrigos.dados?.abrigos.length ?? 0} agora)` })
-    if (tem('relatos')) itens.push({ c: 'relatos', texto: relatos.dados ? `últimas 6 h, atualizado ${formatarHora(relatos.dados.atualizadoEm)}` : 'indisponível' })
+    if (tem('pedidos')) itens.push({ c: 'pedidos', texto: `${pedidos?.length ?? 0} na busca; cada círculo contém o local registrado, o centro não é a posição da pessoa` })
     if (tem('avisos')) itens.push({ c: 'avisos', texto: 'vermelho = oficial (INMET), roxo = demonstrativo' })
     return itens
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [camadas, chuva.dados, chuva.erro, chuva.doCache, areas.dados, relatos.dados, abrigos.dados])
+  }, [camadas, chuva.dados, chuva.erro, chuva.doCache, areas.dados, pedidos, abrigos.dados])
 
   return (
     <div className={classeExterna}>
@@ -203,7 +226,7 @@ export function Mapa({ camadas, municipio, posicao, pontosOperador, aoSelecionar
               <span><span className="font-medium text-tinta">{ROTULOS_CAMADAS[l.c]}</span>: {l.texto}</span>
             </li>
           ))}
-          {posicao && <li className="flex items-start gap-2"><span className="mt-1 inline-block size-2.5 rounded-full bg-[#2F6FD6]" aria-hidden="true" /><span><span className="font-medium text-tinta">Sua posição</span>: GPS do aparelho, {formatarHora(posicao.lidaEm)} (±{posicao.precisao ?? '?'} m)</span></li>}
+          {posicao && <li className="flex items-start gap-2"><span className="mt-1 inline-block size-2.5 rounded-full bg-[#2F6FD6]" aria-hidden="true" /><span><span className="font-medium text-tinta">Posição</span>: GPS do aparelho, {formatarHora(posicao.lidaEm)}; o círculo azul claro é a margem de precisão (±{posicao.precisao ?? '?'} m)</span></li>}
         </ul>
       )}
     </div>

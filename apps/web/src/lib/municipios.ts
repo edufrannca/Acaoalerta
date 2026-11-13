@@ -26,6 +26,7 @@ export const TIPOS_AJUDA: Record<string, string> = {
   ApoioEmAbrigo: 'Apoio em abrigo',
   ApoioLogisticoSeguro: 'Apoio logístico seguro',
   VoluntariadoLocalVerificado: 'Voluntariado em local verificado',
+  TransporteAssistido: 'Transporte assistido (com a equipe)',
 }
 
 export const STATUS_ENCAMINHAMENTO: Record<string, { rotulo: string; tom: 'ok' | 'espera' | 'erro' }> = {

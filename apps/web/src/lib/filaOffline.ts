@@ -29,7 +29,7 @@ export async function obter(id: string) {
  * 2) Tenta transmitir imediatamente. Se não houver rede, fica "salvo_no_aparelho".
  * O mesmo id é usado no servidor: reenvios nunca duplicam.
  */
-export async function enfileirar(p: { id: string; tipo: TipoItemFila; caminho: string; metodo?: 'POST' | 'PATCH'; corpo: unknown; referenciaId?: string }): Promise<ItemFila> {
+export async function enfileirar(p: { id: string; tipo: TipoItemFila; caminho: string; metodo?: 'POST' | 'PATCH' | 'PUT'; corpo: unknown; referenciaId?: string }): Promise<ItemFila> {
   const item: ItemFila = {
     id: p.id, tipo: p.tipo, caminho: p.caminho, metodo: p.metodo ?? 'POST', corpo: p.corpo, referenciaId: p.referenciaId,
     criadoEm: new Date().toISOString(), estado: 'salvo_no_aparelho', tentativas: 0,

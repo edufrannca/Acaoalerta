@@ -89,7 +89,44 @@ class MainActivity : AppCompatActivity() {
         pedirPermissoes()
         observarRede()
         atualizar()
+        importarDaPwa(intent)
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        importarDaPwa(intent)
+    }
+
+    /** Pedido vindo da PWA deste aparelho (link alertaemacao://importar#p=…). Mantém id, horário e GPS do emissor. */
+    private fun importarDaPwa(i: Intent?) {
+        val uri = i?.data ?: return
+        if (uri.scheme != "alertaemacao" || uri.host != "importar") return
+        val p = ImportacaoPwa.decodificar(uri.encodedFragment)
+        if (p == null) { aviso("Pedido não reconhecido", "O link não contém um pedido válido da PWA Alerta em Ação."); return }
+        if (repo.todos().any { it.ocorrencia == p.ocorrencia && it.direcao == "enviada" }) {
+            aviso("Pedido já está no app", "Este pedido já foi importado. Conecte-se a um aparelho próximo para transmitir.")
+            return
+        }
+        val m = Protocolo.montar(Protocolo.Tipo.PEDIDO, p.ocorrencia, p.remetente, chaveGrupo, p.dados, null, p.lat, p.lon, p.precisao, criadoEm = p.criadoEm)
+        val r = Repositorio.Registro(m, "enviada", 1, false, null, JSONArray(), null, null)
+        repo.salvar(r)
+        repo.evento(r, "Nível 1 — pedido da PWA importado neste aparelho (mesmo identificador; ${if (p.lat == null) "localização não informada" else "posição do emissor ±${p.precisao?.toInt() ?: "?"} m"})")
+        if (conectados.isEmpty()) repo.evento(r, "procurando aparelho — toque em Procurar aparelhos próximos")
+        else conectados.keys.forEach { enviar(it, r) }
+        atualizar()
+        intent = Intent(this, MainActivity::class.java)
+    }
+
+    /** Última posição conhecida DESTE aparelho (gateway). Vai separada e nunca substitui a do emissor. */
+    @android.annotation.SuppressLint("MissingPermission")
+    private fun posicaoDesteAparelho(): JSONObject? = runCatching {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) return null
+        val lm = getSystemService(LOCATION_SERVICE) as android.location.LocationManager
+        val l = lm.getProviders(true).mapNotNull { lm.getLastKnownLocation(it) }.maxByOrNull { it.time } ?: return null
+        if (System.currentTimeMillis() - l.time > 10 * 60_000) return null
+        JSONObject().put("latitude", Math.round(l.latitude * 1e5) / 1e5).put("longitude", Math.round(l.longitude * 1e5) / 1e5).put("precisaoMetros", l.accuracy.toDouble())
+    }.getOrNull()
 
     // ---------------- Interface ----------------
     private fun montarTela() {
@@ -442,7 +479,7 @@ class MainActivity : AppCompatActivity() {
             ?: Protocolo.agoraIso()
         io.execute {
             val inicio = System.currentTimeMillis()
-            val resp = g.entregar(r.mensagem, remetente, recebidoEm, "nearby", Build.MODEL)
+            val resp = g.entregar(r.mensagem, remetente, recebidoEm, "nearby", Build.MODEL, posicaoDesteAparelho())
             val ms = System.currentTimeMillis() - inicio
             ui.post {
                 if (resp.status == 200 && resp.corpo != null) {

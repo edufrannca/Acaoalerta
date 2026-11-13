@@ -6,7 +6,7 @@ import type { ItemFila } from '../lib/dispositivo'
 import { descricaoEstado, observarFila, sincronizar } from '../lib/filaOffline'
 import { useOnline } from '../lib/hooks'
 
-const TIPOS: Record<ItemFila['tipo'], string> = { socorro: 'Pedido de socorro', complemento: 'Informações do pedido', situacao: 'Estou seguro', localizacao: 'Localização', oferta: 'Oferta de ajuda' }
+const TIPOS: Record<ItemFila['tipo'], string> = { socorro: 'Pedido de socorro', complemento: 'Informações do pedido', situacao: 'Estou seguro', localizacao: 'Localização', oferta: 'Oferta de ajuda', oferta_pedido: 'Oferta de ajuda a um pedido', compartilhamento: 'Compartilhamento com a comunidade', retransmissao: 'Pedido de outra pessoa (lido por QR)' }
 const NIVEL: Record<ItemFila['estado'], string> = {
   salvo_no_aparelho: 'Nível 1 — salvo neste aparelho (ainda não transmitido)',
   transmitindo: 'Nível 1 — salvo neste aparelho; transmissão em andamento',

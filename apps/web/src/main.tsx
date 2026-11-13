@@ -18,6 +18,7 @@ import { Demonstracao } from './paginas/Demonstracao'
 import { Instalar } from './paginas/Instalar'
 import { Alertas } from './paginas/Alertas'
 import { Abrigos } from './paginas/Abrigos'
+import { Retransmitir } from './paginas/Retransmitir'
 import { ProvedorAcessibilidade } from './lib/acessibilidade'
 
 iniciarSincronizacaoAutomatica()
@@ -42,6 +43,7 @@ createRoot(document.getElementById('raiz')!).render(
             <Route path="/instalar" element={<Instalar />} />
             <Route path="/alertas" element={<Alertas />} />
             <Route path="/abrigos" element={<Abrigos />} />
+            <Route path="/retransmitir" element={<Retransmitir />} />
             <Route path="*" element={<p className="py-10 text-center">Página não encontrada.</p>} />
           </Routes>
         </Estrutura>

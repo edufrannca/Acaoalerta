@@ -17,6 +17,8 @@ interface ItemLista {
 interface Lista { aviso: string; escopo: string; ocorrencias: ItemLista[] }
 
 interface Evidencia { campo: string; trecho: string }
+interface OfertaEquipe { id: string; tipo: string; descricao: string; disponibilidade: string | null; status: string; criadaEm: string; historico: { em: string; descricao: string }[]; instrucaoEquipe: string | null; contatoAutorizado: string | null }
+
 interface Detalhe {
   aviso: string
   ocorrencia: {
@@ -25,7 +27,12 @@ interface Detalhe {
     localizacao: { latitude: number; longitude: number; precisaoMetros: number | null; lidaEm: string; aproximada: boolean } | null
     complemento: Record<string, unknown> | null
     historico: { em: string; tipo: string; descricao: string; ator: string | null }[]
+    localizacaoInformada?: boolean
+    posicaoRetransmissor?: { latitude: number; longitude: number; precisaoMetros: number | null; lidaEm: string; origem: string; observacao: string
+      comparacao: { distanciaMetros: number; margemMetros: number; compativeis: boolean; descricao: string } | null } | null
+    compartilhamento?: { autorizado: boolean; incluirPessoas: boolean; incluirNecessidades: boolean }
   }
+  ofertasComunitarias?: OfertaEquipe[]
   analise: {
     versaoRegras: string; nivelMaximo: string | null; regrasAvaliadasEm: string; observacao: string
     sinalizacoes: { codigo: string; nivel: string; titulo: string; explicacao: string; evidencias: Evidencia[] }[]
@@ -143,10 +150,19 @@ function DetalheOcorrencia({ id, versao, admin, central }: { id: string; versao:
           <div><dt className="text-tinta-suave">Município</dt><dd className="font-medium">{nomeMunicipio(o.municipioCodigo)}</dd></div>
           <div><dt className="text-tinta-suave">Pedido no aparelho</dt><dd className="numero-tabular font-medium">{formatarHora(o.criadaNoDispositivoEm)}</dd></div>
           <div><dt className="text-tinta-suave">Recebido no servidor</dt><dd className="numero-tabular font-medium">{formatarHora(o.recebidaNoServidorEm)}</dd></div>
-          <div><dt className="text-tinta-suave">Localização</dt><dd className="numero-tabular font-medium">{o.localizacao ? `${o.localizacao.latitude.toFixed(5)}, ${o.localizacao.longitude.toFixed(5)}${o.localizacao.aproximada ? ' (aproximada)' : ` ±${o.localizacao.precisaoMetros ?? '?'} m`}` : 'desconhecida'}</dd></div>
+          <div><dt className="text-tinta-suave">Localização do solicitante</dt><dd className="numero-tabular font-medium">{o.localizacao ? `${o.localizacao.latitude.toFixed(5)}, ${o.localizacao.longitude.toFixed(5)}${o.localizacao.aproximada ? ' (aproximada)' : ` ±${o.localizacao.precisaoMetros ?? '?'} m`}` : 'não informada pelo aparelho emissor'}</dd></div>
           <div><dt className="text-tinta-suave">Última posição</dt><dd className="numero-tabular font-medium">{o.localizacao ? formatarHora(o.localizacao.lidaEm) : '—'}</dd></div>
           <div><dt className="text-tinta-suave">Canal</dt><dd className="font-medium">{o.canal}{o.retransmitidaPor ? ` por ${o.retransmitidaPor}` : ''}</dd></div>
         </dl>
+        {o.posicaoRetransmissor && (
+          <div className="mt-3 rounded-controle bg-oceano-suave p-3 text-[14px]">
+            <p className="font-semibold text-petroleo">Aparelho que retransmitiu ({o.posicaoRetransmissor.origem === 'gps_gateway' ? 'Nearby' : 'QR'})</p>
+            <p className="numero-tabular">{o.posicaoRetransmissor.latitude.toFixed(5)}, {o.posicaoRetransmissor.longitude.toFixed(5)} ±{o.posicaoRetransmissor.precisaoMetros ?? '?'} m, {formatarHora(o.posicaoRetransmissor.lidaEm)}</p>
+            <p className="text-[13px]">{o.posicaoRetransmissor.observacao}</p>
+            {o.posicaoRetransmissor.comparacao && <p className={`mt-1 text-[13px] font-medium ${o.posicaoRetransmissor.comparacao.compativeis ? 'text-seguro' : 'text-atencao'}`}>{o.posicaoRetransmissor.comparacao.descricao}</p>}
+          </div>
+        )}
+        {o.compartilhamento && <p className="mt-2 text-[13px] text-tinta-suave">Comunidade: {o.compartilhamento.autorizado ? `resumo autorizado (pessoas: ${o.compartilhamento.incluirPessoas ? 'sim' : 'não'}, necessidades: ${o.compartilhamento.incluirNecessidades ? 'sim' : 'não'})` : 'não compartilhado'}.</p>}
         {admin && <p className="mt-2 text-[13px] text-tinta-suave">Visão de administrador: localização aproximada e sem relato (minimização de dados).</p>}
         {o.complemento && (
           <div className="mt-3 rounded-controle bg-areia p-3 text-[14px]">
@@ -170,6 +186,8 @@ function DetalheOcorrencia({ id, versao, admin, central }: { id: string; versao:
           </div>
         )}
       </Cartao>
+
+      {(d.ofertasComunitarias?.length ?? 0) > 0 && <OfertasComunitarias ofertas={d.ofertasComunitarias!} aoMudar={carregar} />}
 
       {d.analise && (
         <Cartao titulo="Análise situacional" acao={d.analise.nivelMaximo ? <Selo tom={NIVEL[d.analise.nivelMaximo]?.tom ?? 'neutro'}>{NIVEL[d.analise.nivelMaximo]?.rotulo}</Selo> : undefined}>
@@ -255,5 +273,49 @@ function DetalheOcorrencia({ id, versao, admin, central }: { id: string; versao:
         </ol>
       </Cartao>
     </div>
+  )
+}
+
+const ROTULO_OFERTA: Record<string, string> = {
+  AguardandoAvaliacao: 'Aguardando avaliação', AceitaPelaEquipe: 'Aceita · falta orientar', RecusadaPelaEquipe: 'Recusada', Encaminhada: 'Orientação enviada',
+  Concluida: 'Concluída pelo voluntário', Cancelada: 'Cancelada pelo voluntário',
+}
+
+/** Ofertas da comunidade: a equipe decide e orienta. O voluntário nunca recebe a posição da família por aqui. */
+function OfertasComunitarias({ ofertas, aoMudar }: { ofertas: OfertaEquipe[]; aoMudar: () => void }) {
+  const [instrucao, setInstrucao] = useState<Record<string, string>>({})
+  const [erro, setErro] = useState<string | null>(null)
+  const agir = async (caminho: string, json: unknown) => {
+    try { await api(caminho, { method: 'POST', json }); setErro(null) } catch (e) { setErro(e instanceof Error ? e.message : 'Falha') }
+    aoMudar()
+  }
+  return (
+    <Cartao titulo={`Ofertas da comunidade (${ofertas.length})`}>
+      <p className="mb-2 text-[13.5px] text-tinta-suave">Ajuda comunitária não é resgate. Oriente entregas em ponto seguro (abrigo, escola, posto). Não envie voluntários para áreas de risco.</p>
+      {erro && <p role="alert" className="mb-2 text-[14px] text-emergencia-escura">{erro}</p>}
+      <ul className="grid gap-2">
+        {ofertas.map((f) => (
+          <li key={f.id} className="rounded-controle bg-areia p-3 text-[14px]">
+            <div className="flex flex-wrap items-center justify-between gap-2"><span className="font-semibold">{f.descricao}</span><Selo tom={f.status === 'Encaminhada' || f.status === 'Concluida' ? 'ok' : 'espera'}>{ROTULO_OFERTA[f.status] ?? f.status}</Selo></div>
+            <p className="text-[13px] text-tinta-suave">{f.disponibilidade ?? 'Disponibilidade não informada'} · {f.contatoAutorizado ? `contato autorizado: ${f.contatoAutorizado}` : 'sem contato autorizado'}</p>
+            {f.instrucaoEquipe && <p className="mt-1 text-[13px]">Orientação enviada: {f.instrucaoEquipe}</p>}
+            {f.status === 'AguardandoAvaliacao' && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Botao variante="secundario" onClick={() => agir(`/api/painel/ofertas/${f.id}/decisao`, { aceita: true })}>Aceitar oferta</Botao>
+                <Botao variante="fantasma" onClick={() => agir(`/api/painel/ofertas/${f.id}/decisao`, { aceita: false, nota: 'Não necessária no momento' })}>Recusar</Botao>
+              </div>
+            )}
+            {f.status === 'AceitaPelaEquipe' && (
+              <div className="mt-2 grid gap-2">
+                <label className="block"><span className="text-[13px] font-medium">Orientação ao voluntário (ponto seguro, horário, o que levar)</span>
+                  <textarea className="mt-1 min-h-16 w-full rounded-controle border border-linha bg-branco p-2" maxLength={500} value={instrucao[f.id] ?? ''} onChange={(e) => setInstrucao({ ...instrucao, [f.id]: e.target.value })} />
+                </label>
+                <Botao variante="primario" disabled={(instrucao[f.id] ?? '').trim().length < 5} onClick={() => agir(`/api/painel/ofertas/${f.id}/encaminhamento`, { instrucao: instrucao[f.id] })}>Enviar orientação</Botao>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Cartao>
   )
 }
