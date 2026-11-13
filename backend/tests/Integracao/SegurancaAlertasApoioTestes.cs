@@ -156,6 +156,24 @@ public class SegurancaAlertasApoioTestes(FabricaApi f)
         var o = await f.NoEscopoAsync(sp => sp.GetRequiredService<AlertaDbContext>().Set<Ocorrencia>().FirstAsync(x => x.Id == id));
         Assert.Single(o.Complemento.Pessoas!);
         Assert.Equal(1, o.Complemento.Criancas);
+
+        // Telefone cifrado em repouso e exportação LGPD com os dados do próprio titular.
+        (await c.PutAsJsonAsync("/api/eu/perfil", new { nome = "Pessoa de Teste", telefone = "81999990000", municipioCodigo = "2611606", consenteAlertas = true, consenteLocalizacao = true, receberPush = false })).EnsureSuccessStatusCode();
+        var bruto = await f.NoEscopoAsync(async sp =>
+        {
+            var db = sp.GetRequiredService<AlertaDbContext>();
+            var cn = db.Database.GetDbConnection();
+            await cn.OpenAsync();
+            await using var cmd = cn.CreateCommand();
+            cmd.CommandText = "select \"Telefone\" from alerta.usuarios where \"Email\" = @e";
+            var par = cmd.CreateParameter(); par.ParameterName = "e"; par.Value = email; cmd.Parameters.Add(par);
+            return (string?)await cmd.ExecuteScalarAsync();
+        });
+        Assert.StartsWith("v1:", bruto);
+        var exp = await (await c.GetAsync("/api/eu/exportar")).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("81999990000", exp.GetProperty("usuario").GetProperty("telefone").GetString());
+        Assert.Single(exp.GetProperty("pedidos").EnumerateArray());
+        Assert.Single(exp.GetProperty("locais").EnumerateArray());
     }
 
     [Fact]

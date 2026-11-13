@@ -72,6 +72,7 @@ public sealed class AlertaDbContext(DbContextOptions<AlertaDbContext> opcoes) : 
             e.HasIndex(x => x.Email).IsUnique();
             e.Property(x => x.Papel).HasConversion<string>().HasMaxLength(30);
             e.Property(x => x.Email).HasMaxLength(200);
+            e.Property(x => x.Telefone).HasConversion(CifradoTexto()).HasColumnType("text");
         });
 
         b.Entity<GrupoFamiliar>(e =>
@@ -254,9 +255,13 @@ public static class CifradorCampos
             ChaveDeDesenvolvimento = true;
             return;
         }
-        var k = Convert.FromBase64String(chaveBase64);
-        if (k.Length != 32) throw new InvalidOperationException("DADOS__CHAVECIFRAGEM deve ter 32 bytes em base64.");
-        _chave = k;
+        // Preferência: 32 bytes em base64. Qualquer outro segredo (ex.: valor gerado pelo provedor de deploy)
+        // é aceito e derivado com SHA-256, desde que tenha ao menos 16 caracteres.
+        byte[]? k = null;
+        try { k = Convert.FromBase64String(chaveBase64); } catch (FormatException) { }
+        if (k is { Length: 32 }) _chave = k;
+        else if (chaveBase64.Length >= 16) _chave = SHA256.HashData(Encoding.UTF8.GetBytes("alerta-em-acao/campos:" + chaveBase64));
+        else throw new InvalidOperationException("DADOS__CHAVECIFRAGEM deve ter 32 bytes em base64 (ou um segredo com 16+ caracteres).");
         ChaveDeDesenvolvimento = false;
     }
 

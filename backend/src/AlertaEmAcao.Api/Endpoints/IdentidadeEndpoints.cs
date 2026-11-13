@@ -150,5 +150,25 @@ public static class IdentidadeEndpoints
             var os = await uow.ListarAsync(uow.Consulta<Ocorrencia>().Where(o => o.UsuarioId == uid).OrderByDescending(o => o.RecebidaNoServidorEm).Take(30), ct);
             return Results.Ok(os.Select(o => new { o.Id, status = o.Status.ToString(), o.RecebidaNoServidorEm, o.MunicipioCodigo }));
         });
+
+        // LGPD, art. 18: cópia dos dados pessoais do titular em formato estruturado.
+        eu.MapGet("/exportar", async (ClaimsPrincipal p, IUnidadeTrabalho uow, IRelogio relogio, CancellationToken ct) =>
+        {
+            var uid = p.Id()!.Value;
+            var u = await uow.PrimeiroAsync(uow.Consulta<Usuario>().Where(x => x.Id == uid), ct) ?? throw new ErroNaoEncontrado("Usuário não encontrado.");
+            var familia = await uow.PrimeiroAsync(uow.Consulta<GrupoFamiliar>().Where(x => x.UsuarioId == uid), ct);
+            var locais = await uow.ListarAsync(uow.Consulta<LocalMonitorado>().Where(x => x.UsuarioId == uid), ct);
+            var pedidos = await uow.ListarAsync(uow.Consulta<Ocorrencia>().Where(o => o.UsuarioId == uid), ct);
+            var notificacoes = await uow.ListarAsync(uow.Consulta<Notificacao>().Where(n => n.UsuarioId == uid), ct);
+            return Results.Json(new
+            {
+                geradoEm = relogio.Agora,
+                usuario = new { u.Id, u.Nome, u.Email, u.Telefone, papel = u.Papel.ToString(), u.MunicipioCodigo, u.EnderecoReferencia, u.ConsenteAlertas, u.ConsenteLocalizacao, u.ReceberPush },
+                familia = familia is null ? null : new { familia.Integrantes, familia.Contatos, familia.AtualizadoEm },
+                locais = locais.Select(x => new { x.Id, x.Apelido, x.Latitude, x.Longitude, x.MunicipioCodigo, x.Ativo, x.CriadoEm }),
+                pedidos = pedidos.Select(o => new { o.Id, status = o.Status.ToString(), o.RecebidaNoServidorEm, o.MunicipioCodigo, o.Complemento, o.Historico }),
+                notificacoes = notificacoes.Select(n => new { n.Id, n.Titulo, n.CriadaEm, resposta = n.Resposta?.ToString(), n.RespondidaEm }),
+            });
+        });
     }
 }

@@ -146,6 +146,10 @@ public static class PainelEndpoints
             Results.Ok(await db.Set<Notificacao>().AsNoTracking().OrderByDescending(n => n.CriadaEm).Take(100)
                 .Select(n => new { n.Id, n.AvisoId, n.UsuarioId, n.CriadaEm, n.LidaEm, resposta = n.Resposta.HasValue ? n.Resposta.Value.ToString() : null, n.Entregas }).ToListAsync(ct)));
 
+        // Chave do gateway SIMULADO/Nearby para um receptor de teste (usada na PoC Android).
+        demo.MapGet("/gateway-chave", (string receptor, IConfiguration cfg) =>
+            Results.Ok(new { receptor, chave = AlertaEmAcao.Contratos.ChavesCentrais.Derivar(cfg["Centrais:SegredoMestre"]!, "gateway:" + receptor) }));
+
         demo.MapGet("/auditoria", async (AlertaDbContext db, CancellationToken ct) =>
             Results.Ok(await db.Auditoria.AsNoTracking().OrderByDescending(a => a.Em).Take(200).ToListAsync(ct)));
     }
