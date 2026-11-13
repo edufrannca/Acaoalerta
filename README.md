@@ -55,10 +55,11 @@ Limites detalhados em [docs/LIMITACOES.md](docs/LIMITACOES.md).
 
 | Integrante | Responsabilidades / trilha |
 |---|---|
-| Luiz Eduardo de França Rodrigues | *a preencher* |
-| Leandra Michely | *a preencher* |
-| *demais integrantes* | *a preencher* |
-| **Validador(a) — Movimento Pró-Criança** | *a preencher* (não há registro de validação no repositório) |
+| Luiz Eduardo de França Rodrigues | Desenvolvedor FullStack |
+| Leandra Michely | Desenvolvedor Frontend |
+| Fernando Menezes | Desenvolvedor Frontend |
+| Jader Santos | Desenvolvedor Backend |
+| **Validador(a) - Maria Eduarda -  Movimento Pró-Criança** | 
 
 ## Tecnologias
 
