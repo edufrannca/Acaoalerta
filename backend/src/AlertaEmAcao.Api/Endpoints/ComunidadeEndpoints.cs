@@ -138,7 +138,9 @@ public static class ComunidadeEndpoints
                 busca = origem is null ? null : new { centro = "sua localização atual (não armazenada)", raioKm = raio },
                 demonstrativos = demo,
                 pedidos = itens,
-                naoCompartilhados = todas.Count(o => !o.Compartilhamento.Autorizado),
+                // Só a contagem, dentro do mesmo raio da busca (ou município), nunca detalhes.
+                naoCompartilhados = todas.Count(o => !o.Compartilhamento.Autorizado
+                    && (origem is null || (o.Ponto is { } pn && origem.Value.DistanciaMetros(pn) <= raio * 1000))),
                 agregados,
                 agregadosOmitidos = agregados is null && compartilhadas.Count > 0
                     ? $"Totais da região aparecem a partir de {ResumoComunitario.MinimoParaAgregar} pedidos compartilhados, para proteger as famílias." : null,
