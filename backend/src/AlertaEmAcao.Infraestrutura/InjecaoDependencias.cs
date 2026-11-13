@@ -68,8 +68,13 @@ public static class InjecaoDependencias
         Http<IEnviadorPush, EnviadorWebPush>(TimeSpan.FromSeconds(15));
         var provedor = (cfg["IA:Provedor"] ?? "").Trim().ToLowerInvariant();
         if (provedor == "anthropic") Http<IProvedorIA, ProvedorIAAnthropic>(TimeSpan.FromSeconds(50));
-        else if (provedor is "openai" or "openai-compat" or "groq") Http<IProvedorIA, ProvedorIACompativelOpenAI>(TimeSpan.FromSeconds(50));
+        else if (provedor is "openai" or "openai-compat" or "groq")
+        {
+            Http<IProvedorIA, ProvedorIACompativelOpenAI>(TimeSpan.FromSeconds(50));
+            Http<Modulos.InteligenciaTerritorial.IExplicadorIA, ProvedorIACompativelOpenAI>(TimeSpan.FromSeconds(15));
+        }
         else s.TryAddSingleton<IProvedorIA, ProvedorIANulo>();
+        s.TryAddSingleton<Modulos.InteligenciaTerritorial.IExplicadorIA, Modulos.InteligenciaTerritorial.ExplicadorIANulo>();
 
         // Casos de uso
         s.AddScoped<ServicoTerritorio>();
@@ -83,6 +88,8 @@ public static class InjecaoDependencias
         s.AddScoped<ServicoConsentimentos>();
         s.AddScoped<ServicoVinculos>();
         s.AddScoped<ServicoNotificacaoFamiliar>();
+        s.AddScoped<Modulos.InteligenciaTerritorial.ServicoIndicadorAlagamento>();
+        s.AddScoped<Modulos.Notificacoes.ServicoAlertaPreventivo>();
         s.AddScoped<ServicoFontesReferencia>();
         s.TryAddSingleton<INotificadorTempoReal, NotificadorNulo>();
 
@@ -92,6 +99,7 @@ public static class InjecaoDependencias
             s.AddHostedService<TrabalhoAnaliseIA>();
             s.AddHostedService<TrabalhoAlertas>();
             if (cfg.GetValue("Trabalhos:FontesExternas", true)) s.AddHostedService<TrabalhoFontesReferencia>();
+            if (cfg.GetValue("Trabalhos:IndicadorAlagamento", true)) s.AddHostedService<TrabalhoIndicadorAlagamento>();
         }
         return s;
     }

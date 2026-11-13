@@ -10,6 +10,8 @@ public interface INotificadorTempoReal
     Task AvisoPublicadoAsync(Guid avisoId, bool oficial, IReadOnlyCollection<string> municipios);
     Task NotificacaoUsuarioAsync(Guid usuarioId, object conteudo);
     Task OfertaAtualizadaAsync(Guid ofertaId, string organizacaoCodigo);
+    /// <summary>Novas leituras de chuva processadas: telas abertas recarregam o indicador (sem dados pessoais).</summary>
+    Task CondicoesAtualizadasAsync(object resumo) => Task.CompletedTask;
 }
 
 public sealed class NotificadorNulo : INotificadorTempoReal

@@ -185,6 +185,8 @@ public sealed class NotificadorSignalR(IHubContext<HubOperacao> hub, IServiceSco
     public Task AvisoPublicadoAsync(Guid avisoId, bool oficial, IReadOnlyCollection<string> municipios) =>
         hub.Clients.All.SendAsync(EventosTempoReal.AvisoPublicado, new { avisoId, oficial, municipios });
 
+    public Task CondicoesAtualizadasAsync(object resumo) => hub.Clients.All.SendAsync("condicoesAtualizadas", resumo);
+
     public Task NotificacaoUsuarioAsync(Guid usuarioId, object conteudo) =>
         hub.Clients.Group($"usuario:{usuarioId}").SendAsync(EventosTempoReal.Notificacao, conteudo);
 

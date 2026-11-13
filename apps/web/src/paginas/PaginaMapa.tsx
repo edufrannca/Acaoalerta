@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router'
 import type { Map as MapaML } from 'maplibre-gl'
 import { Mapa, ROTULOS_CAMADAS, type Camada } from '../componentes/Mapa'
 import { LeitorVoz } from '../componentes/LeitorVoz'
+import { CondicoesAlagamento } from '../componentes/CondicoesAlagamento'
 import { Selo } from '../componentes/Base'
 import { CartaoPedido, FormOferta, ResumoRegiao } from '../componentes/PedidosComunidade'
 import { usePedidosComunitarios, type RespostaComunidade } from '../lib/comunidade'
@@ -60,6 +61,7 @@ export function PaginaMapa() {
   const painel = (
     <div className="grid gap-3">
       {filtro === 'pedidos' && pedidos}
+      {(filtro === 'tudo' || filtro === 'chuva') && <CondicoesAlagamento compacto latitude={posicao?.latitude ?? null} longitude={posicao?.longitude ?? null} regiao={rotulo} />}
       <PainelInfo ctx={ctx.dados} doCache={ctx.doCache} abrigos={abrigos.dados} posicao={posicao} municipio={municipio || ctx.dados?.municipio?.codigo || null} filtro={filtro} gps={gps} iniciar={iniciar} />
       {filtro === 'tudo' && pedidos}
     </div>

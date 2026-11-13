@@ -9,7 +9,7 @@ export function BotaoAcessibilidade() {
     <div className="relative">
       <button type="button" aria-expanded={aberto} aria-controls="painel-acessibilidade" onClick={() => setAberto(!aberto)}
         className="min-h-11 min-w-11 rounded-controle border border-linha bg-branco px-2.5 text-[16px] font-bold text-petroleo hover:bg-fundo">
-        <span aria-hidden="true">Aa</span><span className="sr-only">Acessibilidade: tamanho do texto e contraste</span>
+        <span aria-hidden="true">Aa</span><span className="sr-only">Acessibilidade: texto, contraste, som e vibração</span>
       </button>
       {aberto && (
         <div id="painel-acessibilidade" role="dialog" aria-label="Acessibilidade" className="absolute right-0 z-40 mt-2 w-72 rounded-cartao bg-branco p-4 text-tinta shadow-lg ring-1 ring-linha">
@@ -25,6 +25,17 @@ export function BotaoAcessibilidade() {
             <input type="checkbox" className="h-6 w-6" checked={prefs.altoContraste} onChange={(e) => alterar({ altoContraste: e.target.checked })} />
             Alto contraste
           </label>
+          <label className="mt-3 flex min-h-11 items-center gap-3 text-[15px]">
+            <input type="checkbox" className="h-6 w-6" checked={prefs.som} onChange={(e) => alterar({ som: e.target.checked })} />
+            Sinal sonoro quando a atenção a alagamentos aumentar
+          </label>
+          {'vibrate' in navigator && (
+            <label className="mt-3 flex min-h-11 items-center gap-3 text-[15px]">
+              <input type="checkbox" className="h-6 w-6" checked={prefs.vibrar} onChange={(e) => alterar({ vibrar: e.target.checked })} />
+              Vibrar quando a atenção aumentar
+            </label>
+          )}
+          <p className="mt-1 text-[12.5px] text-tinta-suave">Todo alerta aparece também por escrito; nada é só sonoro.</p>
           <label className="mt-3 block text-[13.5px] text-tinta-suave">Voz da leitura
             <select className="mt-1 block min-h-11 w-full rounded-controle border border-linha bg-branco px-2 text-[15px] text-tinta" value={prefs.voz}
               onChange={(e) => alterar({ voz: e.target.value as 'auto' | 'aparelho' | 'servidor' })}>

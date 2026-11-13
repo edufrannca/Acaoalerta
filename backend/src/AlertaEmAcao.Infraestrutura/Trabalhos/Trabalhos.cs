@@ -130,3 +130,10 @@ public sealed class TrabalhoFontesReferencia(IServiceScopeFactory e, ILogger<Tra
         await sp.GetRequiredService<IFonteChuva>().ObterRmrAsync(ct);
     }
 }
+
+/// <summary>A cada 5 min (cache da APAC também de 5 min): divulga novas leituras e avisa agravamentos nos locais monitorados.</summary>
+public sealed class TrabalhoIndicadorAlagamento(IServiceScopeFactory e, ILogger<TrabalhoIndicadorAlagamento> l) : TrabalhoPeriodico(e, l, TimeSpan.FromMinutes(5))
+{
+    protected override Task ExecutarCicloAsync(IServiceProvider sp, CancellationToken ct) =>
+        sp.GetRequiredService<Modulos.Notificacoes.ServicoAlertaPreventivo>().ProcessarAsync(ct);
+}

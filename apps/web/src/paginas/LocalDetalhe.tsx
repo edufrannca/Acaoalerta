@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { Botao, Cartao, Selo, Vazio } from '../componentes/Base'
 import { LeitorVoz } from '../componentes/LeitorVoz'
+import { CondicoesAlagamento } from '../componentes/CondicoesAlagamento'
 import { Mapa } from '../componentes/Mapa'
 import { CartaoPedido } from '../componentes/PedidosComunidade'
 import { api, formatarHora } from '../lib/api'
@@ -55,6 +56,7 @@ export function LocalDetalhe() {
           <p className="text-[12.5px] text-tinta-suave">Ponto azul: o local monitorado. Informações calculadas para este ponto, não para onde você está agora.</p>
         </div>
         <div className="grid content-start gap-4">
+          <CondicoesAlagamento latitude={l.latitude} longitude={l.longitude} regiao={`${l.apelido}${l.municipio ? `, ${l.municipio}` : ''}`} titulo="Chuva e atenção a alagamentos neste local" />
           <ClimaRisco ctx={ctx.dados} doCache={ctx.doCache} temPosicao />
           {ctx.dados && <p className="text-[12.5px] text-tinta-suave">Atualizado às {formatarHora(ctx.dados.avaliadoEm)}; nova consulta a cada 5 minutos com o app aberto. Os dados de chuva seguem a frequência de publicação das fontes (APAC/INMET).</p>}
           {resumo && <LeitorVoz texto={resumo} rotulo="Ouvir situação deste local" />}

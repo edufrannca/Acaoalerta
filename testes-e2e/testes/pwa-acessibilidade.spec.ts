@@ -92,3 +92,23 @@ test('acessibilidade (axe) no cadastro com autorizações, perfil e cadastro de 
   await expect(page.getByRole('heading', { name: 'Novo local monitorado' })).toBeVisible()
   await analisar()
 })
+
+test('condições de chuva e alagamentos: texto, teclado, axe e celular sem rolagem lateral', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+  const secao = page.getByRole('region', { name: 'Condições de chuva e atenção a alagamentos' })
+  await expect(secao).toBeVisible()
+  await expect(secao.getByText(/Nível de atenção a alagamentos:/)).toBeAttached()
+  await expect(secao.getByText(/não existem dados suficientes para estimar|Sem estação|Sem leitura|APAC/).first()).toBeVisible()
+  const ouvir = secao.getByRole('button', { name: /Ouvir informações/ })
+  await ouvir.focus()
+  await expect(ouvir).toBeFocused()
+  expect((await ouvir.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
+  await expect(page.getByRole('button', { name: /Preciso de socorro/ })).toBeVisible() // SOS em 1 toque continua
+  const r = await new AxeBuilder({ page }).include('section[aria-labelledby^="titulo-alag"]').withTags(['wcag2a', 'wcag2aa', 'wcag22aa']).analyze()
+  expect(r.violations.map((v) => `${v.id}: ${v.nodes[0]?.target}`)).toEqual([])
+  await page.getByRole('button', { name: /Acessibilidade/ }).click()
+  await expect(page.getByRole('checkbox', { name: /Sinal sonoro/ })).not.toBeChecked()
+  await expect(page.getByText(/nada é só sonoro/)).toBeVisible()
+})

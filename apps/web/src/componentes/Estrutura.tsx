@@ -71,7 +71,7 @@ export function Estrutura({ children }: { children: ReactNode }) {
   const [avisoFamilia, setAvisoFamilia] = useState<{ titulo: string; mensagem: string; url: string } | null>(null)
   useEvento('notificacao', (d) => {
     const n = d as { tipo?: string; titulo?: string; mensagem?: string; url?: string }
-    if (n?.tipo === 'familia' && n.url) setAvisoFamilia({ titulo: n.titulo ?? 'Aviso de familiar', mensagem: n.mensagem ?? '', url: n.url })
+    if ((n?.tipo === 'familia' || n?.tipo === 'preventivo') && n.url) setAvisoFamilia({ titulo: n.titulo ?? 'Aviso de familiar', mensagem: n.mensagem ?? '', url: n.url })
   })
   useEffect(() => {
     const f = () => setNovaVersao(true)

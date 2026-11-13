@@ -962,6 +962,28 @@ namespace AlertaEmAcao.Infraestrutura.Persistencia.Migracoes
                     b.ToTable("assinaturas_push", "alerta");
                 });
 
+            modelBuilder.Entity("AlertaEmAcao.Modulos.Notificacoes.EstadoIndicadorLocal", b =>
+                {
+                    b.Property<Guid>("LocalId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("AvaliadoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("Episodio")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Nivel")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("LocalId");
+
+                    b.ToTable("estados_indicador_local", "alerta");
+                });
+
             modelBuilder.Entity("AlertaEmAcao.Modulos.Notificacoes.Notificacao", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1070,6 +1092,58 @@ namespace AlertaEmAcao.Infraestrutura.Persistencia.Migracoes
                         .IsUnique();
 
                     b.ToTable("notificacoes_familiares", "alerta");
+                });
+
+            modelBuilder.Entity("AlertaEmAcao.Modulos.Notificacoes.NotificacaoPreventiva", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Chave")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTimeOffset>("CriadaEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Entregas")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset?>("LidaEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("LocalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Mensagem")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Nivel")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Url")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId", "Chave")
+                        .IsUnique();
+
+                    b.ToTable("notificacoes_preventivas", "alerta");
                 });
 
             modelBuilder.Entity("AlertaEmAcao.Modulos.Ocorrencias.ConfirmacaoEntrega", b =>

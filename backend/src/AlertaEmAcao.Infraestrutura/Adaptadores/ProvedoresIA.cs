@@ -95,7 +95,7 @@ public sealed class FalhaProvedorIA(string tipo, string mensagem) : Exception(me
 }
 
 /// <summary>APIs compatíveis com OpenAI Chat Completions (Groq, OpenAI, OpenRouter, Ollama…).</summary>
-public sealed class ProvedorIACompativelOpenAI(HttpClient http, IOptions<OpcoesIA> op) : IProvedorIA
+public sealed class ProvedorIACompativelOpenAI(HttpClient http, IOptions<OpcoesIA> op) : IProvedorIA, Modulos.InteligenciaTerritorial.IExplicadorIA
 {
     public const string UrlGroq = "https://api.groq.com/openai/v1";
     public const string ModeloGroqPadrao = "openai/gpt-oss-20b";
@@ -107,19 +107,25 @@ public sealed class ProvedorIACompativelOpenAI(HttpClient http, IOptions<OpcoesI
     public string Descricao => EhGroq ? $"Groq ({Modelo})" : $"API compatível com OpenAI ({Modelo})";
     private string NomeProvedor => EhGroq ? "groq" : "openai-compat";
 
-    public async Task<RespostaBrutaIA> AnalisarAsync(EntradaAnaliseIA entrada, CancellationToken ct)
+    public Task<RespostaBrutaIA> AnalisarAsync(EntradaAnaliseIA entrada, CancellationToken ct) =>
+        EnviarAsync(PromptAnalise.Sistema, PromptAnalise.Usuario(entrada), 2000, ct);
+
+    /// <summary>Explicação curta do indicador de alagamento (mesmo provedor e chave, sem dados pessoais).</summary>
+    public async Task<string> ExplicarAsync(string sistema, string usuario, CancellationToken ct) => (await EnviarAsync(sistema, usuario, 500, ct)).Json;
+
+    private async Task<RespostaBrutaIA> EnviarAsync(string sistema, string usuario, int maxTokens, CancellationToken ct)
     {
         var sw = Stopwatch.StartNew();
         var corpoReq = new Dictionary<string, object?>
         {
             ["model"] = Modelo,
             ["temperature"] = 0,
-            ["max_completion_tokens"] = 2000,
+            ["max_completion_tokens"] = maxTokens,
             ["response_format"] = new { type = "json_object" },
             ["messages"] = new object[]
             {
-                new { role = "system", content = PromptAnalise.Sistema },
-                new { role = "user", content = PromptAnalise.Usuario(entrada) },
+                new { role = "system", content = sistema },
+                new { role = "user", content = usuario },
             },
         };
         // Modelos de raciocínio (gpt-oss): esforço baixo reduz latência; o raciocínio não volta no conteúdo.

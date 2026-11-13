@@ -115,6 +115,7 @@ function PerfilLogado() {
           </div>
         </Cartao>
         <NotificacoesFamilia />
+        <NotificacoesPreventivas />
         <Notificacoes />
       </div>
       <div className="grid content-start gap-4">
@@ -252,6 +253,31 @@ function Acompanhar() {
 }
 
 interface NotifFamilia { id: string; titulo: string; mensagem: string; ocorrenciaId: string; criadaEm: string; lidaEm: string | null; entregas: { canal: string; resultado: string }[] }
+
+interface NotifPreventiva { id: string; localId: string; nivel: string; titulo: string; mensagem: string; url: string | null; criadaEm: string; lidaEm: string | null }
+
+function NotificacoesPreventivas() {
+  const { dados, recarregar } = useDados<NotifPreventiva[]>('/api/eu/notificacoes-preventivas', { intervaloMs: 60000 })
+  useEvento('notificacao', () => { void recarregar() })
+  if (!dados || dados.length === 0) return null
+  return (
+    <Cartao titulo="Avisos preventivos de chuva">
+      <p className="mb-2 text-[13px] text-tinta-suave">Avisos para locais monitorados quando a atenção a alagamentos aumenta. Não confirmam alagamento.</p>
+      <ul className="grid gap-2">
+        {dados.slice(0, 10).map((n) => (
+          <li key={n.id}>
+            <Link to={n.url ?? '/'} onClick={() => { void api(`/api/eu/notificacoes-preventivas/${n.id}/lida`, { method: 'POST' }) }}
+              className={`block rounded-controle p-3 text-[14px] ${n.lidaEm ? 'bg-areia' : 'bg-atencao-claro ring-1 ring-atencao'}`}>
+              <span className="font-semibold">{n.titulo}</span>{!n.lidaEm && <span className="ml-2 text-[12.5px] font-semibold">(novo)</span>}
+              <span className="block">{n.mensagem}</span>
+              <span className="mt-1 block text-[12.5px] text-tinta-suave">{formatarHora(n.criadaEm)}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Cartao>
+  )
+}
 
 function NotificacoesFamilia() {
   const { dados, recarregar } = useDados<NotifFamilia[]>('/api/eu/notificacoes-familia', { intervaloMs: 30000 })

@@ -29,3 +29,20 @@ Textos pré-aprovados (`OrientacoesPreventivas`), adaptados de orientações pú
 
 ## Limitações
 Bases abertas de risco geológico e hidrológico só foram encontradas para parte do Recife. Setores do CPRM/SGB e mapeamentos municipais podem ser integrados com o mesmo adaptador (`IFonteAreasRisco`).
+
+## Indicador de atenção a alagamentos (critérios `alagamento-2026.11.1`)
+
+`GET /api/territorio/alagamento?lat&lon[&regiao]` — motor determinístico (`MotorIndicadorAlagamento`); a IA (Groq) só redige a explicação e é descartada se trouxer número fora dos fatos, percentual, probabilidade ou afirmação de alagamento não verificado.
+
+| Nível | Critério (qualquer um) |
+|---|---|
+| Crítico | aviso INMET de chuva "Grande Perigo"; chuva > 50 mm/h; chuva forte + ocorrência verificada a ≤ 1 km (6 h) |
+| Elevado | aviso "Perigo"; chuva forte (10–50 mm/h, classes OMM); ocorrência verificada a ≤ 1 km (6 h) |
+| Atenção | aviso "Perigo Potencial"; chuva moderada; chuva fraca em alta; estação vizinha (≤ 5 km) ≥ 2 classes acima |
+| Sem evidência suficiente | nenhum dos anteriores, fonte indisponível ou leitura antiga |
+
+Estação usada: a mais próxima com leitura ≤ 75 min, até 10 km (confiança alta ≤ 2 km, média ≤ 5 km). Áreas de risco documentadas do Recife (encostas) entram só como contexto.
+
+**Estimativa temporal:** não há modelo calibrado nem validação histórica; a resposta sempre traz "Há condições que exigem atenção, mas não existem dados suficientes para estimar quando poderá ocorrer um alagamento." Faltam maré, relevo e drenagem; chuva medida na estação não comprova alagamento no ponto.
+
+**Atualização e avisos:** `TrabalhoIndicadorAlagamento` (5 min) reutiliza o cache da APAC, emite `condicoesAtualizadas` (SignalR) quando há nova leitura e, para locais monitorados com consentimento de alertas, avisa dono e familiares autorizados (vínculo ativo + consentimento D) só quando o nível sobe a Elevado/Crítico — uma vez por episódio (`notificacoes_preventivas`, chave única). Nunca abre SOS. Web Push é tentativa extra: a PWA não garante execução em segundo plano nem entrega sem conexão.

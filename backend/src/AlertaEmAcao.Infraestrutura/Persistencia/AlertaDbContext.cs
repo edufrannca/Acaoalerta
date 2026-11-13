@@ -125,6 +125,22 @@ public sealed class AlertaDbContext(DbContextOptions<AlertaDbContext> opcoes) : 
             e.Property(x => x.Origem).HasMaxLength(20);
         });
 
+        b.Entity<EstadoIndicadorLocal>(e =>
+        {
+            e.ToTable("estados_indicador_local"); e.HasKey(x => x.LocalId);
+            e.Property(x => x.Nivel).HasConversion<string>().HasMaxLength(30);
+        });
+
+        b.Entity<NotificacaoPreventiva>(e =>
+        {
+            e.ToTable("notificacoes_preventivas"); e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.UsuarioId, x.Chave }).IsUnique();
+            e.Property(x => x.Chave).HasMaxLength(120);
+            e.Property(x => x.Url).HasMaxLength(200);
+            e.Property(x => x.Nivel).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.Entregas).HasConversion(JsonConv<List<EntregaCanal>>(), Comparador<List<EntregaCanal>>()).HasColumnType("jsonb");
+        });
+
         b.Entity<NotificacaoFamiliar>(e =>
         {
             e.ToTable("notificacoes_familiares"); e.HasKey(x => x.Id);

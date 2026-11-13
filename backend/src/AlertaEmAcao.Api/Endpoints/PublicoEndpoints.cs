@@ -28,6 +28,7 @@ public static class Endpoints
         app.MapVozLocalidade();
         app.MapComunidade();
         app.MapResidencias();
+        app.MapAlagamento();
     }
 
     public static object Fonte(ReferenciaFonte f) => new { f.Nome, f.Url, f.AtualizadoEm, f.Oficial, f.Demonstrativa };

@@ -88,10 +88,31 @@ public sealed class EnviadorPushFalso : IEnviadorPush
 
 public sealed class FonteChuvaFalsa(IRelogio relogio) : IFonteChuva
 {
+    /// <summary>Leituras extras sintéticas para cenários de chuva (testes de indicador).</summary>
+    public static List<LeituraChuva> Extras { get; } = [];
     public Task<ResultadoFonteChuva> ObterRmrAsync(CancellationToken ct) => Task.FromResult(new ResultadoFonteChuva(
     [
         new LeituraChuva("t1", "[TESTE] Estação Várzea", -8.036, -34.98, "Recife", "2611606", relogio.Agora.AddMinutes(-15), 2, 5, 8, 12, 30, 45, 60, "APAC/SIRH (amostra de teste)"),
+        .. Extras.Select(e => e with { UltimaLeituraEm = relogio.Agora.AddMinutes(-15) }),
     ], relogio.Agora, true, null, "APAC (teste)", "http://teste"));
+}
+
+/// <summary>IA de explicação controlável: responde fiel, inventa números ou falha.</summary>
+public sealed class ExplicadorFalso : AlertaEmAcao.Modulos.InteligenciaTerritorial.IExplicadorIA
+{
+    public string Modo { get; set; } = "fiel";
+    public int Chamadas;
+    public bool Configurado => true;
+    public Task<string> ExplicarAsync(string sistema, string usuario, CancellationToken ct)
+    {
+        Interlocked.Increment(ref Chamadas);
+        return Modo switch
+        {
+            "falha" => throw new HttpRequestException("Groq fora do ar (simulado)"),
+            "inventa" => Task.FromResult("{\"explicacao\":\"Há 85% de chance de a rua alagar em 40 minutos.\"}"),
+            _ => Task.FromResult("{\"explicacao\":\"A estação próxima registrou chuva forte na última hora. Evite áreas que costumam alagar e acompanhe os avisos oficiais.\"}"),
+        };
+    }
 }
 
 public sealed class FonteAvisosFalsa : IFonteAvisosOficiais
@@ -111,6 +132,7 @@ public sealed class FabricaApi : WebApplicationFactory<Program>, IAsyncLifetime
     public ProvedorIAFalso IA { get; } = new();
     public GeocodificadorFalso Geo { get; } = new();
     public EnviadorPushFalso Push { get; } = new();
+    public ExplicadorFalso Explicador { get; } = new();
     public string Conexao => $"{Base};Database={_banco}";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -134,6 +156,7 @@ public sealed class FabricaApi : WebApplicationFactory<Program>, IAsyncLifetime
             s.AddSingleton<IFonteAvisosOficiais, FonteAvisosFalsa>();
             s.AddSingleton<IGeocodificador>(Geo);
             s.AddSingleton<IEnviadorPush>(Push);
+            s.AddSingleton<AlertaEmAcao.Modulos.InteligenciaTerritorial.IExplicadorIA>(Explicador);
             s.AddHttpClient<IClienteCentral, ClienteCentralHttp>().ConfigurePrimaryHttpMessageHandler(() => Server.CreateHandler());
             s.AddHttpClient("retorno-centrais").ConfigurePrimaryHttpMessageHandler(() => Server.CreateHandler());
         });

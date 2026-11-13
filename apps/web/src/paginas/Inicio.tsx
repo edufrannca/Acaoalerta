@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { Botao, Cartao, Fonte, Selo, classeEntrada } from '../componentes/Base'
 import { LeitorVoz } from '../componentes/LeitorVoz'
+import { CondicoesAlagamento } from '../componentes/CondicoesAlagamento'
 import { ContatosEmergencia } from '../componentes/Contatos'
 import { CartaoPedido, FormOferta } from '../componentes/PedidosComunidade'
 import { Mapa } from '../componentes/Mapa'
@@ -108,6 +109,7 @@ export function Inicio() {
           </div>
         </section>
 
+        <CondicoesAlagamento latitude={posicao?.latitude ?? null} longitude={posicao?.longitude ?? null} regiao={ctx.dados?.municipio?.nome ? `Perto de você, ${ctx.dados.municipio.nome}` : null} />
         <ClimaRisco ctx={ctx.dados} doCache={ctx.doCache} temPosicao={!!posicao} />
         <PedidosProximosInicio posicao={posicao} municipio={municipio} />
         <div className="hidden lg:block">
